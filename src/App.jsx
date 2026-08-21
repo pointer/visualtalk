@@ -11,7 +11,7 @@ function App() {
   const [isCameraOff, setIsCameraOff] = createSignal(false);
   let room;
 
-  const LIVEKIT_URL = "wss://visual-talk-84j2fcwy.livekit.cloud";
+  const LIVEKIT_URL = "";
   const TOKEN = "YOUR OWN TOKEB";
 
   onMount(async () => {
