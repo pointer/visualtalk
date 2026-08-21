@@ -1,3 +1,4 @@
+
 import { createSignal, onMount, onCleanup } from "solid-js";
 import { Room, RoomEvent, Track } from "livekit-client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -11,28 +12,27 @@ function App() {
   let room;
 
   const LIVEKIT_URL = "wss://visual-talk-84j2fcwy.livekit.cloud";
-  // ⚠️ REPLACE THIS with a secure token generator as soon as possible
-  const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJBUElzakphYnFxVHhTbWgiLCJzdWIiOiJsb2NhbCIsImV4cCI6MTc4NzMxOTc1NSwibmJmIjoxNzg3MjI5NzU1LCJpYXQiOjE3ODcyMjk3NTUsImlkZW50aXR5IjoibG9jYWwiLCJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6ImdlbmVyYWwiLCJjYW5QdWJsaXNoIjp0cnVlLCJjYW5TdWJzY3JpYmUiOnRydWUsImNhblB1Ymxpc2hEYXRhIjp0cnVlfX0.Sv3mK0QPH_kQHAIq9t5lhajwXSmNf5GNPRh6irYJFfA";
+  const TOKEN = "YOUR OWN TOKEB";
 
   onMount(async () => {
     room = new Room();
 
-    // --- Handle local track publishing to add yourself to grid ---
+    // --- Local participant preview ---
     room.on(RoomEvent.LocalTrackPublished, (track) => {
       if (track.kind === Track.Kind.Video) {
-        setParticipants((prev) => [
-          ...prev,
-          {
-            id: "local",
-            name: "You (Local)",
+        setParticipants((prev) => {
+          if (prev.some(p => p.id === 'local')) return prev;
+          return [...prev, {
+            id: 'local',
+            name: 'You (Local)',
             isLocal: true,
-            videoTrack: track,
-          },
-        ]);
+            videoTrack: track, // publication
+          }];
+        });
       }
     });
 
-    // --- Handle remote participant video ---
+    // --- Remote participants ---
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       if (track.kind === Track.Kind.Video) {
         setParticipants((prev) => [
@@ -41,7 +41,7 @@ function App() {
             id: participant.identity,
             name: participant.name || participant.identity,
             isLocal: false,
-            videoTrack: track,
+            videoTrack: publication,
           },
         ]);
       }
@@ -55,7 +55,6 @@ function App() {
 
     try {
       await room.connect(LIVEKIT_URL, TOKEN);
-      // Enable camera and mic
       await room.localParticipant.setCameraEnabled(true);
       await room.localParticipant.setMicrophoneEnabled(true);
     } catch (err) {
@@ -69,34 +68,49 @@ function App() {
     }
   });
 
-  // --- Button handlers ---
+  // --- Button Handlers ---
+
   const toggleMute = async () => {
-    const micTrack = room.localParticipant.microphoneTrack;
-    if (micTrack) {
-      const newState = !micTrack.isEnabled;
-      await micTrack.setEnabled(newState);
-      setIsMuted(!newState); // true = muted
-    }
+    if (!room) return;
+    const newMutedState = !isMuted();
+    await room.localParticipant.setMicrophoneEnabled(!newMutedState);
+    setIsMuted(newMutedState);
   };
 
   const toggleCamera = async () => {
-    const videoTrack = room.localParticipant.videoTrack;
-    if (videoTrack) {
-      const newState = !videoTrack.isEnabled;
-      await videoTrack.setEnabled(newState);
-      setIsCameraOff(!newState); // true = camera off
-    }
+    if (!room) return;
+    const newOffState = !isCameraOff();
+    // Toggle camera state
+    await room.localParticipant.setCameraEnabled(!newOffState);
+    setIsCameraOff(newOffState);
+
+    // 🔥 Refresh local participant entry to force video re-attachment
+    const currentVideoPub = room.localParticipant.videoTrack; // get fresh publication
+    setParticipants((prev) =>
+      prev.map((p) =>
+        p.id === 'local'
+          ? { ...p, videoTrack: currentVideoPub } // new object -> triggers re-render
+          : p
+      )
+    );
   };
 
-  const leaveCall = () => {
-    getCurrentWindow().close();
+  const leaveCall = async () => {
+    if (room) {
+      try { await room.disconnect(); } catch (e) {}
+    }
+    try {
+      await getCurrentWindow().close();
+    } catch (e) {
+      window.close();
+    }
   };
 
   return (
     <div class="flex flex-col h-screen w-screen bg-slate-950 text-white select-none">
       <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
         <h1 class="text-lg font-semibold tracking-wide">VisualTalk Meeting</h1>
-        <div class="text-sm text-slate-400">Room: general</div>
+        <div class="text-sm text-slate-400">Room: #general</div>
       </header>
 
       <main class="flex-1 overflow-hidden">
@@ -107,9 +121,7 @@ function App() {
         <button
           onClick={toggleMute}
           class={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-            isMuted()
-              ? "bg-red-600 hover:bg-red-500"
-              : "bg-slate-800 hover:bg-slate-700"
+            isMuted() ? "bg-red-600 hover:bg-red-500" : "bg-slate-800 hover:bg-slate-700"
           }`}
         >
           {isMuted() ? "Unmute" : "Mute"}
@@ -117,9 +129,7 @@ function App() {
         <button
           onClick={toggleCamera}
           class={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-            isCameraOff()
-              ? "bg-red-600 hover:bg-red-500"
-              : "bg-slate-800 hover:bg-slate-700"
+            isCameraOff() ? "bg-red-600 hover:bg-red-500" : "bg-slate-800 hover:bg-slate-700"
           }`}
         >
           {isCameraOff() ? "Start Camera" : "Stop Camera"}
