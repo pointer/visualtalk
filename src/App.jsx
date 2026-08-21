@@ -4,6 +4,21 @@ import { Room, RoomEvent, Track } from "livekit-client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { VideoGrid } from "./components/VideoGrid";
 import "./App.css";
+import conf from "../conf.json";
+
+
+// Source - https://stackoverflow.com/a/71950220
+// Posted by gildniy
+// Retrieved 2026-08-21, License - CC BY-SA 4.0
+
+async function getData(){
+  try{
+    const response =  await import('../conf.JSON')
+    return response.json()
+  }catch(err){
+    return err
+  }
+}
 
 function App() {
   const [participants, setParticipants] = createSignal([]);
@@ -11,8 +26,15 @@ function App() {
   const [isCameraOff, setIsCameraOff] = createSignal(false);
   let room;
 
-  const LIVEKIT_URL = "";
-  const TOKEN = "YOUR OWN TOKEB";
+  // fetch("../conf.JSON")
+  // .then(res => res.json())
+  // .then(data => console.log(data))
+  // const data = getData();
+  console.log(conf);
+  const LIVEKIT_URL = conf.LIVEKIT_URL;
+  const TOKEN = conf.TOKEN;
+
+
 
   onMount(async () => {
     room = new Room();
