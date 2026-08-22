@@ -13,22 +13,18 @@ export function VideoGrid(props) {
 
             let stream = null;
             if (participant.stream) {
-              // Direct MediaStream (used for local preview fallback)
+              // Direct MediaStream (local preview)
               stream = participant.stream;
             } else if (participant.videoTrack) {
-              // Unwrap the track from the publication
+              // Remote or LiveKit track
               const trackObj = participant.videoTrack.track;
               if (trackObj && trackObj.mediaStreamTrack) {
                 stream = new MediaStream([trackObj.mediaStreamTrack]);
-                console.log(`Attaching stream for ${participant.name}`, stream);
-              } else {
-                console.warn(`Track not ready for ${participant.name}`, participant.videoTrack);
               }
             }
 
             if (stream) {
               currentEl.srcObject = stream;
-              // Force play to ensure it starts
               currentEl.play().catch(err => console.warn("Play failed:", err));
             } else {
               currentEl.srcObject = null;

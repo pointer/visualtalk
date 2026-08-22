@@ -6,5 +6,20 @@
     <true/>
     <key>com.apple.security.device.microphone</key>
     <true/>
+    <!-- Required only if LiveKit uses the microphone. -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+
+    <!-- WKWebView needs JIT; effectively required for the webview to function. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+
+    <!-- LiveKit needs outbound network for signaling and media. -->
+    <key>com.apple.security.network.client</key>
+      <true/>
+
+    <key>com.apple.security.app-sandbox</key><true/>    
 </dict>
 </plist>
