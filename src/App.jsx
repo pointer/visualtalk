@@ -1,60 +1,70 @@
-
+import conf from "../conf.json";
 import { createSignal, onMount, onCleanup } from "solid-js";
 import { Room, RoomEvent, Track } from "livekit-client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { VideoGrid } from "./components/VideoGrid";
 import "./App.css";
-import conf from "../conf.json";
-
-
-// Source - https://stackoverflow.com/a/71950220
-// Posted by gildniy
-// Retrieved 2026-08-21, License - CC BY-SA 4.0
-
-async function getData(){
-  try{
-    const response =  await import('../conf.JSON')
-    return response.json()
-  }catch(err){
-    return err
-  }
-}
 
 function App() {
   const [participants, setParticipants] = createSignal([]);
   const [isMuted, setIsMuted] = createSignal(false);
   const [isCameraOff, setIsCameraOff] = createSignal(false);
+  const [localStream, setLocalStream] = createSignal(null); // 👈 direct stream for preview
   let room;
 
-  // fetch("../conf.JSON")
-  // .then(res => res.json())
-  // .then(data => console.log(data))
-  // const data = getData();
-  console.log(conf);
   const LIVEKIT_URL = conf.LIVEKIT_URL;
   const TOKEN = conf.TOKEN;
 
+  // Function to get a fresh local stream
+  const getLocalMedia = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      return stream;
+    } catch (err) {
+      console.error("Failed to get local media:", err);
+      throw err;
+    }
+  };
 
+  // Start/stop local preview (independent of LiveKit)
+  const startLocalPreview = async () => {
+    try {
+      const stream = await getLocalMedia();
+      setLocalStream(stream);
+      // Add/update local participant in the grid
+      setParticipants((prev) => {
+        const existing = prev.find(p => p.id === 'local');
+        if (existing) {
+          return prev.map(p => p.id === 'local' ? { ...p, stream } : p);
+        }
+        return [...prev, { id: 'local', name: 'You (Local)', isLocal: true, stream }];
+      });
+      setIsCameraOff(false);
+    } catch (err) {
+      console.error("Error starting local preview:", err);
+      setIsCameraOff(true);
+    }
+  };
+
+  const stopLocalPreview = () => {
+    const stream = localStream();
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+    // Remove local participant from grid
+    setParticipants(prev => prev.filter(p => p.id !== 'local'));
+    setIsCameraOff(true);
+  };
 
   onMount(async () => {
+    // Start local preview immediately
+    await startLocalPreview();
+
+    // Connect to LiveKit
     room = new Room();
 
-    // --- Local participant preview ---
-    room.on(RoomEvent.LocalTrackPublished, (track) => {
-      if (track.kind === Track.Kind.Video) {
-        setParticipants((prev) => {
-          if (prev.some(p => p.id === 'local')) return prev;
-          return [...prev, {
-            id: 'local',
-            name: 'You (Local)',
-            isLocal: true,
-            videoTrack: track, // publication
-          }];
-        });
-      }
-    });
-
-    // --- Remote participants ---
+    // Only handle remote participants – local is handled separately
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       if (track.kind === Track.Kind.Video) {
         setParticipants((prev) => [
@@ -77,6 +87,7 @@ function App() {
 
     try {
       await room.connect(LIVEKIT_URL, TOKEN);
+      // Enable camera & mic for publishing to others (not for preview)
       await room.localParticipant.setCameraEnabled(true);
       await room.localParticipant.setMicrophoneEnabled(true);
     } catch (err) {
@@ -85,6 +96,11 @@ function App() {
   });
 
   onCleanup(() => {
+    // Clean up local stream
+    const stream = localStream();
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
     if (room) {
       room.disconnect();
     }
@@ -100,26 +116,28 @@ function App() {
   };
 
   const toggleCamera = async () => {
-    if (!room) return;
-    const newOffState = !isCameraOff();
-    // Toggle camera state
-    await room.localParticipant.setCameraEnabled(!newOffState);
-    setIsCameraOff(newOffState);
-
-    // 🔥 Refresh local participant entry to force video re-attachment
-    const currentVideoPub = room.localParticipant.videoTrack; // get fresh publication
-    setParticipants((prev) =>
-      prev.map((p) =>
-        p.id === 'local'
-          ? { ...p, videoTrack: currentVideoPub } // new object -> triggers re-render
-          : p
-      )
-    );
+    if (isCameraOff()) {
+      // Turn on: start preview and also enable LiveKit camera
+      await startLocalPreview();
+      if (room) {
+        await room.localParticipant.setCameraEnabled(true);
+      }
+    } else {
+      // Turn off: stop preview and disable LiveKit camera
+      stopLocalPreview();
+      if (room) {
+        await room.localParticipant.setCameraEnabled(false);
+      }
+    }
   };
 
   const leaveCall = async () => {
     if (room) {
       try { await room.disconnect(); } catch (e) {}
+    }
+    const stream = localStream();
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
     }
     try {
       await getCurrentWindow().close();
