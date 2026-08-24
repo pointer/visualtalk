@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@tauri-apps/api':
-        specifier: ^2
+        specifier: ^2.11.1
         version: 2.11.1
       '@tauri-apps/plugin-opener':
         specifier: ^2
@@ -17,6 +17,9 @@ importers:
       livekit-client:
         specifier: ^2.22.0
         version: 2.22.0(@types/dom-mediacapture-record@1.0.22)
+      solid-icons:
+        specifier: ^1.2.0
+        version: 1.2.0(solid-js@1.9.15)
       solid-js:
         specifier: ^1.9.3
         version: 1.9.15
@@ -925,6 +928,11 @@ packages:
     resolution: {integrity: sha512-rVQVWjjSvlINzaQPZH5JFqsqEsIWdTxY3iJZCnTL/5gQbXIRooVZKI60tVCkOVfzcRPejboxO2t0P89dg5mQaA==}
     engines: {node: '>=10'}
 
+  solid-icons@1.2.0:
+    resolution: {integrity: sha512-yjQxWQMi9l19P5Af9vjsvalTMDFPDL4XD6etrUdNxNVhFp1bMYF0SFwUa5VYDfJ7u0SF3Qkz/F7BZxqcLUwklw==}
+    peerDependencies:
+      solid-js: '*'
+
   solid-js@1.9.15:
     resolution: {integrity: sha512-EeiY2xfpZJqPLjXspVEKjAII4yv8NyG//NxZ3IpOFHdUNnnTyL0uJOeS9LWGvA7cFCz5y94cjFwYlmw5Luncsg==}
 
@@ -1729,6 +1737,10 @@ snapshots:
       seroval: 1.5.6
 
   seroval@1.5.6: {}
+
+  solid-icons@1.2.0(solid-js@1.9.15):
+    dependencies:
+      solid-js: 1.9.15
 
   solid-js@1.9.15:
     dependencies:

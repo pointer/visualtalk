@@ -46,4 +46,8 @@ dist-ssr/
 src-tauri/target/
 src-tauri/gen/
 
-conf.json
+config.json
+.env*
+.env.*
+*.txt
+Notes.txt
