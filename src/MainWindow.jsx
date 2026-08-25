@@ -3,11 +3,12 @@ import { createSignal, onCleanup } from "solid-js";
 export function MainWindow(props) {
   const [activeTab, setActiveTab] = createSignal("home");
 
+  // Helper to get formatted date and time
   const getFormattedDate = (date) => {
     return date.toLocaleDateString("en-US", {
-      weekday: "short",
+      weekday: "long",
       day: "numeric",
-      month: "short",
+      month: "long",
     });
   };
 
@@ -20,18 +21,23 @@ export function MainWindow(props) {
   };
 
   const [currentTime, setCurrentTime] = createSignal(new Date());
+
+  // Update time every second
   const timer = setInterval(() => setCurrentTime(new Date()), 1000);
   onCleanup(() => clearInterval(timer));
 
+  // Handle Join button click – prompt for room code
   const handleJoinClick = () => {
     const room = prompt("Enter room code to join:");
-    if (room?.trim()) props.onJoinMeeting(room.trim());
+    if (room && room.trim()) {
+      props.onJoinMeeting(room.trim());
+    }
   };
 
   return (
     <div class="flex h-screen bg-[#111111] text-white select-none overflow-hidden">
       
-      {/* ===== SIDEBAR ===== */}
+      {/* Sidebar Navigation - unchanged */}
       <aside class="w-16 bg-[#1c1c1c] flex flex-col items-center justify-between py-5 border-r border-gray-800/40 shrink-0">
         <div class="flex flex-col items-center space-y-5">
           <button class="flex flex-col items-center text-blue-400 group focus:outline-none">
@@ -65,6 +71,7 @@ export function MainWindow(props) {
             <span class="text-[9px] font-medium">More</span>
           </button>
         </div>
+
         <div class="flex flex-col items-center">
           <button class="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 transition">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -72,38 +79,50 @@ export function MainWindow(props) {
         </div>
       </aside>
 
-      {/* ===== MAIN CONTENT ===== */}
+      {/* Main Content */}
       <main class="flex-1 flex flex-col px-6 py-4 overflow-y-auto">
 
-        {/* ===== HEADER (Zoom-like: Home + date on left, time + bell + avatar on right) ===== */}
-        <header class="flex justify-between items-center mb-2">
-          <div class="flex items-center space-x-3">
-            <h1 class="text-lg font-semibold text-white">Home</h1>
-            <button class="flex items-center space-x-1 text-sm text-gray-400 hover:text-white transition">
-              <span>{getFormattedDate(currentTime())} ▼</span>
-            </button>
-          </div>
-          <div class="flex items-center space-x-4">
-            <span class="text-sm font-medium text-gray-400">{getFormattedTime(currentTime())}</span>
-            <button class="text-gray-400 hover:text-white transition">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" />
-              </svg>
-            </button>
-            <img
-              src="https://ui-avatars.com/api/?name=You&background=4F46E5&color=fff&size=32"
-              alt="Profile"
-              class="w-8 h-8 rounded-full bg-gray-700"
-            />
-          </div>
-        </header>
+      <header class="flex items-center justify-between px-6 py-2 border-b border-gray-800/40 shrink-0 bg-[#111111]">
+        {/* Right: Time, Bell, Avatar */}
+        <div class="flex items-center space-x-4">
+          {/* <span class="text-sm font-medium text-gray-400">{getFormattedTime(currentTime())}</span> */}
+          <button class="text-gray-400 hover:text-white transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" />
+            </svg>
+          </button>
+          <img
+            src="https://ui-avatars.com/api/?name=You&background=4F46E5&color=fff&size=32"
+            alt="Profile"
+            class="w-8 h-8 rounded-full bg-gray-700"
+          />
+        </div>
+      </header>
 
-        {/* ===== ACTION BUTTONS ===== */}
+        {/* Top Header AI Sparkle
+        <div class="flex justify-end items-center mb-1">
+          <button class="w-8 h-8 bg-[#222222] hover:bg-[#2a2a2a] rounded-full flex items-center justify-center text-gray-300 transition shadow-inner">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+          </button>
+        </div> */}
+
+        {/* Clock & Date */}
+        <div class="flex flex-col items-center justify-center my-2">
+          <h1 class="text-4xl font-semibold tracking-tight text-white mb-0.5">
+            {getFormattedTime(currentTime())}
+          </h1>
+          <p class="text-xs font-medium text-gray-400">
+            {getFormattedDate(currentTime())}
+          </p>
+        </div>
+
+        {/* Action Grid */}
         <div class="grid grid-cols-5 gap-2.5 max-w-2xl mx-auto w-full my-3">
+          
           {/* New Meeting */}
           <button 
             onClick={() => props.onJoinMeeting("general")}
-            class="flex flex-col items-center justify-center py-2.5 bg-transparent hover:-translate-y-1 transition-transform duration-200 group"
+            class="flex flex-col items-center justify-center py-2.5 bg-transparent hover:bg-[#1c1c1c] rounded-xl transition group"
           >
             <div class="w-12 h-12 bg-[#FF7429] rounded-2xl flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
               <svg viewBox="0 0 512 512" class="w-7 h-7" xmlns="http://www.w3.org/2000/svg">
@@ -117,10 +136,10 @@ export function MainWindow(props) {
             </div>
           </button>
 
-          {/* Join */}
+          {/* Join Button - now a single button with prompt */}
           <button
             onClick={handleJoinClick}
-            class="flex flex-col items-center justify-center py-2.5 bg-transparent hover:-translate-y-1 transition-transform duration-200 group"
+            class="flex flex-col items-center justify-center py-2.5 bg-transparent hover:bg-[#1c1c1c] rounded-xl transition group"
           >
             <div class="w-12 h-12 bg-[#0E71EB] rounded-2xl flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,7 +150,7 @@ export function MainWindow(props) {
           </button>
 
           {/* Schedule */}
-          <button class="flex flex-col items-center justify-center py-2.5 bg-transparent hover:-translate-y-1 transition-transform duration-200 group">
+          <button class="flex flex-col items-center justify-center py-2.5 bg-transparent hover:bg-[#1c1c1c] rounded-xl transition group">
             <div class="w-12 h-12 bg-[#0E71EB] rounded-2xl flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             </div>
@@ -139,7 +158,7 @@ export function MainWindow(props) {
           </button>
 
           {/* Share Screen */}
-          <button class="flex flex-col items-center justify-center py-2.5 bg-transparent hover:-translate-y-1 transition-transform duration-200 group">
+          <button class="flex flex-col items-center justify-center py-2.5 bg-transparent hover:bg-[#1c1c1c] rounded-xl transition group">
             <div class="w-12 h-12 bg-[#0E71EB] rounded-2xl flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
             </div>
@@ -147,7 +166,7 @@ export function MainWindow(props) {
           </button>
 
           {/* My Notes */}
-          <button class="flex flex-col items-center justify-center py-2.5 bg-transparent hover:-translate-y-1 transition-transform duration-200 group">
+          <button class="flex flex-col items-center justify-center py-2.5 bg-transparent hover:bg-[#1c1c1c] rounded-xl transition group">
             <div class="w-12 h-12 bg-[#0E71EB] rounded-2xl flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
               <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
             </div>
@@ -155,7 +174,7 @@ export function MainWindow(props) {
           </button>
         </div>
 
-        {/* ===== MEETINGS PANEL ===== */}
+        {/* Meetings Panel */}
         <div class="max-w-2xl mx-auto w-full bg-[#1c1c1c] rounded-xl border border-gray-800/60 shadow-lg overflow-hidden mt-1">
           <div class="px-4 py-3 flex items-center justify-between border-b border-gray-800/40">
             <div class="flex items-center space-x-2">
