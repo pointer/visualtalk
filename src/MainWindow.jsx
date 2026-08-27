@@ -151,38 +151,38 @@ export function MainWindow(props) {
         <div class="max-w-2xl mx-auto w-full my-3">
           <div class="grid grid-cols-5 gap-2.5">
             
-            {/* New Meeting with dropdown */}
-            <div class="new-meeting-dropdown-container relative flex flex-col items-center justify-center py-2.5 bg-transparent group">
-              <div class="relative flex items-center">
-                <button 
-                  onClick={() => props.onJoinMeeting("general")}
-                  style="background-color: #FF7429;"
-                  class="w-16 h-16 rounded-[22px] flex items-center justify-center mb-1.5 shadow-lg hover:brightness-110 transition cursor-pointer"
-                >
-                  {/* Camera Icon */}
-                  <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45-1-1v-3.5l4 4v-11l-4 4z"/>
-                  </svg>
-                </button>
-                <div class="absolute -bottom-0.5 -right-0.5 flex items-center justify-center">
-                  <button 
-                    onClick={toggleNewMeetingMenu}
-                    class="w-5 h-5 bg-[#2a2a2a] rounded-full flex items-center justify-center hover:bg-[#3a3a3a] transition border border-gray-700 shadow"
-                  >
-                    <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              
-              <div 
-                onClick={toggleNewMeetingMenu}
-                class="flex items-center space-x-1 text-[11px] font-medium text-gray-300 cursor-pointer hover:text-white"
-              >
-                <span>New meeting</span>
-                <svg class="w-2.5 h-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-              </div>
+        {/* New Meeting with dropdown */}
+        <div class="new-meeting-dropdown-container relative flex flex-col items-center justify-center py-2.5 bg-transparent group">
+          <div class="relative flex items-center">
+            <button 
+              onClick={() => props.onJoinMeeting("general")}
+              style="background-color: #FF7429;"
+              class="w-16 h-16 rounded-[22px] flex items-center justify-center mb-1.5 shadow-lg hover:brightness-110 transition cursor-pointer"
+            >
+              {/* Camera Icon */}
+              <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45-1-1v-3.5l4 4v-11l-4 4z"/>
+              </svg>
+            </button>
+            
+            {/* Dropdown Arrow Button */}
+            {/* <button 
+              onClick={toggleNewMeetingMenu}
+              class="absolute bottom-1 right-0 w-5 h-5 bg-[#2a2a2a] rounded-full flex items-center justify-center hover:bg-[#3a3a3a] transition border border-gray-700 shadow"
+            >
+              <svg class="w-3 h-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+              </svg>
+            </button> */}
+          </div>
+          
+          <div 
+            onClick={toggleNewMeetingMenu}
+            class="flex items-center space-x-1 text-[11px] font-medium text-gray-300 cursor-pointer hover:text-white"
+          >
+            <span>New meeting</span>
+            <svg class="w-2.5 h-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
 
               {/* Main Dropdown */}
               {showNewMeetingMenu() && (
