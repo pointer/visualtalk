@@ -53,7 +53,6 @@ export function MainWindow(props) {
     setShowPmiSubMenu(!showPmiSubMenu());
   };
 
-  // Close menus when clicking outside
   onMount(() => {
     const handleClickOutside = (e) => {
       const dropdownContainer = document.querySelector('.new-meeting-dropdown-container');
@@ -157,7 +156,8 @@ export function MainWindow(props) {
               <div class="relative flex items-center">
                 <button 
                   onClick={() => props.onJoinMeeting("general")}
-                  class="w-14 h-14 bg-[#FF7429] rounded-2xl flex items-center justify-center mb-1.5 shadow-md hover:brightness-110 transition"
+                  style="background-color: #FF7429;"
+                  class="w-16 h-16 rounded-[22px] flex items-center justify-center mb-1.5 shadow-lg hover:brightness-110 transition cursor-pointer"
                 >
                   {/* Camera Icon */}
                   <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -220,7 +220,7 @@ export function MainWindow(props) {
                     <span class="text-sm text-gray-200">Use my personal meeting ID (PMI)</span>
                   </div>
 
-                  {/* PMI number row (Clickable to open sub-menu) */}
+                  {/* PMI number row */}
                   <div 
                     class={`relative px-4 py-2.5 transition cursor-pointer flex items-center justify-between ${showPmiSubMenu() ? 'bg-[#0E71EB] text-white' : 'hover:bg-[#2c2c2c] text-gray-200'}`}
                     onClick={togglePmiSubMenu}
@@ -230,7 +230,7 @@ export function MainWindow(props) {
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
 
-                    {/* Flyout Sub-menu (appears to the right) */}
+                    {/* Flyout Sub-menu */}
                     {showPmiSubMenu() && (
                       <div class="absolute left-full top-0 ml-1.5 w-56 bg-[#222222] rounded-xl shadow-2xl border border-gray-700/80 overflow-hidden z-50 py-1 text-white">
                         <button 
@@ -270,7 +270,7 @@ export function MainWindow(props) {
               onClick={handleJoinClick}
               class="flex flex-col items-center justify-center py-2.5 bg-transparent group"
             >
-              <div class="w-14 h-14 bg-[#0E71EB] rounded-2xl flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
+              <div class="w-16 h-16 bg-[#0E71EB] rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
                 <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
@@ -280,7 +280,7 @@ export function MainWindow(props) {
 
             {/* Schedule */}
             <button class="flex flex-col items-center justify-center py-2.5 bg-transparent group">
-              <div class="w-14 h-14 bg-[#0E71EB] rounded-2xl flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
+              <div class="w-16 h-16 bg-[#0E71EB] rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
                 <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
               </div>
               <span class="text-[11px] font-medium text-gray-300">Schedule</span>
@@ -288,7 +288,7 @@ export function MainWindow(props) {
 
             {/* Share Screen */}
             <button class="flex flex-col items-center justify-center py-2.5 bg-transparent group">
-              <div class="w-14 h-14 bg-[#0E71EB] rounded-2xl flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
+              <div class="w-16 h-16 bg-[#0E71EB] rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
                 <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
               </div>
               <span class="text-[11px] font-medium text-gray-300">Share screen</span>
@@ -296,7 +296,7 @@ export function MainWindow(props) {
 
             {/* My Notes */}
             <button class="flex flex-col items-center justify-center py-2.5 bg-transparent group">
-              <div class="w-14 h-14 bg-[#0E71EB] rounded-2xl flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
+              <div class="w-16 h-16 bg-[#0E71EB] rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
                 <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
               </div>
               <span class="text-[11px] font-medium text-gray-300">My Notes</span>
