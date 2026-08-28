@@ -33,17 +33,20 @@ const joinMeeting = (room) => {
   url.searchParams.set('room', room);
   const label = `meeting-${Date.now()}`;
   console.log('Creating window with URL:', url.toString());
+  const width = window.innerWidth;   
+  console.log('window width :', width);
   try {
-    const win = new WebviewWindow(label, {
-      url: url.toString(),
-      width: 1200,
-      height: 800,
-      title: 'VisualTalk Meeting',
-      resizable: true,
-      fullscreen: false,
-      center: true,
-      decorations: false,
-    });
+        const title = 'VisualTalk Meeting' + "                       Room:  " + room; 
+        new WebviewWindow(label, {
+          url: url.toString(),
+          width: 600,          // 👈 smaller width
+          height: 500,         // 👈 smaller height
+          title: title , // 'VisualTalk Meeting',
+          resizable: true,
+          fullscreen: false,
+          center: true,
+          // decorations: true is the default, so we can omit it
+        });
     win.once('tauri://error', (err) => console.error('Window error:', err));
   } catch (err) {
     console.error('Error creating window:', err);

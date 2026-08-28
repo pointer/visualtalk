@@ -250,8 +250,8 @@ export function MeetingView(props) {
     leaveCall();
   };
 
-  const minimizeWindow = () => getCurrentWindow().minimize();
-  const maximizeWindow = () => getCurrentWindow().toggleMaximize();
+  // const minimizeWindow = () => getCurrentWindow().minimize();
+  // const maximizeWindow = () => getCurrentWindow().toggleMaximize();
 
   return (
     <div class="flex flex-col h-screen w-screen bg-[#1a1a1a] text-white select-none overflow-hidden">
@@ -259,10 +259,10 @@ export function MeetingView(props) {
       {/* Custom Title Bar — FIXED: added relative positioning, larger traffic lights */}
       <div
         data-tauri-drag-region
-        class="relative h-10 bg-[#1a1a1a] flex items-center justify-between px-4 shrink-0 z-50"
+        // class="relative h-10 bg-[#1a1a1a] flex items-center justify-between px-4 shrink-0 z-50"
       >
         {/* Traffic lights */}
-        <div class="flex items-center space-x-2">
+        {/* <div class="flex items-center space-x-2">
           <button
             onClick={handleCloseClick}
             class="w-3.5 h-3.5 rounded-full bg-[#ff5f57] hover:brightness-110 transition shadow-sm"
@@ -278,7 +278,7 @@ export function MeetingView(props) {
             class="w-3.5 h-3.5 rounded-full bg-[#28c840] hover:brightness-110 transition shadow-sm"
             title="Maximize"
           />
-        </div>
+        </div> */}
 
         {/* Centered title */}
         <span class="absolute inset-0 flex items-center justify-center text-sm text-gray-300 font-medium pointer-events-none">
