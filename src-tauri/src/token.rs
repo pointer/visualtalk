@@ -1,7 +1,11 @@
-use jsonwebtoken::{encode, EncodingKey, Header};
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
-// use std::env;
+use serde_json;
+use std::collections::BTreeMap;
+use hmac::KeyInit;
 
 // Claims structure for LiveKit JWT
 #[derive(Debug, Serialize, Deserialize)]
@@ -12,28 +16,24 @@ struct VideoGrant {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
-    iss: String,      // API Key
-    sub: String,      // identity
-    exp: usize,       // expiration timestamp
-    nbf: usize,       // not before timestamp
-    iat: usize,       // issued at
+    iss: String,
+    sub: String,
+    exp: usize,
+    nbf: usize,
+    iat: usize,
     identity: String,
     video: VideoGrant,
 }
 
-/// Generates a LiveKit JWT token.
-/// - `api_key`: your LiveKit API key
-/// - `api_secret`: your LiveKit API secret
-/// - `identity`: the user identity
-/// - `room`: the room name
-/// - `valid_for_seconds`: token validity duration (default 24h)
+/// Generates a LiveKit JWT token using pure-Rust HMAC-SHA256.
+/// Completely avoids `jsonwebtoken` and `ring` to prevent crypto provider panics.
 pub fn generate_token(
     api_key: &str,
     api_secret: &str,
     identity: &str,
     room: &str,
     valid_for_seconds: u64,
-) -> Result<String, jsonwebtoken::errors::Error> {
+) -> Result<String, String> {
     let now = Utc::now().timestamp() as usize;
     let exp = now + valid_for_seconds as usize;
 
@@ -50,7 +50,26 @@ pub fn generate_token(
         },
     };
 
-    let header = Header::default(); // HS256
-    let encoding_key = EncodingKey::from_secret(api_secret.as_bytes());
-    encode(&header, &claims, &encoding_key)
+    // Build header
+    let header = BTreeMap::from([
+        ("alg".to_string(), "HS256".to_string()),
+        ("typ".to_string(), "JWT".to_string()),
+    ]);
+
+    let header_json = serde_json::to_string(&header).map_err(|e| e.to_string())?;
+    let claims_json = serde_json::to_string(&claims).map_err(|e| e.to_string())?;
+
+    let header_b64 = URL_SAFE_NO_PAD.encode(header_json.as_bytes());
+    let claims_b64 = URL_SAFE_NO_PAD.encode(claims_json.as_bytes());
+
+    let message = format!("{}.{}", header_b64, claims_b64);
+
+    // Sign with HMAC-SHA256
+    let mut mac = Hmac::<Sha256>::new_from_slice(api_secret.as_bytes())
+        .map_err(|e| format!("HMAC key error: {}", e))?;
+    mac.update(message.as_bytes());
+    let signature = mac.finalize().into_bytes();
+    let sig_b64 = URL_SAFE_NO_PAD.encode(&signature);
+
+    Ok(format!("{}.{}", message, sig_b64))
 }

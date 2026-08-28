@@ -1,8 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use serde::Serialize;
-mod token; // if you put it in a separate file
-
-// use tauri::command;
+mod token;
 
 #[tauri::command]
 fn generate_livekit_token(
@@ -17,7 +15,6 @@ fn generate_livekit_token(
 
     let validity = valid_for_seconds.unwrap_or(86400); // 24h
     token::generate_token(&api_key, &secret, &identity, &room, validity)
-        .map_err(|e| e.to_string())
 }
 
 #[derive(Serialize)]
@@ -54,7 +51,7 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    dotenvy::dotenv().ok();    
+    dotenvy::dotenv().ok();
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![greet, generate_livekit_token, get_config])

@@ -58,3 +58,4 @@ config.json
 .env*
 *.txt
 Notes.txt
+*.lock
