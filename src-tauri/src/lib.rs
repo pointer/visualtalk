@@ -32,7 +32,7 @@ pub struct AppConfig {
 fn get_config() -> Result<AppConfig, String> {
     let livekit_url = std::env::var("LIVEKIT_URL")
         .map_err(|_| "LIVEKIT_URL not set".to_string())?;
-    let api_key = std::env::var("API_KEY")
+    let api_key = std::env::var("LIVEKIT_API_KEY")
         .map_err(|_| "API_KEY not set".to_string())?;
     let room = std::env::var("ROOM")
         .map_err(|_| "ROOM not set".to_string())?;

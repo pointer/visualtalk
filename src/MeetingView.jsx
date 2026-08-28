@@ -11,11 +11,9 @@ export function MeetingView(props) {
   const [localStream, setLocalStream] = createSignal(null);
   let room;
 
-  // We'll use the room name from props
   const ROOM = props.roomName || "general";
 
   onMount(async () => {
-    // --- Load config from Rust ---
     let conf;
     try {
       conf = await invoke("get_config");
@@ -26,10 +24,10 @@ export function MeetingView(props) {
     }
 
     const LIVEKIT_URL = conf.livekit_url;
-    const API_KEY = conf.api_key;
+    const API_KEY = conf.livekit_api_key;
     const IDENTITY = conf.identity;
 
-    // --- Start local preview ---
+    // Start local preview
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(stream);
@@ -41,7 +39,7 @@ export function MeetingView(props) {
       setIsCameraOff(true);
     }
 
-    // --- Request token from Rust ---
+    // Request token from Rust
     let token;
     try {
       token = await invoke("generate_livekit_token", {
@@ -56,7 +54,7 @@ export function MeetingView(props) {
       return;
     }
 
-    // --- Connect to LiveKit ---
+    // Connect to LiveKit
     room = new Room();
 
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
@@ -128,26 +126,72 @@ export function MeetingView(props) {
     }
   };
 
+  // ----- Leave Call: close the window directly -----
   const leaveCall = () => {
-    // Cleanup and return to main window
+    // Cleanup
     if (room) room.disconnect().catch(() => {});
     const stream = localStream();
     if (stream) stream.getTracks().forEach((track) => track.stop());
-    props.onLeave(); // 👈 call the parent's handler to switch view
+    // Close the current window
+    getCurrentWindow().close();
+  };
+
+  // ----- Window control functions (for custom title bar) -----
+  const minimizeWindow = () => {
+    getCurrentWindow().minimize();
+  };
+  const maximizeWindow = () => {
+    getCurrentWindow().toggleMaximize();
+  };
+  const closeWindow = () => {
+    // Same cleanup as leaveCall
+    if (room) room.disconnect().catch(() => {});
+    const stream = localStream();
+    if (stream) stream.getTracks().forEach((track) => track.stop());
+    getCurrentWindow().close();
   };
 
   return (
-    <div class="flex flex-col h-screen w-screen bg-slate-950 text-white select-none">
-      <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+    <div class="flex flex-col h-screen w-screen bg-slate-950 text-white select-none overflow-hidden">
+      
+      {/* ----- Custom Title Bar (for window without decorations) ----- */}
+      <div 
+        data-tauri-drag-region 
+        class="h-10 bg-slate-950 flex items-center justify-between px-3 shrink-0 border-b border-slate-800/50"
+      >
+        <span class="text-xs text-gray-400 font-medium">VisualTalk Meeting</span>
+        <div class="flex items-center space-x-2">
+          <button 
+            onClick={minimizeWindow}
+            class="w-3.5 h-3.5 rounded-full bg-yellow-400 hover:bg-yellow-500 transition focus:outline-none"
+            title="Minimize"
+          />
+          <button 
+            onClick={maximizeWindow}
+            class="w-3.5 h-3.5 rounded-full bg-green-400 hover:bg-green-500 transition focus:outline-none"
+            title="Maximize"
+          />
+          <button 
+            onClick={closeWindow}
+            class="w-3.5 h-3.5 rounded-full bg-red-400 hover:bg-red-500 transition focus:outline-none"
+            title="Close"
+          />
+        </div>
+      </div>
+
+      {/* ----- Existing Header (room info) ----- */}
+      <header class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50 shrink-0">
         <h1 class="text-lg font-semibold tracking-wide">VisualTalk Meeting</h1>
         <div class="text-sm text-slate-400">Room: #{ROOM}</div>
       </header>
 
+      {/* ----- Video Grid (main area) ----- */}
       <main class="flex-1 overflow-hidden">
         <VideoGrid participants={participants()} />
       </main>
 
-      <footer class="p-4 border-t border-slate-800 flex justify-center gap-4 bg-slate-900">
+      {/* ----- Footer Controls ----- */}
+      <footer class="p-4 border-t border-slate-800 flex justify-center gap-4 bg-slate-900 shrink-0">
         <button
           onClick={toggleMute}
           class={`px-4 py-2 rounded-lg text-sm font-medium transition ${
