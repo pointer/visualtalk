@@ -27,14 +27,13 @@ export function MeetingView(props) {
   const [participants, setParticipants] = createSignal([]);
   const [isMuted, setIsMuted] = createSignal(false);
   const [isCameraOff, setIsCameraOff] = createSignal(false);
+  const [isSharingScreen, setIsSharingScreen] = createSignal(false); // 👈 NEW
   const [localStream, setLocalStream] = createSignal(null);
   let room;
   let previewVideoRef = null;
 
   // ---- Load devices and start preview ----
   onMount(async () => {
-    // CRITICAL: startPreview() MUST run before enumerateDevices()
-    // Browsers hide device labels until the user has granted permission via getUserMedia()
     await startPreview();
     await loadDevices();
   });
@@ -86,8 +85,6 @@ export function MeetingView(props) {
     }
   };
 
-  // CRITICAL FIX: Bind stream to video element whenever previewStream changes.
-  // SolidJS ref callbacks only fire on mount/unmount, not on signal changes.
   createEffect(() => {
     const stream = previewStream();
     if (previewVideoRef && stream) {
@@ -165,14 +162,19 @@ export function MeetingView(props) {
 
     room = new Room();
 
+    // ---- Handle remote tracks (including screen shares) ----
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       if (track.kind === Track.Kind.Video) {
+        const isScreen = publication.source === Track.Source.ScreenShare;
         setParticipants((prev) => [
           ...prev,
           {
-            id: participant.identity,
-            name: participant.name || participant.identity,
+            id: isScreen ? `${participant.identity}-screen` : participant.identity,
+            name: isScreen
+              ? `${participant.name || participant.identity}'s Screen`
+              : (participant.name || participant.identity),
             isLocal: false,
+            isScreen, // 👈 flag for the grid
             videoTrack: publication,
           },
         ]);
@@ -181,7 +183,37 @@ export function MeetingView(props) {
 
     room.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
       if (track.kind === Track.Kind.Video) {
-        setParticipants((prev) => prev.filter((p) => p.id !== participant.identity));
+        const isScreen = publication.source === Track.Source.ScreenShare;
+        const id = isScreen ? `${participant.identity}-screen` : participant.identity;
+        setParticipants((prev) => prev.filter((p) => p.id !== id));
+      }
+    });
+
+    // ---- Handle local screen share publishing ----
+    room.on(RoomEvent.LocalTrackPublished, (track) => {
+      if (track.kind === Track.Kind.Video && track.source === Track.Source.ScreenShare) {
+        setIsSharingScreen(true);
+        // Add screen share to the grid
+        setParticipants((prev) => {
+          const filtered = prev.filter(p => p.id !== "local-screen");
+          return [
+            ...filtered,
+            {
+              id: "local-screen",
+              name: "Your Screen",
+              isLocal: true,
+              isScreen: true,
+              videoTrack: track,
+            }
+          ];
+        });
+      }
+    });
+
+    room.on(RoomEvent.LocalTrackUnpublished, (track) => {
+      if (track.kind === Track.Kind.Video && track.source === Track.Source.ScreenShare) {
+        setIsSharingScreen(false);
+        setParticipants((prev) => prev.filter(p => p.id !== "local-screen"));
       }
     });
 
@@ -195,6 +227,7 @@ export function MeetingView(props) {
     setIsConnecting(false);
   };
 
+  // ---- In-meeting controls ----
   const toggleMute = async () => {
     if (!room) return;
     const newMutedState = !isMuted();
@@ -228,6 +261,24 @@ export function MeetingView(props) {
     }
   };
 
+  // ---- Screen sharing ----
+  const toggleScreenShare = async () => {
+    if (!room) return;
+    if (isSharingScreen()) {
+      await room.localParticipant.setScreenShareEnabled(false);
+      // The LocalTrackUnpublished event will clean up
+    } else {
+      try {
+        await room.localParticipant.setScreenShareEnabled(true);
+        // The LocalTrackPublished event will add the screen share
+      } catch (err) {
+        console.error("Failed to start screen share:", err);
+        alert("Screen sharing was cancelled or failed.");
+      }
+    }
+  };
+
+  // ---- Leave / close ----
   const leaveCall = () => {
     if (room) room.disconnect().catch(() => {});
     const stream = localStream();
@@ -250,44 +301,11 @@ export function MeetingView(props) {
     leaveCall();
   };
 
-  // const minimizeWindow = () => getCurrentWindow().minimize();
-  // const maximizeWindow = () => getCurrentWindow().toggleMaximize();
-
   return (
     <div class="flex flex-col h-screen w-screen bg-[#1a1a1a] text-white select-none overflow-hidden">
 
-      {/* Custom Title Bar — FIXED: added relative positioning, larger traffic lights */}
-      <div
-        data-tauri-drag-region
-        // class="relative h-10 bg-[#1a1a1a] flex items-center justify-between px-4 shrink-0 z-50"
-      >
-        {/* Traffic lights */}
-        {/* <div class="flex items-center space-x-2">
-          <button
-            onClick={handleCloseClick}
-            class="w-3.5 h-3.5 rounded-full bg-[#ff5f57] hover:brightness-110 transition shadow-sm"
-            title="Close"
-          />
-          <button
-            onClick={minimizeWindow}
-            class="w-3.5 h-3.5 rounded-full bg-[#febc2e] hover:brightness-110 transition shadow-sm"
-            title="Minimize"
-          />
-          <button
-            onClick={maximizeWindow}
-            class="w-3.5 h-3.5 rounded-full bg-[#28c840] hover:brightness-110 transition shadow-sm"
-            title="Maximize"
-          />
-        </div> */}
-
-        {/* Centered title */}
-        <span class="absolute inset-0 flex items-center justify-center text-sm text-gray-300 font-medium pointer-events-none">
-          {preJoin() ? `${ROOM}` : "VisualTalk Meeting"}
-        </span>
-
-        {/* Spacer to balance flex layout */}
-        <div class="w-20" />
-      </div>
+      {/* Custom Title Bar — commented out because you already use system title bar */}
+      {/* <div data-tauri-drag-region class="relative h-10 ..."> ... </div> */}
 
       {/* ===== Pre-Join Screen ===== */}
       {preJoin() ? (
@@ -371,7 +389,6 @@ export function MeetingView(props) {
 
           {/* Device Selectors */}
           <div class="w-full max-w-3xl mt-4 grid grid-cols-2 gap-3">
-            {/* Microphone */}
             <div class="relative">
               <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -394,7 +411,6 @@ export function MeetingView(props) {
               </div>
             </div>
 
-            {/* Camera */}
             <div class="relative">
               <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,7 +434,7 @@ export function MeetingView(props) {
             </div>
           </div>
 
-          {/* Bottom Row: Checkbox + Start Button */}
+          {/* Bottom Row */}
           <div class="w-full max-w-3xl mt-4 flex items-center justify-between">
             <label class="flex items-center space-x-2 cursor-pointer group">
               <div class="relative">
@@ -452,6 +468,7 @@ export function MeetingView(props) {
           </div>
         </div>
       ) : (
+        // ===== In-Meeting View =====
         <div class="flex flex-col flex-1 overflow-hidden">
           <header class="p-4 border-b border-[#2a2a2a] flex justify-between items-center bg-[#1a1a1a]/80 shrink-0">
             <h1 class="text-lg font-semibold tracking-wide">VisualTalk Meeting</h1>
@@ -462,7 +479,7 @@ export function MeetingView(props) {
             <VideoGrid participants={participants()} />
           </main>
 
-          <footer class="p-4 border-t border-[#2a2a2a] flex justify-center gap-4 bg-[#1a1a1a] shrink-0">
+          <footer class="p-4 border-t border-[#2a2a2a] flex justify-center gap-4 bg-[#1a1a1a] shrink-0 flex-wrap">
             <button
               onClick={toggleMute}
               class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
@@ -499,6 +516,28 @@ export function MeetingView(props) {
               )}
               <span>{isCameraOff() ? "Start Camera" : "Stop Camera"}</span>
             </button>
+
+            {/* 👇 NEW: Share Screen button */}
+            <button
+              onClick={toggleScreenShare}
+              class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
+                isSharingScreen()
+                  ? "bg-red-500/90 hover:bg-red-600 text-white"
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }`}
+            >
+              {isSharingScreen() ? (
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              ) : (
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L15 12.75 9.75 8.5M4.5 4.5h15v15h-15z" />
+                </svg>
+              )}
+              <span>{isSharingScreen() ? "Stop Sharing" : "Share Screen"}</span>
+            </button>
+
             <button
               onClick={handleCloseClick}
               class="px-5 py-2.5 bg-red-500/90 hover:bg-red-600 rounded-xl text-sm font-medium transition text-white flex items-center space-x-2"
