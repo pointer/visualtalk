@@ -35,5 +35,13 @@
           "entitlements": "./Entitlements.plist",
           "infoPlist": "./Info.plist"
       }
-    }
+    },
+    "plugins": {
+      "window": {
+        "create": true,
+        "close": true,
+        "minimize": true,
+        "maximize": true
+      }
+  }
 }
