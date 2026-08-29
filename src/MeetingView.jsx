@@ -27,13 +27,24 @@ export function MeetingView(props) {
   const [participants, setParticipants] = createSignal([]);
   const [isMuted, setIsMuted] = createSignal(false);
   const [isCameraOff, setIsCameraOff] = createSignal(false);
-  const [isSharingScreen, setIsSharingScreen] = createSignal(false); // 👈 NEW
+  const [isSharingScreen, setIsSharingScreen] = createSignal(false);
   const [localStream, setLocalStream] = createSignal(null);
   let room;
   let previewVideoRef = null;
 
-  // ---- Load devices and start preview ----
+  // ---- Load preferences and devices ----
   onMount(async () => {
+    try {
+      const settings = await invoke("get_user_settings");
+      setPreviewVideoEnabled(settings.start_with_video);
+      setPreviewAudioEnabled(!settings.mute_on_join);
+      setAlwaysShowPreview(settings.always_show_preview);
+      if (settings.preferred_mic_id) setSelectedMic(settings.preferred_mic_id);
+      if (settings.preferred_cam_id) setSelectedCam(settings.preferred_cam_id);
+    } catch (err) {
+      console.warn("Could not load user settings from Rust:", err);
+    }
+
     await startPreview();
     await loadDevices();
   });
@@ -49,8 +60,8 @@ export function MeetingView(props) {
   const loadDevices = async () => {
     try {
       const allDevices = await navigator.mediaDevices.enumerateDevices();
-      const audioInputs = allDevices.filter(d => d.kind === "audioinput");
-      const videoInputs = allDevices.filter(d => d.kind === "videoinput");
+      const audioInputs = allDevices.filter((d) => d.kind === "audioinput");
+      const videoInputs = allDevices.filter((d) => d.kind === "videoinput");
       setDevices({ audio: audioInputs, video: videoInputs });
 
       if (audioInputs.length && !selectedMic()) {
@@ -67,15 +78,17 @@ export function MeetingView(props) {
   const startPreview = async () => {
     try {
       const existing = previewStream();
-      if (existing) existing.getTracks().forEach(t => t.stop());
+      if (existing) existing.getTracks().forEach((t) => t.stop());
 
       const constraints = {
-        video: previewVideoEnabled() && selectedCam()
-          ? { deviceId: { exact: selectedCam() } }
-          : previewVideoEnabled(),
-        audio: previewAudioEnabled() && selectedMic()
-          ? { deviceId: { exact: selectedMic() } }
-          : previewAudioEnabled(),
+        video:
+          previewVideoEnabled() && selectedCam()
+            ? { deviceId: { exact: selectedCam() } }
+            : previewVideoEnabled(),
+        audio:
+          previewAudioEnabled() && selectedMic()
+            ? { deviceId: { exact: selectedMic() } }
+            : previewAudioEnabled(),
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -94,8 +107,27 @@ export function MeetingView(props) {
   });
 
   const changeDevice = async (type, deviceId) => {
-    if (type === "audio") setSelectedMic(deviceId);
-    else setSelectedCam(deviceId);
+    if (type === "audio") {
+      setSelectedMic(deviceId);
+      try {
+        const settings = await invoke("get_user_settings");
+        await invoke("update_user_settings", {
+          settings: { ...settings, preferred_mic_id: deviceId },
+        });
+      } catch (err) {
+        console.warn("Failed to persist mic preference:", err);
+      }
+    } else {
+      setSelectedCam(deviceId);
+      try {
+        const settings = await invoke("get_user_settings");
+        await invoke("update_user_settings", {
+          settings: { ...settings, preferred_cam_id: deviceId },
+        });
+      } catch (err) {
+        console.warn("Failed to persist cam preference:", err);
+      }
+    }
     await startPreview();
   };
 
@@ -111,26 +143,37 @@ export function MeetingView(props) {
     await startPreview();
   };
 
+  const toggleAlwaysPreview = async () => {
+    const newVal = !alwaysShowPreview();
+    setAlwaysShowPreview(newVal);
+    try {
+      const settings = await invoke("get_user_settings");
+      await invoke("update_user_settings", {
+        settings: { ...settings, always_show_preview: newVal },
+      });
+    } catch (err) {
+      console.warn("Failed to persist preview preference:", err);
+    }
+  };
+
+  // ---- Unified Meeting Join via Rust Meeting Session ----
   const joinMeeting = async () => {
     setIsConnecting(true);
     setPreJoin(false);
 
     const pStream = previewStream();
-    if (pStream) pStream.getTracks().forEach(t => t.stop());
+    if (pStream) pStream.getTracks().forEach((t) => t.stop());
     setPreviewStream(null);
 
-    let conf;
+    let session;
     try {
-      conf = await invoke("get_config");
+      session = await invoke("get_meeting_session", { room: ROOM });
     } catch (err) {
-      console.error("Failed to load config:", err);
+      console.error("Failed to obtain meeting session from Rust backend:", err);
+      alert(`Could not join meeting: ${err}`);
       setIsConnecting(false);
       return;
     }
-
-    const LIVEKIT_URL = conf.livekit_url;
-    const API_KEY = conf.api_key;
-    const IDENTITY = conf.identity;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -139,30 +182,21 @@ export function MeetingView(props) {
       });
       setLocalStream(stream);
       setParticipants([
-        { id: "local", name: "You (Local)", isLocal: true, stream },
+        {
+          id: "local",
+          name: `${session.display_name || session.identity} (You)`,
+          isLocal: true,
+          stream,
+        },
       ]);
     } catch (err) {
       console.error("Error starting local stream:", err);
       setIsCameraOff(true);
     }
 
-    let token;
-    try {
-      token = await invoke("generate_livekit_token", {
-        apiKey: API_KEY,
-        identity: IDENTITY,
-        room: ROOM,
-        validForSeconds: 86400,
-      });
-    } catch (err) {
-      console.error("Failed to generate token:", err);
-      setIsConnecting(false);
-      return;
-    }
-
     room = new Room();
 
-    // ---- Handle remote tracks (including screen shares) ----
+    // Handle remote tracks
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       if (track.kind === Track.Kind.Video) {
         const isScreen = publication.source === Track.Source.ScreenShare;
@@ -172,9 +206,9 @@ export function MeetingView(props) {
             id: isScreen ? `${participant.identity}-screen` : participant.identity,
             name: isScreen
               ? `${participant.name || participant.identity}'s Screen`
-              : (participant.name || participant.identity),
+              : participant.name || participant.identity,
             isLocal: false,
-            isScreen, // 👈 flag for the grid
+            isScreen,
             videoTrack: publication,
           },
         ]);
@@ -189,13 +223,12 @@ export function MeetingView(props) {
       }
     });
 
-    // ---- Handle local screen share publishing ----
+    // Handle local screen sharing
     room.on(RoomEvent.LocalTrackPublished, (track) => {
       if (track.kind === Track.Kind.Video && track.source === Track.Source.ScreenShare) {
         setIsSharingScreen(true);
-        // Add screen share to the grid
         setParticipants((prev) => {
-          const filtered = prev.filter(p => p.id !== "local-screen");
+          const filtered = prev.filter((p) => p.id !== "local-screen");
           return [
             ...filtered,
             {
@@ -204,7 +237,7 @@ export function MeetingView(props) {
               isLocal: true,
               isScreen: true,
               videoTrack: track,
-            }
+            },
           ];
         });
       }
@@ -213,16 +246,16 @@ export function MeetingView(props) {
     room.on(RoomEvent.LocalTrackUnpublished, (track) => {
       if (track.kind === Track.Kind.Video && track.source === Track.Source.ScreenShare) {
         setIsSharingScreen(false);
-        setParticipants((prev) => prev.filter(p => p.id !== "local-screen"));
+        setParticipants((prev) => prev.filter((p) => p.id !== "local-screen"));
       }
     });
 
     try {
-      await room.connect(LIVEKIT_URL, token);
+      await room.connect(session.livekit_url, session.token);
       await room.localParticipant.setCameraEnabled(!isCameraOff());
       await room.localParticipant.setMicrophoneEnabled(!isMuted());
     } catch (err) {
-      console.error("Failed to connect:", err);
+      console.error("Failed to connect to LiveKit server:", err);
     }
     setIsConnecting(false);
   };
@@ -238,7 +271,10 @@ export function MeetingView(props) {
   const toggleCamera = async () => {
     if (isCameraOff()) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
         setLocalStream(stream);
         setParticipants((prev) => [
           ...prev.filter((p) => p.id !== "local"),
@@ -252,7 +288,7 @@ export function MeetingView(props) {
     } else {
       const stream = localStream();
       if (stream) {
-        stream.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach((t) => t.stop());
         setLocalStream(null);
       }
       setParticipants((prev) => prev.filter((p) => p.id !== "local"));
@@ -261,16 +297,13 @@ export function MeetingView(props) {
     }
   };
 
-  // ---- Screen sharing ----
   const toggleScreenShare = async () => {
     if (!room) return;
     if (isSharingScreen()) {
       await room.localParticipant.setScreenShareEnabled(false);
-      // The LocalTrackUnpublished event will clean up
     } else {
       try {
         await room.localParticipant.setScreenShareEnabled(true);
-        // The LocalTrackPublished event will add the screen share
       } catch (err) {
         console.error("Failed to start screen share:", err);
         alert("Screen sharing was cancelled or failed.");
@@ -282,9 +315,9 @@ export function MeetingView(props) {
   const leaveCall = () => {
     if (room) room.disconnect().catch(() => {});
     const stream = localStream();
-    if (stream) stream.getTracks().forEach(t => t.stop());
+    if (stream) stream.getTracks().forEach((t) => t.stop());
     const pStream = previewStream();
-    if (pStream) pStream.getTracks().forEach(t => t.stop());
+    if (pStream) pStream.getTracks().forEach((t) => t.stop());
     getCurrentWindow().close();
   };
 
@@ -303,10 +336,6 @@ export function MeetingView(props) {
 
   return (
     <div class="flex flex-col h-screen w-screen bg-[#1a1a1a] text-white select-none overflow-hidden">
-
-      {/* Custom Title Bar — commented out because you already use system title bar */}
-      {/* <div data-tauri-drag-region class="relative h-10 ..."> ... </div> */}
-
       {/* ===== Pre-Join Screen ===== */}
       {preJoin() ? (
         <div class="flex flex-1 flex-col items-center justify-center bg-[#1a1a1a] px-8 pb-6">
@@ -317,15 +346,27 @@ export function MeetingView(props) {
                 autoplay
                 playsinline
                 muted
-                ref={(el) => { previewVideoRef = el; }}
+                ref={(el) => {
+                  previewVideoRef = el;
+                }}
                 class="w-full h-full object-cover scale-x-[-1]"
               />
             ) : (
               <div class="w-full h-full flex items-center justify-center bg-[#2a2a2a]">
                 <div class="flex flex-col items-center">
                   <div class="w-20 h-20 rounded-full bg-[#3a3a3a] flex items-center justify-center mb-3">
-                    <svg class="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <svg
+                      class="w-10 h-10 text-gray-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.5"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
                     </svg>
                   </div>
                   <span class="text-gray-400 text-sm">Camera is off</span>
@@ -345,12 +386,27 @@ export function MeetingView(props) {
               >
                 {previewAudioEnabled() ? (
                   <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                    />
                   </svg>
                 ) : (
                   <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                    />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+                    />
                   </svg>
                 )}
                 <span class="text-[10px] font-medium">Audio</span>
@@ -366,25 +422,32 @@ export function MeetingView(props) {
               >
                 {previewVideoEnabled() ? (
                   <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
                   </svg>
                 ) : (
                   <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.5"
+                      d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+                    />
                   </svg>
                 )}
                 <span class="text-[10px] font-medium">Video</span>
               </button>
             </div>
-
-            {/* Backgrounds Button */}
-            <button class="absolute bottom-6 right-6 flex items-center space-x-2 px-4 py-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-xl text-white text-sm font-medium transition">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span>Backgrounds</span>
-            </button>
           </div>
 
           {/* Device Selectors */}
@@ -392,45 +455,49 @@ export function MeetingView(props) {
             <div class="relative">
               <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                  />
                 </svg>
               </div>
               <select
                 value={selectedMic()}
-                onChange={(e) => changeDevice('audio', e.currentTarget.value)}
+                onChange={(e) => changeDevice("audio", e.currentTarget.value)}
                 class="w-full bg-[#2a2a2a] text-white rounded-xl pl-10 pr-8 py-3 text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none cursor-pointer hover:bg-[#333333] transition"
               >
                 <For each={devices().audio}>
-                  {(device) => <option value={device.deviceId}>{device.label || device.deviceId}</option>}
+                  {(device) => (
+                    <option value={device.deviceId}>{device.label || device.deviceId}</option>
+                  )}
                 </For>
               </select>
-              <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
             </div>
 
             <div class="relative">
               <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
               <select
                 value={selectedCam()}
-                onChange={(e) => changeDevice('video', e.currentTarget.value)}
+                onChange={(e) => changeDevice("video", e.currentTarget.value)}
                 class="w-full bg-[#2a2a2a] text-white rounded-xl pl-10 pr-8 py-3 text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none cursor-pointer hover:bg-[#333333] transition"
               >
                 <For each={devices().video}>
-                  {(device) => <option value={device.deviceId}>{device.label || device.deviceId}</option>}
+                  {(device) => (
+                    <option value={device.deviceId}>{device.label || device.deviceId}</option>
+                  )}
                 </For>
               </select>
-              <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
             </div>
           </div>
 
@@ -441,21 +508,26 @@ export function MeetingView(props) {
                 <input
                   type="checkbox"
                   checked={alwaysShowPreview()}
-                  onChange={() => setAlwaysShowPreview(!alwaysShowPreview())}
+                  onChange={toggleAlwaysPreview}
                   class="peer sr-only"
                 />
                 <div class="w-5 h-5 rounded border border-gray-500 bg-transparent peer-checked:bg-blue-600 peer-checked:border-blue-600 transition flex items-center justify-center">
                   {alwaysShowPreview() && (
-                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                    <svg
+                      class="w-3.5 h-3.5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      viewBox="0 0 24 24"
+                    >
                       <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
               </div>
-              <span class="text-sm text-gray-300 group-hover:text-white transition">Always show this preview when joining</span>
-              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <span class="text-sm text-gray-300 group-hover:text-white transition">
+                Always show this preview when joining
+              </span>
             </label>
 
             <button
@@ -463,7 +535,7 @@ export function MeetingView(props) {
               disabled={isConnecting()}
               class="px-8 py-2.5 bg-[#0E71EB] hover:bg-[#0d65d4] disabled:bg-[#0E71EB]/50 text-white font-semibold text-sm rounded-lg transition shadow-lg"
             >
-              {isConnecting() ? 'Connecting...' : 'Start'}
+              {isConnecting() ? "Connecting..." : "Start"}
             </button>
           </div>
         </div>
@@ -483,41 +555,75 @@ export function MeetingView(props) {
             <button
               onClick={toggleMute}
               class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
-                isMuted() ? "bg-red-500/90 hover:bg-red-600 text-white" : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
+                isMuted()
+                  ? "bg-red-500/90 hover:bg-red-600 text-white"
+                  : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
               }`}
             >
               {isMuted() ? (
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+                  />
                 </svg>
               ) : (
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
+                  />
                 </svg>
               )}
               <span>{isMuted() ? "Unmute" : "Mute"}</span>
             </button>
+
             <button
               onClick={toggleCamera}
               class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
-                isCameraOff() ? "bg-red-500/90 hover:bg-red-600 text-white" : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
+                isCameraOff()
+                  ? "bg-red-500/90 hover:bg-red-600 text-white"
+                  : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
               }`}
             >
               {isCameraOff() ? (
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+                  />
                 </svg>
               ) : (
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
                 </svg>
               )}
               <span>{isCameraOff() ? "Start Camera" : "Stop Camera"}</span>
             </button>
 
-            {/* 👇 NEW: Share Screen button */}
             <button
               onClick={toggleScreenShare}
               class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
@@ -528,11 +634,21 @@ export function MeetingView(props) {
             >
               {isSharingScreen() ? (
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                  />
                 </svg>
               ) : (
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L15 12.75 9.75 8.5M4.5 4.5h15v15h-15z" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9.75 17L15 12.75 9.75 8.5M4.5 4.5h15v15h-15z"
+                  />
                 </svg>
               )}
               <span>{isSharingScreen() ? "Stop Sharing" : "Share Screen"}</span>
@@ -543,7 +659,12 @@ export function MeetingView(props) {
               class="px-5 py-2.5 bg-red-500/90 hover:bg-red-600 rounded-xl text-sm font-medium transition text-white flex items-center space-x-2"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                />
               </svg>
               <span>Leave Call</span>
             </button>
