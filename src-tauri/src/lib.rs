@@ -1,7 +1,152 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-use serde::Serialize;
-mod token;
+use tauri::{AppHandle, Manager, State};
 
+mod meeting;
+mod session;
+mod settings;
+mod state;
+mod token;
+mod window;
+
+use meeting::{format_invitation, MeetingRecord, ScheduledMeeting};
+use session::{create_session, MeetingSession};
+use settings::{UserProfile, UserSettings};
+use state::AppState;
+
+#[tauri::command]
+fn get_meeting_session(
+    room: String,
+    state: State<'_, AppState>,
+) -> Result<MeetingSession, String> {
+    let data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to acquire lock on app data".to_string())?
+        .clone();
+
+    // Record in history
+    if let Ok(mut meetings) = state.meetings.lock() {
+        let _ = meetings.add_history(room.clone(), &state.config_dir);
+    }
+
+    create_session(room, &data)
+}
+
+#[tauri::command]
+fn open_meeting_window(
+    app: AppHandle,
+    room: String,
+    width: Option<f64>,
+    height: Option<f64>,
+) -> Result<String, String> {
+    window::spawn_meeting_window(&app, room, width, height)
+}
+
+#[tauri::command]
+fn get_user_profile(state: State<'_, AppState>) -> Result<UserProfile, String> {
+    let data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    Ok(data.profile.clone())
+}
+
+#[tauri::command]
+fn update_user_profile(
+    profile: UserProfile,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    data.profile = profile;
+    data.save(&state.config_dir)
+}
+
+#[tauri::command]
+fn get_user_settings(state: State<'_, AppState>) -> Result<UserSettings, String> {
+    let data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    Ok(data.settings.clone())
+}
+
+#[tauri::command]
+fn update_user_settings(
+    settings: UserSettings,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    data.settings = settings;
+    data.save(&state.config_dir)
+}
+
+#[tauri::command]
+fn get_scheduled_meetings(state: State<'_, AppState>) -> Result<Vec<ScheduledMeeting>, String> {
+    let meetings = state
+        .meetings
+        .lock()
+        .map_err(|_| "Failed to lock meetings".to_string())?;
+    Ok(meetings.scheduled.clone())
+}
+
+#[tauri::command]
+fn schedule_meeting(
+    title: String,
+    room_id: String,
+    start_time: String,
+    duration_minutes: u32,
+    state: State<'_, AppState>,
+) -> Result<ScheduledMeeting, String> {
+    let mut meetings = state
+        .meetings
+        .lock()
+        .map_err(|_| "Failed to lock meetings".to_string())?;
+    meetings.add_scheduled(
+        title,
+        room_id,
+        start_time,
+        duration_minutes,
+        &state.config_dir,
+    )
+}
+
+#[tauri::command]
+fn delete_scheduled_meeting(id: String, state: State<'_, AppState>) -> Result<bool, String> {
+    let mut meetings = state
+        .meetings
+        .lock()
+        .map_err(|_| "Failed to lock meetings".to_string())?;
+    meetings.remove_scheduled(&id, &state.config_dir)
+}
+
+#[tauri::command]
+fn get_meeting_history(state: State<'_, AppState>) -> Result<Vec<MeetingRecord>, String> {
+    let meetings = state
+        .meetings
+        .lock()
+        .map_err(|_| "Failed to lock meetings".to_string())?;
+    Ok(meetings.history.clone())
+}
+
+#[tauri::command]
+fn get_meeting_invite(room: String, state: State<'_, AppState>) -> Result<String, String> {
+    let data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    Ok(format_invitation(
+        &data.profile.display_name,
+        &room,
+        &data.profile.pmi,
+    ))
+}
+
+// Backward compatibility command
 #[tauri::command]
 fn generate_livekit_token(
     api_key: String,
@@ -9,52 +154,42 @@ fn generate_livekit_token(
     room: String,
     valid_for_seconds: Option<u64>,
 ) -> Result<String, String> {
-    // Read secret from environment variable
     let secret = std::env::var("LIVEKIT_API_SECRET")
         .map_err(|_| "LIVEKIT_API_SECRET not set in environment".to_string())?;
-
-    let validity = valid_for_seconds.unwrap_or(86400); // 24h
+    let validity = valid_for_seconds.unwrap_or(86400);
     token::generate_token(&api_key, &secret, &identity, &room, validity)
-}
-
-#[derive(Serialize)]
-pub struct AppConfig {
-    livekit_url: String,
-    api_key: String,
-    room: String,
-    identity: String,
-}
-
-#[tauri::command]
-fn get_config() -> Result<AppConfig, String> {
-    let livekit_url = std::env::var("LIVEKIT_URL")
-        .map_err(|_| "LIVEKIT_URL not set".to_string())?;
-    let api_key = std::env::var("LIVEKIT_API_KEY")
-        .map_err(|_| "API_KEY not set".to_string())?;
-    let room = std::env::var("ROOM")
-        .map_err(|_| "ROOM not set".to_string())?;
-    let identity = std::env::var("IDENTITY")
-        .map_err(|_| "IDENTITY not set".to_string())?;
-
-    Ok(AppConfig {
-        livekit_url,
-        api_key,
-        room,
-        identity,
-    })
-}
-
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     dotenvy::dotenv().ok();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet, generate_livekit_token, get_config])
+        .setup(|app| {
+            let config_dir = app
+                .path()
+                .app_config_dir()
+                .unwrap_or_else(|_| std::env::temp_dir().join("visualtalk"));
+            
+            let _ = std::fs::create_dir_all(&config_dir);
+            app.manage(AppState::new(config_dir));
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            get_meeting_session,
+            open_meeting_window,
+            get_user_profile,
+            update_user_profile,
+            get_user_settings,
+            update_user_settings,
+            get_scheduled_meetings,
+            schedule_meeting,
+            delete_scheduled_meeting,
+            get_meeting_history,
+            get_meeting_invite,
+            generate_livekit_token
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
