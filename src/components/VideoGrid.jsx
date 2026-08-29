@@ -1,4 +1,4 @@
-import { For, createEffect, createSignal } from "solid-js";
+import { For, createEffect, createSignal, onCleanup } from "solid-js";
 
 export function VideoGrid(props) {
   return (
@@ -11,24 +11,30 @@ export function VideoGrid(props) {
             const currentEl = el();
             if (!currentEl) return;
 
-            let stream = null;
             if (participant.stream) {
-              // Direct MediaStream (local preview)
-              stream = participant.stream;
+              // Direct local MediaStream
+              currentEl.srcObject = participant.stream;
+              currentEl.play().catch((err) => console.warn("Local video play failed:", err));
             } else if (participant.videoTrack) {
-              // Remote or LiveKit track
-              const trackObj = participant.videoTrack.track;
-              if (trackObj && trackObj.mediaStreamTrack) {
-                stream = new MediaStream([trackObj.mediaStreamTrack]);
+              const track = participant.videoTrack.track || participant.videoTrack;
+              if (track && typeof track.attach === "function") {
+                track.attach(currentEl);
+              } else if (track && track.mediaStreamTrack) {
+                currentEl.srcObject = new MediaStream([track.mediaStreamTrack]);
+                currentEl.play().catch((err) => console.warn("Remote video play failed:", err));
               }
-            }
-
-            if (stream) {
-              currentEl.srcObject = stream;
-              currentEl.play().catch(err => console.warn("Play failed:", err));
             } else {
               currentEl.srcObject = null;
             }
+
+            onCleanup(() => {
+              if (participant.videoTrack) {
+                const track = participant.videoTrack.track || participant.videoTrack;
+                if (track && typeof track.detach === "function" && currentEl) {
+                  track.detach(currentEl);
+                }
+              }
+            });
           });
 
           return (
@@ -38,9 +44,9 @@ export function VideoGrid(props) {
                 autoplay
                 playsinline
                 muted={participant.isLocal}
-                class={`w-full h-full object-cover ${participant.isLocal ? "scale-x-[-1]" : ""}`}
+                class={`w-full h-full object-cover ${participant.isLocal && !participant.isScreen ? "scale-x-[-1]" : ""}`}
               />
-              <div class="absolute bottom-3 left-3 bg-slate-900/70 backdrop-blur-md px-3 py-1 rounded-md text-xs text-slate-200 flex items-center gap-2">
+              <div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-md text-xs text-slate-200 flex items-center gap-2">
                 <span>{participant.name}</span>
                 {participant.isMuted && <span class="text-red-400">🔇</span>}
               </div>
