@@ -1,17 +1,19 @@
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use sha2::Sha256;
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use serde::{Deserialize, Serialize};
 use chrono::Utc;
-use serde_json;
 use std::collections::BTreeMap;
-use hmac::KeyInit;
 
-// Claims structure for LiveKit JWT
+// Claims structure for LiveKit JWT (matches LiveKit specification)
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct VideoGrant {
     room_join: bool,
     room: String,
+    can_publish: bool,
+    can_subscribe: bool,
+    can_publish_data: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -47,6 +49,9 @@ pub fn generate_token(
         video: VideoGrant {
             room_join: true,
             room: room.to_string(),
+            can_publish: true,
+            can_subscribe: true,
+            can_publish_data: true,
         },
     };
 

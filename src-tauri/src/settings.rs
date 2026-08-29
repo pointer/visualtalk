@@ -12,11 +12,18 @@ pub struct UserProfile {
 
 impl Default for UserProfile {
     fn default() -> Self {
+        let rand_suffix = (chrono::Utc::now().timestamp_millis() % 9000) + 1000;
+        let identity = format!("User-{}", rand_suffix);
+        let pmi_prefix = (chrono::Utc::now().timestamp_millis() % 900) + 100;
+        let pmi_mid = (chrono::Utc::now().timestamp_subsec_millis() % 900) + 100;
+        let pmi_end = (chrono::Utc::now().timestamp_subsec_micros() % 9000) + 1000;
+        let pmi = format!("{} {} {}", pmi_prefix, pmi_mid, pmi_end);
+
         Self {
-            identity: "User1".to_string(),
-            display_name: "You".to_string(),
+            identity: identity.clone(),
+            display_name: identity,
             email: "user@visualtalk.local".to_string(),
-            pmi: "231 809 1164".to_string(),
+            pmi,
         }
     }
 }
@@ -55,7 +62,16 @@ impl AppData {
         let file_path = config_dir.join("settings.json");
         if file_path.exists() {
             if let Ok(content) = fs::read_to_string(&file_path) {
-                if let Ok(data) = serde_json::from_str::<AppData>(&content) {
+                if let Ok(mut data) = serde_json::from_str::<AppData>(&content) {
+                    // If the stored identity was generic "User1", generate a unique one
+                    if data.profile.identity == "User1" || data.profile.identity.is_empty() {
+                        let rand_suffix = (chrono::Utc::now().timestamp_millis() % 9000) + 1000;
+                        data.profile.identity = format!("User-{}", rand_suffix);
+                        if data.profile.display_name == "You" || data.profile.display_name == "User1" {
+                            data.profile.display_name = data.profile.identity.clone();
+                        }
+                        let _ = data.save(config_dir);
+                    }
                     return data;
                 }
             }
@@ -73,4 +89,3 @@ impl AppData {
         Ok(())
     }
 }
-

@@ -31,6 +31,7 @@ export function MeetingView(props) {
   const [localStream, setLocalStream] = createSignal(null);
   let room;
   let previewVideoRef = null;
+  const attachedAudioElements = new Map();
 
   // ---- Load preferences and devices ----
   onMount(async () => {
@@ -51,6 +52,8 @@ export function MeetingView(props) {
 
   onCleanup(() => {
     if (room) room.disconnect();
+    attachedAudioElements.forEach((el) => el.remove());
+    attachedAudioElements.clear();
     const stream = localStream();
     if (stream) stream.getTracks().forEach((t) => t.stop());
     const pStream = previewStream();
@@ -156,6 +159,48 @@ export function MeetingView(props) {
     }
   };
 
+  const handleTrackSubscribed = (track, publication, participant) => {
+    if (track.kind === Track.Kind.Video) {
+      const isScreen = publication.source === Track.Source.ScreenShare;
+      const trackId = isScreen ? `${participant.identity}-screen` : participant.identity;
+
+      setParticipants((prev) => {
+        const filtered = prev.filter((p) => p.id !== trackId);
+        return [
+          ...filtered,
+          {
+            id: trackId,
+            name: isScreen
+              ? `${participant.name || participant.identity}'s Screen`
+              : participant.name || participant.identity,
+            isLocal: false,
+            isScreen,
+            videoTrack: track,
+          },
+        ];
+      });
+    } else if (track.kind === Track.Kind.Audio) {
+      // Auto-attach remote audio so participants can hear each other
+      const audioEl = track.attach();
+      attachedAudioElements.set(track.sid, audioEl);
+    }
+  };
+
+  const handleTrackUnsubscribed = (track, publication, participant) => {
+    if (track.kind === Track.Kind.Video) {
+      const isScreen = publication.source === Track.Source.ScreenShare;
+      const trackId = isScreen ? `${participant.identity}-screen` : participant.identity;
+      setParticipants((prev) => prev.filter((p) => p.id !== trackId));
+    } else if (track.kind === Track.Kind.Audio) {
+      const audioEl = attachedAudioElements.get(track.sid);
+      if (audioEl) {
+        track.detach(audioEl);
+        audioEl.remove();
+        attachedAudioElements.delete(track.sid);
+      }
+    }
+  };
+
   // ---- Unified Meeting Join via Rust Meeting Session ----
   const joinMeeting = async () => {
     setIsConnecting(true);
@@ -194,37 +239,33 @@ export function MeetingView(props) {
       setIsCameraOff(true);
     }
 
-    room = new Room();
+    room = new Room({
+      adaptiveStream: true,
+      dynacast: true,
+    });
 
-    // Handle remote tracks
+    // Remote track subscription events
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-      if (track.kind === Track.Kind.Video) {
-        const isScreen = publication.source === Track.Source.ScreenShare;
-        setParticipants((prev) => [
-          ...prev,
-          {
-            id: isScreen ? `${participant.identity}-screen` : participant.identity,
-            name: isScreen
-              ? `${participant.name || participant.identity}'s Screen`
-              : participant.name || participant.identity,
-            isLocal: false,
-            isScreen,
-            videoTrack: publication,
-          },
-        ]);
-      }
+      handleTrackSubscribed(track, publication, participant);
     });
 
     room.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
-      if (track.kind === Track.Kind.Video) {
-        const isScreen = publication.source === Track.Source.ScreenShare;
-        const id = isScreen ? `${participant.identity}-screen` : participant.identity;
-        setParticipants((prev) => prev.filter((p) => p.id !== id));
-      }
+      handleTrackUnsubscribed(track, publication, participant);
+    });
+
+    room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+      setParticipants((prev) =>
+        prev.filter(
+          (p) =>
+            p.id !== participant.identity &&
+            p.id !== `${participant.identity}-screen`
+        )
+      );
     });
 
     // Handle local screen sharing
-    room.on(RoomEvent.LocalTrackPublished, (track) => {
+    room.on(RoomEvent.LocalTrackPublished, (publication) => {
+      const track = publication.track || publication;
       if (track.kind === Track.Kind.Video && track.source === Track.Source.ScreenShare) {
         setIsSharingScreen(true);
         setParticipants((prev) => {
@@ -243,7 +284,8 @@ export function MeetingView(props) {
       }
     });
 
-    room.on(RoomEvent.LocalTrackUnpublished, (track) => {
+    room.on(RoomEvent.LocalTrackUnpublished, (publication) => {
+      const track = publication.track || publication;
       if (track.kind === Track.Kind.Video && track.source === Track.Source.ScreenShare) {
         setIsSharingScreen(false);
         setParticipants((prev) => prev.filter((p) => p.id !== "local-screen"));
@@ -252,10 +294,25 @@ export function MeetingView(props) {
 
     try {
       await room.connect(session.livekit_url, session.token);
-      await room.localParticipant.setCameraEnabled(!isCameraOff());
-      await room.localParticipant.setMicrophoneEnabled(!isMuted());
+
+      // Publish local media
+      await room.localParticipant.setCameraEnabled(previewVideoEnabled());
+      await room.localParticipant.setMicrophoneEnabled(previewAudioEnabled());
+
+      setIsCameraOff(!previewVideoEnabled());
+      setIsMuted(!previewAudioEnabled());
+
+      // Catch up with any remote participants already publishing
+      room.remoteParticipants.forEach((participant) => {
+        participant.trackPublications.forEach((pub) => {
+          if (pub.isSubscribed && pub.track) {
+            handleTrackSubscribed(pub.track, pub, participant);
+          }
+        });
+      });
     } catch (err) {
       console.error("Failed to connect to LiveKit server:", err);
+      alert(`LiveKit Connection Failed: ${err.message || err}`);
     }
     setIsConnecting(false);
   };
@@ -314,6 +371,8 @@ export function MeetingView(props) {
   // ---- Leave / close ----
   const leaveCall = () => {
     if (room) room.disconnect().catch(() => {});
+    attachedAudioElements.forEach((el) => el.remove());
+    attachedAudioElements.clear();
     const stream = localStream();
     if (stream) stream.getTracks().forEach((t) => t.stop());
     const pStream = previewStream();
