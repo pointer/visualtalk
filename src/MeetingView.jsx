@@ -1,4 +1,4 @@
-import { createSignal, onMount, onCleanup, For, createEffect } from "solid-js";
+import { createSignal, onMount, onCleanup, For, createEffect, Show } from "solid-js";
 import { Room, RoomEvent, Track } from "livekit-client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
@@ -268,19 +268,6 @@ export function MeetingView(props) {
       const track = publication.track || publication;
       if (track.kind === Track.Kind.Video && track.source === Track.Source.ScreenShare) {
         setIsSharingScreen(true);
-        setParticipants((prev) => {
-          const filtered = prev.filter((p) => p.id !== "local-screen");
-          return [
-            ...filtered,
-            {
-              id: "local-screen",
-              name: "Your Screen",
-              isLocal: true,
-              isScreen: true,
-              videoTrack: track,
-            },
-          ];
-        });
       }
     });
 
@@ -288,7 +275,6 @@ export function MeetingView(props) {
       const track = publication.track || publication;
       if (track.kind === Track.Kind.Video && track.source === Track.Source.ScreenShare) {
         setIsSharingScreen(false);
-        setParticipants((prev) => prev.filter((p) => p.id !== "local-screen"));
       }
     });
 
@@ -357,13 +343,22 @@ export function MeetingView(props) {
   const toggleScreenShare = async () => {
     if (!room) return;
     if (isSharingScreen()) {
-      await room.localParticipant.setScreenShareEnabled(false);
+      try {
+        await room.localParticipant.setScreenShareEnabled(false);
+        setIsSharingScreen(false);
+      } catch (err) {
+        console.error("Failed to stop screen share:", err);
+      }
     } else {
       try {
-        await room.localParticipant.setScreenShareEnabled(true);
+        await room.localParticipant.setScreenShareEnabled(true, {
+          audio: false,
+          selfBrowserSurface: "exclude",
+          surfaceSwitching: "include",
+        });
+        setIsSharingScreen(true);
       } catch (err) {
         console.error("Failed to start screen share:", err);
-        alert("Screen sharing was cancelled or failed.");
       }
     }
   };
@@ -601,26 +596,42 @@ export function MeetingView(props) {
       ) : (
         // ===== In-Meeting View =====
         <div class="flex flex-col flex-1 overflow-hidden">
-          <header class="p-4 border-b border-[#2a2a2a] flex justify-between items-center bg-[#1a1a1a]/80 shrink-0">
-            <h1 class="text-lg font-semibold tracking-wide">VisualTalk Meeting</h1>
-            <div class="text-sm text-gray-400">Room: #{ROOM}</div>
+          {/* Presenter Banner */}
+          <Show when={isSharingScreen()}>
+            <div class="bg-emerald-600 px-4 py-2 flex items-center justify-between text-xs font-semibold text-white shadow-md shrink-0">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+                <span>You are sharing your screen</span>
+              </div>
+              <button
+                onClick={toggleScreenShare}
+                class="px-3 py-1 bg-black/40 hover:bg-black/60 rounded-md text-xs text-white transition cursor-pointer"
+              >
+                Stop Sharing
+              </button>
+            </div>
+          </Show>
+
+          <header class="px-4 py-3 border-b border-[#2a2a2a] flex justify-between items-center bg-[#1a1a1a]/80 shrink-0">
+            <h1 class="text-base font-semibold tracking-wide">VisualTalk Meeting</h1>
+            <div class="text-xs text-gray-400">Room: #{ROOM}</div>
           </header>
 
           <main class="flex-1 overflow-hidden bg-[#0f0f0f]">
             <VideoGrid participants={participants()} />
           </main>
 
-          <footer class="p-4 border-t border-[#2a2a2a] flex justify-center gap-4 bg-[#1a1a1a] shrink-0 flex-wrap">
+          <footer class="p-3 border-t border-[#2a2a2a] flex justify-center gap-3 bg-[#1a1a1a] shrink-0 flex-wrap">
             <button
               onClick={toggleMute}
-              class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
+              class={`px-4 py-2 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
                 isMuted()
                   ? "bg-red-500/90 hover:bg-red-600 text-white"
                   : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
               }`}
             >
               {isMuted() ? (
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -635,7 +646,7 @@ export function MeetingView(props) {
                   />
                 </svg>
               ) : (
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -649,14 +660,14 @@ export function MeetingView(props) {
 
             <button
               onClick={toggleCamera}
-              class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
+              class={`px-4 py-2 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
                 isCameraOff()
                   ? "bg-red-500/90 hover:bg-red-600 text-white"
                   : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
               }`}
             >
               {isCameraOff() ? (
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -671,7 +682,7 @@ export function MeetingView(props) {
                   />
                 </svg>
               ) : (
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -685,14 +696,14 @@ export function MeetingView(props) {
 
             <button
               onClick={toggleScreenShare}
-              class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
+              class={`px-4 py-2 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
                 isSharingScreen()
                   ? "bg-red-500/90 hover:bg-red-600 text-white"
-                  : "bg-green-600 hover:bg-green-700 text-white"
+                  : "bg-emerald-600 hover:bg-emerald-700 text-white"
               }`}
             >
               {isSharingScreen() ? (
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -701,7 +712,7 @@ export function MeetingView(props) {
                   />
                 </svg>
               ) : (
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -715,9 +726,9 @@ export function MeetingView(props) {
 
             <button
               onClick={handleCloseClick}
-              class="px-5 py-2.5 bg-red-500/90 hover:bg-red-600 rounded-xl text-sm font-medium transition text-white flex items-center space-x-2"
+              class="px-4 py-2 bg-red-500/90 hover:bg-red-600 rounded-xl text-sm font-medium transition text-white flex items-center space-x-2"
             >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
