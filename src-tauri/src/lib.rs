@@ -1,13 +1,19 @@
 use tauri::{AppHandle, Manager, State};
 
+mod device;
+mod layout;
 mod meeting;
+mod participant;
 mod session;
 mod settings;
 mod state;
 mod token;
 mod window;
 
+use device::{DeviceManager, DevicePreferences, MediaDevice};
+use layout::{LayoutCalculator, LayoutConfig};
 use meeting::{format_invitation, MeetingRecord, ScheduledMeeting};
+use participant::{Participant, ParticipantManager};
 use session::{create_session, MeetingSession};
 use settings::{UserProfile, UserSettings};
 use state::AppState;
@@ -146,6 +152,73 @@ fn get_meeting_invite(room: String, state: State<'_, AppState>) -> Result<String
     ))
 }
 
+// ===== PARTICIPANT MANAGEMENT =====
+
+#[tauri::command]
+fn get_all_participants() -> Result<Vec<Participant>, String> {
+    let manager = ParticipantManager::new();
+    Ok(manager.get_all())
+}
+
+#[tauri::command]
+fn filter_remote_participants() -> Result<Vec<Participant>, String> {
+    let manager = ParticipantManager::new();
+    Ok(manager.get_remote_participants())
+}
+
+#[tauri::command]
+fn get_screen_shares() -> Result<Vec<Participant>, String> {
+    let manager = ParticipantManager::new();
+    Ok(manager.get_screen_shares())
+}
+
+#[tauri::command]
+fn get_active_screen_share() -> Result<Option<Participant>, String> {
+    let manager = ParticipantManager::new();
+    Ok(manager.get_active_screen_share())
+}
+
+// ===== LAYOUT CALCULATIONS =====
+
+#[tauri::command]
+fn calculate_grid_dimensions(participant_count: usize) -> Result<(usize, usize), String> {
+    Ok(LayoutCalculator::calculate_grid_dimensions(participant_count))
+}
+
+#[tauri::command]
+fn calculate_optimal_layout(
+    participant_count: usize,
+    has_active_screen_share: bool,
+    pinned_participant_id: Option<String>,
+) -> Result<LayoutConfig, String> {
+    Ok(LayoutCalculator::calculate_optimal_layout(
+        participant_count,
+        has_active_screen_share,
+        pinned_participant_id,
+    ))
+}
+
+#[tauri::command]
+fn get_grid_class(columns: usize) -> Result<String, String> {
+    Ok(LayoutCalculator::get_grid_class(columns))
+}
+
+#[tauri::command]
+fn should_use_featured_layout(
+    participant_count: usize,
+    has_active_screen_share: bool,
+) -> Result<bool, String> {
+    Ok(LayoutCalculator::should_use_featured_layout(
+        participant_count,
+        has_active_screen_share,
+    ))
+}
+
+#[tauri::command]
+fn calculate_aspect_ratio(width: u32, height: u32) -> Result<f64, String> {
+    Ok(LayoutCalculator::calculate_aspect_ratio(width, height))
+}
+
 // Backward compatibility command
 #[tauri::command]
 fn generate_livekit_token(
@@ -177,17 +250,37 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // Meeting & Session
             get_meeting_session,
             open_meeting_window,
+            
+            // User Management
             get_user_profile,
             update_user_profile,
             get_user_settings,
             update_user_settings,
+            
+            // Meetings History & Scheduling
             get_scheduled_meetings,
             schedule_meeting,
             delete_scheduled_meeting,
             get_meeting_history,
             get_meeting_invite,
+            
+            // Participant Management
+            get_all_participants,
+            filter_remote_participants,
+            get_screen_shares,
+            get_active_screen_share,
+            
+            // Layout Calculations
+            calculate_grid_dimensions,
+            calculate_optimal_layout,
+            get_grid_class,
+            should_use_featured_layout,
+            calculate_aspect_ratio,
+            
+            // Token Generation
             generate_livekit_token
         ])
         .run(tauri::generate_context!())
