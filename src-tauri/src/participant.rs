@@ -32,8 +32,8 @@ impl ParticipantManager {
     }
 
     /// Remove a participant
-    pub fn remove_participant(&self, participant_id: &str) -> bool {
-        self.participants.contains_key(participant_id)
+    pub fn remove_participant(&mut self, participant_id: &str) -> bool {
+        self.participants.remove(participant_id).is_some()
     }
 
     /// Get all participants
@@ -167,5 +167,161 @@ mod tests {
         
         manager.remove_screen_share("user1");
         assert!(manager.get_active_screen_share().is_none());
+    }
+
+    #[test]
+    fn test_remove_participant() {
+        let mut manager = ParticipantManager::new();
+        let participant = Participant {
+            id: "user1".to_string(),
+            name: "Alice".to_string(),
+            is_local: true,
+            is_screen: false,
+            is_muted: false,
+            video_enabled: true,
+            audio_enabled: true,
+        };
+        manager.add_participant(participant);
+        assert!(manager.remove_participant("user1"));
+        assert_eq!(manager.count(), 0);
+        assert!(!manager.remove_participant("nonexistent"));
+    }
+
+    #[test]
+    fn test_mute_participant() {
+        let mut manager = ParticipantManager::new();
+        let participant = Participant {
+            id: "user1".to_string(),
+            name: "Alice".to_string(),
+            is_local: false,
+            is_screen: false,
+            is_muted: false,
+            video_enabled: true,
+            audio_enabled: true,
+        };
+        manager.add_participant(participant);
+        
+        assert!(manager.set_participant_muted("user1", true));
+        let muted_participant = manager.get_participant("user1").unwrap();
+        assert!(muted_participant.is_muted);
+        
+        assert!(manager.set_participant_muted("user1", false));
+        let unmuted_participant = manager.get_participant("user1").unwrap();
+        assert!(!unmuted_participant.is_muted);
+    }
+
+    #[test]
+    fn test_video_enabled_toggle() {
+        let mut manager = ParticipantManager::new();
+        let participant = Participant {
+            id: "user1".to_string(),
+            name: "Alice".to_string(),
+            is_local: false,
+            is_screen: false,
+            is_muted: false,
+            video_enabled: true,
+            audio_enabled: true,
+        };
+        manager.add_participant(participant);
+        
+        assert!(manager.set_participant_video_enabled("user1", false));
+        let participant = manager.get_participant("user1").unwrap();
+        assert!(!participant.video_enabled);
+    }
+
+    #[test]
+    fn test_get_remote_participants() {
+        let mut manager = ParticipantManager::new();
+        
+        let local = Participant {
+            id: "me".to_string(),
+            name: "Me".to_string(),
+            is_local: true,
+            is_screen: false,
+            is_muted: false,
+            video_enabled: true,
+            audio_enabled: true,
+        };
+        
+        let remote = Participant {
+            id: "user1".to_string(),
+            name: "Alice".to_string(),
+            is_local: false,
+            is_screen: false,
+            is_muted: false,
+            video_enabled: true,
+            audio_enabled: true,
+        };
+        
+        manager.add_participant(local);
+        manager.add_participant(remote);
+        
+        let remotes = manager.get_remote_participants();
+        assert_eq!(remotes.len(), 1);
+        assert_eq!(remotes[0].id, "user1");
+    }
+
+    #[test]
+    fn test_clear_participants() {
+        let mut manager = ParticipantManager::new();
+        for i in 0..5 {
+            let participant = Participant {
+                id: format!("user{}", i),
+                name: format!("User {}", i),
+                is_local: false,
+                is_screen: false,
+                is_muted: false,
+                video_enabled: true,
+                audio_enabled: true,
+            };
+            manager.add_participant(participant);
+        }
+        assert_eq!(manager.count(), 5);
+        manager.clear();
+        assert_eq!(manager.count(), 0);
+    }
+
+    #[test]
+    fn test_get_sorted_participants() {
+        let mut manager = ParticipantManager::new();
+        
+        let remote1 = Participant {
+            id: "b".to_string(),
+            name: "Bob".to_string(),
+            is_local: false,
+            is_screen: false,
+            is_muted: false,
+            video_enabled: true,
+            audio_enabled: true,
+        };
+        
+        let remote2 = Participant {
+            id: "a".to_string(),
+            name: "Alice".to_string(),
+            is_local: false,
+            is_screen: false,
+            is_muted: false,
+            video_enabled: true,
+            audio_enabled: true,
+        };
+        
+        let local = Participant {
+            id: "me".to_string(),
+            name: "Me".to_string(),
+            is_local: true,
+            is_screen: false,
+            is_muted: false,
+            video_enabled: true,
+            audio_enabled: true,
+        };
+        
+        manager.add_participant(remote1);
+        manager.add_participant(remote2);
+        manager.add_participant(local);
+        
+        let sorted = manager.get_sorted();
+        // Local participant should be first
+        assert!(sorted[0].is_local);
+        assert_eq!(sorted.len(), 3);
     }
 }

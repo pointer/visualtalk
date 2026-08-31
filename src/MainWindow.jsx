@@ -1,5 +1,6 @@
-import { createSignal, onCleanup, onMount, For } from "solid-js";
+import { createSignal, onCleanup, onMount, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { SettingsTab } from "./components/SettingsTab";
 
 export function MainWindow(props) {
   const [activeTab, setActiveTab] = createSignal("home");
@@ -195,42 +196,175 @@ export function MainWindow(props) {
       {/* Sidebar */}
       <aside class="w-16 bg-[#1c1c1c] flex flex-col items-center justify-between py-5 border-r border-gray-800/40 shrink-0">
         <div class="flex flex-col items-center space-y-5">
-          <button class="flex flex-col items-center text-blue-400 group focus:outline-none">
-            <div class="p-1.5 rounded-xl bg-blue-600/20 text-blue-400 mb-0.5">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <button
+            onClick={() => setActiveTab("home")}
+            class={`flex flex-col items-center transition group focus:outline-none ${
+              activeTab() === "home"
+                ? "text-blue-400"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <div
+              class={`p-1.5 rounded-xl mb-0.5 transition ${
+                activeTab() === "home"
+                  ? "bg-blue-600/20 text-blue-400"
+                  : "text-gray-400 group-hover:bg-gray-800"
+              }`}
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                />
+              </svg>
             </div>
             <span class="text-[9px] font-medium">Home</span>
           </button>
-          <button class="flex flex-col items-center text-gray-400 hover:text-white transition group">
-            <div class="p-1.5 rounded-xl hover:bg-gray-800 mb-0.5">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+
+          <button
+            onClick={() => setActiveTab("meetings")}
+            class={`flex flex-col items-center transition group focus:outline-none ${
+              activeTab() === "meetings"
+                ? "text-blue-400"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <div
+              class={`p-1.5 rounded-xl mb-0.5 transition ${
+                activeTab() === "meetings"
+                  ? "bg-blue-600/20 text-blue-400"
+                  : "text-gray-400 group-hover:bg-gray-800"
+              }`}
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
+              </svg>
             </div>
             <span class="text-[9px] font-medium">Meetings</span>
           </button>
-          <button class="flex flex-col items-center text-gray-400 hover:text-white transition group">
-            <div class="p-1.5 rounded-xl hover:bg-gray-800 mb-0.5">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+
+          <button
+            onClick={() => setActiveTab("chat")}
+            class={`flex flex-col items-center transition group focus:outline-none ${
+              activeTab() === "chat"
+                ? "text-blue-400"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <div
+              class={`p-1.5 rounded-xl mb-0.5 transition ${
+                activeTab() === "chat"
+                  ? "bg-blue-600/20 text-blue-400"
+                  : "text-gray-400 group-hover:bg-gray-800"
+              }`}
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                />
+              </svg>
             </div>
             <span class="text-[9px] font-medium">Chat</span>
           </button>
-          <button class="flex flex-col items-center text-gray-400 hover:text-white transition group">
-            <div class="p-1.5 rounded-xl hover:bg-gray-800 mb-0.5">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+
+          <button
+            onClick={() => setActiveTab("hub")}
+            class={`flex flex-col items-center transition group focus:outline-none ${
+              activeTab() === "hub"
+                ? "text-blue-400"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <div
+              class={`p-1.5 rounded-xl mb-0.5 transition ${
+                activeTab() === "hub"
+                  ? "bg-blue-600/20 text-blue-400"
+                  : "text-gray-400 group-hover:bg-gray-800"
+              }`}
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
             </div>
             <span class="text-[9px] font-medium">Hub</span>
           </button>
         </div>
+
         <div class="flex flex-col items-center">
-          <button class="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <button
+            onClick={() => setActiveTab("settings")}
+            class={`p-2 rounded-xl transition focus:outline-none ${
+              activeTab() === "settings"
+                ? "bg-blue-600/20 text-blue-400"
+                : "text-gray-400 hover:text-white hover:bg-gray-800"
+            }`}
+          >
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
       <main class="flex-1 flex flex-col overflow-y-auto bg-[#111111]">
-        {/* Top Bar */}
-        <header class="flex items-center justify-end px-6 py-2 border-b border-gray-800/40 shrink-0 bg-[#111111]">
+        <Show
+          when={activeTab() !== "settings"}
+          fallback={<SettingsTab profile={profile()} settings={settings()} />}
+        >
+          {/* Top Bar */}
+          <header class="flex items-center justify-end px-6 py-2 border-b border-gray-800/40 shrink-0 bg-[#111111]">
           <div class="flex items-center space-x-4">
             <button class="text-gray-400 hover:text-white transition">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -471,6 +605,7 @@ export function MainWindow(props) {
             )}
           </div>
         </div>
+        </Show>
       </main>
     </div>
   );

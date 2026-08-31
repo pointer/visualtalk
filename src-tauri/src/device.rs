@@ -212,4 +212,101 @@ mod tests {
         // When no preference is set, should return first device
         assert!(manager.get_preferred_mic().is_some());
     }
+
+    #[test]
+    fn test_set_device_preferences() {
+        let mut manager = DeviceManager::new();
+        let devices = vec![
+            MediaDevice {
+                id: "mic1".to_string(),
+                label: "Microphone".to_string(),
+                kind: DeviceKind::AudioInput,
+                group_id: None,
+            },
+        ];
+        manager.set_devices(devices);
+        
+        let prefs = DevicePreferences {
+            preferred_mic_id: Some("mic1".to_string()),
+            preferred_camera_id: None,
+            preferred_speaker_id: None,
+        };
+        manager.set_preferences(prefs);
+        
+        let preferred = manager.get_preferred_mic().unwrap();
+        assert_eq!(preferred.id, "mic1");
+    }
+
+    #[test]
+    fn test_get_device_by_id() {
+        let mut manager = DeviceManager::new();
+        let device = MediaDevice {
+            id: "cam1".to_string(),
+            label: "Camera".to_string(),
+            kind: DeviceKind::VideoInput,
+            group_id: None,
+        };
+        manager.set_devices(vec![device.clone()]);
+        
+        let found = manager.get_device("cam1").unwrap();
+        assert_eq!(found.id, "cam1");
+        assert_eq!(found.label, "Camera");
+    }
+
+    #[test]
+    fn test_get_all_devices() {
+        let mut manager = DeviceManager::new();
+        let devices = vec![
+            MediaDevice {
+                id: "mic1".to_string(),
+                label: "Microphone".to_string(),
+                kind: DeviceKind::AudioInput,
+                group_id: None,
+            },
+            MediaDevice {
+                id: "cam1".to_string(),
+                label: "Camera".to_string(),
+                kind: DeviceKind::VideoInput,
+                group_id: None,
+            },
+        ];
+        manager.set_devices(devices);
+        
+        let all = manager.get_all_devices();
+        assert_eq!(all.len(), 2);
+    }
+
+    #[test]
+    fn test_validate_device() {
+        let mut manager = DeviceManager::new();
+        let device = MediaDevice {
+            id: "mic1".to_string(),
+            label: "Microphone".to_string(),
+            kind: DeviceKind::AudioInput,
+            group_id: None,
+        };
+        manager.set_devices(vec![device]);
+        
+        assert!(manager.validate_device("mic1", DeviceKind::AudioInput));
+        assert!(!manager.validate_device("mic1", DeviceKind::VideoInput));
+        assert!(!manager.validate_device("nonexistent", DeviceKind::AudioInput));
+    }
+
+    #[test]
+    fn test_audio_output_devices() {
+        let mut manager = DeviceManager::new();
+        let devices = vec![
+            MediaDevice {
+                id: "speaker1".to_string(),
+                label: "Speaker".to_string(),
+                kind: DeviceKind::AudioOutput,
+                group_id: None,
+            },
+        ];
+        manager.set_devices(devices);
+        
+        assert_eq!(manager.get_audio_outputs().len(), 1);
+        let speaker = manager.get_preferred_speaker().unwrap();
+        assert_eq!(speaker.id, "speaker1");
+    }
 }
