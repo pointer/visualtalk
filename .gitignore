@@ -52,3 +52,4 @@ config.json
 *.txt
 Notes.txt
 *.lock
+*.md

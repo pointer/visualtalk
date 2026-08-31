@@ -1,4 +1,6 @@
+use crate::device::DeviceManager;
 use crate::meeting::MeetingStore;
+use crate::participant::ParticipantManager;
 use crate::settings::AppData;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -7,6 +9,8 @@ pub struct AppState {
     pub config_dir: PathBuf,
     pub data: Mutex<AppData>,
     pub meetings: Mutex<MeetingStore>,
+    pub device_manager: Mutex<DeviceManager>,
+    pub participant_manager: Mutex<ParticipantManager>,
 }
 
 impl AppState {
@@ -18,6 +22,8 @@ impl AppState {
             config_dir,
             data: Mutex::new(data),
             meetings: Mutex::new(meetings),
+            device_manager: Mutex::new(DeviceManager::new()),
+            participant_manager: Mutex::new(ParticipantManager::new()),
         }
     }
 }

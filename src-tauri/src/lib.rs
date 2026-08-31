@@ -10,10 +10,10 @@ mod state;
 mod token;
 mod window;
 
-use device::{};
+use device::{DevicePreferences, MediaDevice};
 use layout::{LayoutCalculator, LayoutConfig};
 use meeting::{format_invitation, MeetingRecord, ScheduledMeeting};
-use participant::{Participant, ParticipantManager};
+use participant::Participant;
 use session::{create_session, MeetingSession};
 use settings::{UserProfile, UserSettings};
 use state::AppState;
@@ -155,27 +155,279 @@ fn get_meeting_invite(room: String, state: State<'_, AppState>) -> Result<String
 // ===== PARTICIPANT MANAGEMENT =====
 
 #[tauri::command]
-fn get_all_participants() -> Result<Vec<Participant>, String> {
-    let manager = ParticipantManager::new();
+fn get_all_participants(state: State<'_, AppState>) -> Result<Vec<Participant>, String> {
+    let manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
     Ok(manager.get_all())
 }
 
 #[tauri::command]
-fn filter_remote_participants() -> Result<Vec<Participant>, String> {
-    let manager = ParticipantManager::new();
+fn add_participant(
+    participant: Participant,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let mut manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
+    Ok(manager.add_participant(participant))
+}
+
+#[tauri::command]
+fn remove_participant(
+    participant_id: String,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let mut manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
+    Ok(manager.remove_participant(&participant_id))
+}
+
+#[tauri::command]
+fn get_participant(
+    participant_id: String,
+    state: State<'_, AppState>,
+) -> Result<Option<Participant>, String> {
+    let manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
+    Ok(manager.get_participant(&participant_id))
+}
+
+#[tauri::command]
+fn set_participant_muted(
+    participant_id: String,
+    muted: bool,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let mut manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
+    Ok(manager.set_participant_muted(&participant_id, muted))
+}
+
+#[tauri::command]
+fn set_participant_video_enabled(
+    participant_id: String,
+    enabled: bool,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let mut manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
+    Ok(manager.set_participant_video_enabled(&participant_id, enabled))
+}
+
+#[tauri::command]
+fn filter_remote_participants(state: State<'_, AppState>) -> Result<Vec<Participant>, String> {
+    let manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
     Ok(manager.get_remote_participants())
 }
 
 #[tauri::command]
-fn get_screen_shares() -> Result<Vec<Participant>, String> {
-    let manager = ParticipantManager::new();
+fn get_screen_shares(state: State<'_, AppState>) -> Result<Vec<Participant>, String> {
+    let manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
     Ok(manager.get_screen_shares())
 }
 
 #[tauri::command]
-fn get_active_screen_share() -> Result<Option<Participant>, String> {
-    let manager = ParticipantManager::new();
+fn get_active_screen_share(state: State<'_, AppState>) -> Result<Option<Participant>, String> {
+    let manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
     Ok(manager.get_active_screen_share())
+}
+
+#[tauri::command]
+fn get_participant_count(state: State<'_, AppState>) -> Result<usize, String> {
+    let manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
+    Ok(manager.count())
+}
+
+#[tauri::command]
+fn participant_exists(
+    participant_id: String,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
+    Ok(manager.exists(&participant_id))
+}
+
+#[tauri::command]
+fn get_sorted_participants(state: State<'_, AppState>) -> Result<Vec<Participant>, String> {
+    let manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
+    Ok(manager.get_sorted())
+}
+
+#[tauri::command]
+fn clear_participants(state: State<'_, AppState>) -> Result<(), String> {
+    let mut manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
+    manager.clear();
+    Ok(())
+}
+
+#[tauri::command]
+fn remove_screen_share(
+    participant_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut manager = state
+        .participant_manager
+        .lock()
+        .map_err(|_| "Failed to lock participant manager".to_string())?;
+    manager.remove_screen_share(&participant_id);
+    Ok(())
+}
+
+// ===== DEVICE MANAGEMENT =====
+
+#[tauri::command]
+fn set_devices(
+    devices: Vec<MediaDevice>,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    manager.set_devices(devices);
+    Ok(())
+}
+
+#[tauri::command]
+fn set_device_preferences(
+    preferences: DevicePreferences,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    manager.set_preferences(preferences);
+    Ok(())
+}
+
+#[tauri::command]
+fn get_audio_inputs(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, String> {
+    let manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    Ok(manager.get_audio_inputs())
+}
+
+#[tauri::command]
+fn get_video_inputs(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, String> {
+    let manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    Ok(manager.get_video_inputs())
+}
+
+#[tauri::command]
+fn get_audio_outputs(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, String> {
+    let manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    Ok(manager.get_audio_outputs())
+}
+
+#[tauri::command]
+fn get_preferred_mic(state: State<'_, AppState>) -> Result<Option<MediaDevice>, String> {
+    let manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    Ok(manager.get_preferred_mic())
+}
+
+#[tauri::command]
+fn get_preferred_camera(state: State<'_, AppState>) -> Result<Option<MediaDevice>, String> {
+    let manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    Ok(manager.get_preferred_camera())
+}
+
+#[tauri::command]
+fn get_preferred_speaker(state: State<'_, AppState>) -> Result<Option<MediaDevice>, String> {
+    let manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    Ok(manager.get_preferred_speaker())
+}
+
+#[tauri::command]
+fn get_device(
+    device_id: String,
+    state: State<'_, AppState>,
+) -> Result<Option<MediaDevice>, String> {
+    let manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    Ok(manager.get_device(&device_id))
+}
+
+#[tauri::command]
+fn get_all_devices(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, String> {
+    let manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    Ok(manager.get_all_devices())
+}
+
+#[tauri::command]
+fn get_device_groups(state: State<'_, AppState>) -> Result<Vec<crate::device::DeviceGroup>, String> {
+    let manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    Ok(manager.get_device_groups())
+}
+
+#[tauri::command]
+fn validate_device(
+    device_id: String,
+    kind: crate::device::DeviceKind,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    let manager = state
+        .device_manager
+        .lock()
+        .map_err(|_| "Failed to lock device manager".to_string())?;
+    Ok(manager.validate_device(&device_id, kind))
 }
 
 // ===== LAYOUT CALCULATIONS =====
@@ -217,6 +469,49 @@ fn should_use_featured_layout(
 #[tauri::command]
 fn calculate_aspect_ratio(width: u32, height: u32) -> Result<f64, String> {
     Ok(LayoutCalculator::calculate_aspect_ratio(width, height))
+}
+
+#[tauri::command]
+fn calculate_tile_size(
+    container_width: u32,
+    container_height: u32,
+    grid_width: usize,
+    grid_height: usize,
+    padding: u32,
+) -> Result<crate::layout::TileSize, String> {
+    Ok(LayoutCalculator::calculate_tile_size(
+        container_width,
+        container_height,
+        grid_width,
+        grid_height,
+        padding,
+    ))
+}
+
+#[tauri::command]
+fn should_feature_screen_share(
+    active_screen_shares: usize,
+    has_pinned_participant: bool,
+) -> Result<bool, String> {
+    Ok(LayoutCalculator::should_feature_screen_share(
+        active_screen_shares,
+        has_pinned_participant,
+    ))
+}
+
+#[tauri::command]
+fn calculate_filmstrip_dimensions(
+    container_width: u32,
+    container_height: u32,
+    position: crate::layout::FilmstripPosition,
+    filmstrip_width_ratio: f32,
+) -> Result<crate::layout::FilmstripDimensions, String> {
+    Ok(LayoutCalculator::calculate_filmstrip_dimensions(
+        container_width,
+        container_height,
+        &position,
+        filmstrip_width_ratio,
+    ))
 }
 
 // Backward compatibility command
@@ -269,9 +564,33 @@ pub fn run() {
             
             // Participant Management
             get_all_participants,
+            add_participant,
+            remove_participant,
+            get_participant,
+            set_participant_muted,
+            set_participant_video_enabled,
             filter_remote_participants,
             get_screen_shares,
             get_active_screen_share,
+            get_participant_count,
+            participant_exists,
+            get_sorted_participants,
+            clear_participants,
+            remove_screen_share,
+            
+            // Device Management
+            set_devices,
+            set_device_preferences,
+            get_audio_inputs,
+            get_video_inputs,
+            get_audio_outputs,
+            get_preferred_mic,
+            get_preferred_camera,
+            get_preferred_speaker,
+            get_device,
+            get_all_devices,
+            get_device_groups,
+            validate_device,
             
             // Layout Calculations
             calculate_grid_dimensions,
@@ -279,6 +598,9 @@ pub fn run() {
             get_grid_class,
             should_use_featured_layout,
             calculate_aspect_ratio,
+            calculate_tile_size,
+            should_feature_screen_share,
+            calculate_filmstrip_dimensions,
             
             // Token Generation
             generate_livekit_token
