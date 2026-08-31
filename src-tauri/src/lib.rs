@@ -10,7 +10,7 @@ mod state;
 mod token;
 mod window;
 
-use device::{DeviceManager, DevicePreferences, MediaDevice};
+use device::{};
 use layout::{LayoutCalculator, LayoutConfig};
 use meeting::{format_invitation, MeetingRecord, ScheduledMeeting};
 use participant::{Participant, ParticipantManager};
