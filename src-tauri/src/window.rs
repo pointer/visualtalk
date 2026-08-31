@@ -16,12 +16,11 @@ pub fn spawn_meeting_window(
     let mut builder = WebviewWindowBuilder::new(app, &label, WebviewUrl::App(target_path.into()))
         .title(window_title)
         .inner_size(w, h)
-        .resizable(true)
-        .center();
+        .resizable(true);
 
     #[cfg(not(target_os = "android"))]
     {
-        builder = builder.fullscreen(false);
+        builder = builder.center().fullscreen(false);
     }
 
     builder
