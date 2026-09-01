@@ -18,7 +18,7 @@ pub fn spawn_meeting_window(
         .inner_size(w, h)
         .resizable(true);
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(all(not(target_os = "android"), not(target_os = "ios")))]    
     {
         builder = builder.center().fullscreen(false);
     }
