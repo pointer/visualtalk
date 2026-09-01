@@ -4,11 +4,43 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "start": "vite",
     "dev": "vite",
     "build": "vite build",
-    "serve": "vite preview",
-    "tauri": "tauri"
+    "preview": "vite preview",
+
+    "desktop": "tauri dev",
+    "desktop:build": "tauri build",
+    "desktop:build:debug": "tauri build --debug",
+
+    "mac:init": "tauri macos init",
+    "mac:build": "tauri build --target aarch64-apple-darwin",
+    "mac:build:intel": "tauri build --target x86_64-apple-darwin",
+    "mac:build:universal": "tauri build --target universal-apple-darwin",
+
+    "win:build": "tauri build --target x86_64-pc-windows-msvc",
+    "win:build:arm": "tauri build --target aarch64-pc-windows-msvc",
+
+    "linux:build": "tauri build --target x86_64-unknown-linux-gnu",
+    "linux:build:arm": "tauri build --target aarch64-unknown-linux-gnu",
+
+    "android:init": "tauri android init",
+    "android:dev": "tauri android dev",
+    "android:build": "tauri android build --apk",
+    "android:build:aab": "tauri android build --aab",
+
+    "ios:init": "tauri ios init",
+    "ios:dev": "tauri ios dev",
+    "ios:dev:device": "tauri ios dev --force-ip-prompt",
+    "ios:open": "tauri ios build --open",
+    "ios:build": "tauri ios build --export-method debugging",
+    "ios:build:release": "tauri ios build --export-method release-testing",
+    "ios:build:store": "tauri ios build --export-method app-store-connect",
+
+    "android:clean": "rm -rf src-tauri/gen/android",
+    "ios:clean": "rm -rf src-tauri/gen/apple",
+
+    "mobile:init": "pnpm ios:init && pnpm android:init",
+    "clean:all": "pnpm ios:clean && pnpm android:clean"
   },
   "license": "MIT",
   "dependencies": {

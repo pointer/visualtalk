@@ -1,12 +1,14 @@
 import { createSignal, onCleanup, onMount, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { SettingsTab } from "./components/SettingsTab";
+import { NotesTab } from "./components/NotesTab";
+import { Modal } from "./components/Modal";
 
 export function MainWindow(props) {
   const [activeTab, setActiveTab] = createSignal("home");
   const [showNewMeetingMenu, setShowNewMeetingMenu] = createSignal(false);
   const [showPmiSubMenu, setShowPmiSubMenu] = createSignal(false);
-  
+
   // Backed by Rust State
   const [profile, setProfile] = createSignal({
     identity: "User1",
@@ -21,6 +23,15 @@ export function MainWindow(props) {
     mute_on_join: false,
   });
   const [scheduledMeetings, setScheduledMeetings] = createSignal([]);
+  const [showJoinModal, setShowJoinModal] = createSignal(false);
+  const [joinRoomCode, setJoinRoomCode] = createSignal("");
+  const [showScheduleModal, setShowScheduleModal] = createSignal(false);
+  const [scheduleData, setScheduleData] = createSignal({
+    title: "Team Sync",
+    room: "",
+    date: new Date().toISOString().split("T")[0],
+    time: "10:00",
+  });
 
   const getFormattedDate = (date) => {
     return date.toLocaleDateString("en-US", {
@@ -121,8 +132,16 @@ export function MainWindow(props) {
   };
 
   const handleJoinClick = () => {
-    const room = prompt("Enter room code to join:");
-    if (room?.trim()) props.onJoinMeeting(room.trim());
+    setJoinRoomCode("");
+    setShowJoinModal(true);
+  };
+
+  const handleJoinConfirm = () => {
+    const room = joinRoomCode().trim();
+    if (room) {
+      props.onJoinMeeting(room);
+      setShowJoinModal(false);
+    }
   };
 
   const handleNewMeetingAction = async (action) => {
@@ -161,23 +180,33 @@ export function MainWindow(props) {
     }
   };
 
-  const handleScheduleClick = async () => {
-    const title = prompt("Enter meeting title:", "Team Sync");
-    if (!title?.trim()) return;
-    const room = prompt("Enter room code:", `room-${Date.now().toString().slice(-4)}`);
-    if (!room?.trim()) return;
+  const handleScheduleClick = () => {
+    setScheduleData({
+      title: "Team Sync",
+      room: `room-${Date.now().toString().slice(-4)}`,
+      date: new Date().toISOString().split("T")[0],
+      time: "10:00",
+    });
+    setShowScheduleModal(true);
+  };
+
+  const handleScheduleConfirm = async () => {
+    const { title, room, date, time } = scheduleData();
+    if (!title.trim() || !room.trim()) return;
 
     try {
+      const startISO = new Date(`${date}T${time}`).toISOString();
       const newMeeting = await invoke("schedule_meeting", {
         title: title.trim(),
         roomId: room.trim(),
-        startTime: new Date().toISOString(),
+        startTime: startISO,
         durationMinutes: 30,
       });
       setScheduledMeetings((prev) => [...prev, newMeeting]);
-      alert(`Meeting "${title}" scheduled!`);
+      setShowScheduleModal(false);
     } catch (err) {
       console.error("Failed to schedule meeting:", err);
+      alert("Failed to schedule meeting.");
     }
   };
 
@@ -360,8 +389,10 @@ export function MainWindow(props) {
       {/* Main Content */}
       <main class="flex-1 flex flex-col overflow-y-auto bg-[#111111]">
         <Show
-          when={activeTab() !== "settings"}
-          fallback={<SettingsTab profile={profile()} settings={settings()} />}
+          when={activeTab() !== "settings" && activeTab() !== "notes"}
+          fallback={<Show when={activeTab() === "settings"} fallback={<NotesTab onSaveComplete={() => setActiveTab("home")} />}>
+            <SettingsTab profile={profile()} settings={settings()} />
+          </Show>}
         >
           {/* Top Bar */}
           <header class="flex items-center justify-end px-6 py-2 border-b border-gray-800/40 shrink-0 bg-[#111111]">
@@ -528,10 +559,14 @@ export function MainWindow(props) {
 
             {/* My Notes */}
             <button
-              onClick={() => alert("Notes stored securely in VisualTalk backend.")}
-              class="flex flex-col items-center justify-center py-2.5 bg-transparent group"
+              onClick={() => setActiveTab("notes")}
+              class={`flex flex-col items-center justify-center py-2.5 bg-transparent group ${
+                activeTab() === "notes" ? "text-blue-400" : ""
+              }`}
             >
-              <div class="w-16 h-16 bg-[#0E71EB] rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
+              <div class={`w-16 h-16 rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition ${
+                activeTab() === "notes" ? "bg-blue-600" : "bg-[#0E71EB]"
+              }`}>
                 <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
               </div>
               <span class="text-[11px] font-medium text-gray-300">My Notes</span>
@@ -605,6 +640,79 @@ export function MainWindow(props) {
             )}
           </div>
         </div>
+        </Show>
+
+        {/* Modals */}
+        <Show when={showJoinModal()}>
+          <Modal
+            title="Join Meeting"
+            confirmText="Join"
+            onClose={() => setShowJoinModal(false)}
+            onConfirm={handleJoinConfirm}
+          >
+            <div class="flex flex-col space-y-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">Room Code</label>
+                <input
+                  type="text"
+                  value={joinRoomCode()}
+                  onInput={(e) => setJoinRoomCode(e.currentTarget.value)}
+                  class="w-full px-3 py-2 rounded-lg bg-[#111111] border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600/50"
+                  placeholder="e.g. general"
+                />
+              </div>
+            </div>
+          </Modal>
+        </Show>
+
+        <Show when={showScheduleModal()}>
+          <Modal
+            title="Schedule Meeting"
+            confirmText="Schedule"
+            onClose={() => setShowScheduleModal(false)}
+            onConfirm={handleScheduleConfirm}
+          >
+            <div class="flex flex-col space-y-4">
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">Meeting Title</label>
+                <input
+                  type="text"
+                  value={scheduleData().title}
+                  onInput={(e) => setScheduleData({ ...scheduleData(), title: e.currentTarget.value })}
+                  class="w-full px-3 py-2 rounded-lg bg-[#111111] border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600/50"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">Room Code</label>
+                <input
+                  type="text"
+                  value={scheduleData().room}
+                  onInput={(e) => setScheduleData({ ...scheduleData(), room: e.currentTarget.value })}
+                  class="w-full px-3 py-2 rounded-lg bg-[#111111] border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600/50"
+                />
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Date</label>
+                  <input
+                    type="date"
+                    value={scheduleData().date}
+                    onInput={(e) => setScheduleData({ ...scheduleData(), date: e.currentTarget.value })}
+                    class="w-full px-3 py-2 rounded-lg bg-[#111111] border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600/50"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Time</label>
+                  <input
+                    type="time"
+                    value={scheduleData().time}
+                    onInput={(e) => setScheduleData({ ...scheduleData(), time: e.currentTarget.value })}
+                    class="w-full px-3 py-2 rounded-lg bg-[#111111] border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600/50"
+                  />
+                </div>
+              </div>
+            </div>
+          </Modal>
         </Show>
       </main>
     </div>
