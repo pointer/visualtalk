@@ -514,7 +514,27 @@ fn calculate_filmstrip_dimensions(
     ))
 }
 
-// Backward compatibility command
+#[tauri::command]
+fn get_user_notes(state: State<'_, AppState>) -> Result<String, String> {
+    let data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    Ok(data.notes.clone())
+}
+
+#[tauri::command]
+fn update_user_notes(
+    notes: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    data.notes = notes;
+    data.save(&state.config_dir)
+}
 #[tauri::command]
 fn generate_livekit_token(
     api_key: String,
@@ -554,7 +574,9 @@ pub fn run() {
             update_user_profile,
             get_user_settings,
             update_user_settings,
-            
+            get_user_notes,
+            update_user_notes,
+
             // Meetings History & Scheduling
             get_scheduled_meetings,
             schedule_meeting,

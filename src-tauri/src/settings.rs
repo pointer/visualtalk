@@ -55,6 +55,7 @@ impl Default for UserSettings {
 pub struct AppData {
     pub profile: UserProfile,
     pub settings: UserSettings,
+    pub notes: String,
 }
 
 impl AppData {

@@ -22,6 +22,9 @@ export function MeetingView(props) {
   const [previewAudioEnabled, setPreviewAudioEnabled] = createSignal(true);
   const [previewVideoEnabled, setPreviewVideoEnabled] = createSignal(true);
   const [alwaysShowPreview, setAlwaysShowPreview] = createSignal(true);
+  const [backgroundMode, setBackgroundMode] = createSignal("none"); // "none", "blur", "image"
+  const [backgroundImageUrl, setBackgroundImageUrl] = createSignal("");
+  const [showBackgroundsModal, setShowBackgroundsModal] = createSignal(false);
 
   // ---- Meeting state ----
   const [participants, setParticipants] = createSignal([]);
@@ -403,7 +406,14 @@ export function MeetingView(props) {
                 ref={(el) => {
                   previewVideoRef = el;
                 }}
-                class="w-full h-full object-cover scale-x-[-1]"
+                class={`w-full h-full object-cover scale-x-[-1] transition-all duration-300 ${
+                  backgroundMode() === "blur" ? "blur-md" : ""
+                }`}
+                style={{
+                  backgroundImage: backgroundMode() === "image" ? `url(${backgroundImageUrl()})` : "none",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
               />
             ) : (
               <div class="w-full h-full flex items-center justify-center bg-[#2a2a2a]">
@@ -501,6 +511,20 @@ export function MeetingView(props) {
                 )}
                 <span class="text-[10px] font-medium">Video</span>
               </button>
+
+              <button
+                onClick={() => setShowBackgroundsModal(true)}
+                class={`flex flex-col items-center justify-center w-16 h-16 rounded-xl transition backdrop-blur-md ${
+                  backgroundMode() !== "none"
+                    ? "bg-blue-600/90 hover:bg-blue-700 text-white"
+                    : "bg-black/60 hover:bg-black/80 text-white"
+                }`}
+              >
+                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span class="text-[10px] font-medium">Backgrounds</span>
+              </button>
             </div>
           </div>
 
@@ -594,8 +618,63 @@ export function MeetingView(props) {
           </div>
         </div>
       ) : (
-        // ===== In-Meeting View =====
         <div class="flex flex-col flex-1 overflow-hidden">
+          {/* Background Selection Modal */}
+          {showBackgroundsModal() && (
+            <div class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
+              <div class="bg-[#2a2a2a] rounded-2xl shadow-2xl p-6 max-w-md w-full border border-[#3a3a3a]">
+                <h3 class="text-lg font-semibold text-white mb-4">Select Background</h3>
+                <div class="grid grid-cols-3 gap-3 mb-6">
+                  <button
+                    onClick={() => { setBackgroundMode("none"); setShowBackgroundsModal(false); }}
+                    class={`aspect-square rounded-lg border-2 transition flex flex-col items-center justify-center p-2 ${
+                      backgroundMode() === "none" ? "border-blue-500 bg-blue-500/20" : "border-gray-700 hover:border-gray-500 bg-[#1a1a1a]"
+                    }`}
+                  >
+                    <svg class="w-6 h-6 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0L4 4m5 0L9 4M//... (Simplified icon)" />
+                    </svg>
+                    <span class="text-[10px] text-gray-300">None</span>
+                  </button>
+                  <button
+                    onClick={() => { setBackgroundMode("blur"); setShowBackgroundsModal(false); }}
+                    class={`aspect-square rounded-lg border-2 transition flex flex-col items-center justify-center p-2 ${
+                      backgroundMode() === "blur" ? "border-blue-500 bg-blue-500/20" : "border-gray-700 hover:border-gray-500 bg-[#1a1a1a]"
+                    }`}
+                  >
+                    <div class="w-6 h-6 rounded-full bg-gray-500 blur-[2px] mb-1"></div>
+                    <span class="text-[10px] text-gray-300">Blur</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const url = prompt("Enter image URL for background:", "https://images.unsplash.com/photo-1497366216548-37526070297c");
+                      if (url) {
+                        setBackgroundImageUrl(url);
+                        setBackgroundMode("image");
+                      }
+                      setShowBackgroundsModal(false);
+                    }}
+                    class={`aspect-square rounded-lg border-2 transition flex flex-col items-center justify-center p-2 ${
+                      backgroundMode() === "image" ? "border-blue-500 bg-blue-500/20" : "border-gray-700 hover:border-gray-500 bg-[#1a1a1a]"
+                    }`}
+                  >
+                    <svg class="w-6 h-6 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span class="text-[10px] text-gray-300">Custom</span>
+                  </button>
+                </div>
+                <div class="flex justify-end">
+                  <button
+                    onClick={() => setShowBackgroundsModal(false)}
+                    class="px-4 py-2 bg-[#3a3a3a] hover:bg-[#4a4a4a] rounded-xl text-sm text-white transition"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Presenter Banner */}
           <Show when={isSharingScreen()}>
             <div class="bg-emerald-600 px-4 py-2 flex items-center justify-between text-xs font-semibold text-white shadow-md shrink-0">
