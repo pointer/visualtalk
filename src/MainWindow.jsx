@@ -32,6 +32,7 @@ export function MainWindow(props) {
     date: new Date().toISOString().split("T")[0],
     time: "10:00",
   });
+  // const [toggleChat] = createSignal([]);
 
   const getFormattedDate = (date) => {
     return date.toLocaleDateString("en-US", {
@@ -220,6 +221,7 @@ export function MainWindow(props) {
     }
   };
 
+ 
   return (
     <div class="flex h-screen bg-[#111111] text-white select-none overflow-hidden">
       {/* Sidebar */}
@@ -287,38 +289,6 @@ export function MainWindow(props) {
               </svg>
             </div>
             <span class="text-[9px] font-medium">Meetings</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("chat")}
-            class={`flex flex-col items-center transition group focus:outline-none ${
-              activeTab() === "chat"
-                ? "text-blue-400"
-                : "text-gray-400 hover:text-white"
-            }`}
-          >
-            <div
-              class={`p-1.5 rounded-xl mb-0.5 transition ${
-                activeTab() === "chat"
-                  ? "bg-blue-600/20 text-blue-400"
-                  : "text-gray-400 group-hover:bg-gray-800"
-              }`}
-            >
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                />
-              </svg>
-            </div>
-            <span class="text-[9px] font-medium">Chat</span>
           </button>
 
           <button
@@ -518,6 +488,8 @@ export function MainWindow(props) {
                       </div>
                     )}
                   </div>
+
+           
                 </div>
               )}
             </div>
