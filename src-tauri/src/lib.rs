@@ -18,6 +18,35 @@ use session::{create_session, MeetingSession};
 use settings::{UserProfile, UserSettings};
 use state::AppState;
 
+use serde::Serialize;
+
+#[derive(Serialize)]
+pub struct AppConfig {
+    livekit_url: String,
+    api_key: String,
+    room: String,
+    identity: String,
+}
+
+#[tauri::command]
+fn get_config() -> Result<AppConfig, String> {
+    let livekit_url = std::env::var("LIVEKIT_URL")
+        .map_err(|_| "LIVEKIT_URL not set".to_string())?;
+    let api_key = std::env::var("LIVEKIT_API_KEY")
+        .map_err(|_| "LIVEKIT_API_KEY not set".to_string())?;
+    let room = std::env::var("ROOM")
+        .map_err(|_| "ROOM not set".to_string())?;
+    let identity = std::env::var("IDENTITY")
+        .map_err(|_| "IDENTITY not set".to_string())?;
+    Ok(AppConfig {
+        livekit_url,
+        api_key,
+        room,
+        identity,
+    })
+}
+
+
 #[tauri::command]
 fn get_meeting_session(
     room: String,
@@ -548,6 +577,12 @@ fn generate_livekit_token(
     token::generate_token(&api_key, &secret, &identity, &room, validity)
 }
 
+// ===================
+
+
+
+// ==========
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     dotenvy::dotenv().ok();
@@ -625,7 +660,8 @@ pub fn run() {
             calculate_filmstrip_dimensions,
             
             // Token Generation
-            generate_livekit_token
+            generate_livekit_token,
+            get_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

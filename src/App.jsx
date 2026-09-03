@@ -1,5 +1,5 @@
 import { createSignal, onMount } from "solid-js";
-import { MainWindow } from "./MainWindow";
+import {MainWindow} from "./MainWindow";
 import { MeetingView } from "./MeetingView";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
