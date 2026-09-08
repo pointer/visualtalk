@@ -392,164 +392,127 @@ export function MainWindow(props) {
           </p>
         </div>
 
-        {/* Action Buttons */}
-        <div class="max-w-2xl mx-auto w-full my-3">
-          {/* <div class="grid grid-cols-5 gap-2.5"> */}
-          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">          
-            {/* New Meeting with dropdown */}
-            <div class="new-meeting-dropdown-container relative flex flex-col items-center justify-center py-2.5 bg-transparent group">
-              <div class="relative flex items-center">
-                <button
-                  onClick={handleStartMeeting}
-                  style="background-color: #FF7429;"
-                  class="w-16 h-16 rounded-[22px] flex items-center justify-center mb-1.5 shadow-lg hover:brightness-110 transition cursor-pointer"
-                >
-                  <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45-1-1v-3.5l4 4v-11l-4 4z"/>
-                  </svg>
-                </button>
-              </div>
+      {/************* Begin ************/}
+{/* Action Buttons Panel - 4 items strictly forced onto a single clean row with hover animations */}
+<div class="max-w-xl mx-auto w-full my-4 px-3">
+  {/* The Grid: 4 equal columns aligning all items neatly at the center baseline */}
+  <div class="grid grid-cols-4 gap-x-1 sm:gap-6 justify-items-center items-start">          
+    
+    {/* 1. New Meeting with dropdown */}
+    <div class="new-meeting-dropdown-container relative flex flex-col items-center w-full bg-transparent group">
+      <button
+        onClick={handleStartMeeting}
+        style="background-color: #FF7429;"
+        class="w-13 h-13 sm:w-16 sm:h-16 rounded-[20px] sm:rounded-[22px] flex items-center justify-center mb-1.5 shadow-lg group-hover:scale-105 group-hover:-translate-y-1.5 transition-transform duration-200 ease-out cursor-pointer !bg-[#FF7429]"
+      >
+        <svg class="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45-1-1v-3.5l4 4v-11l-4 4z"/>
+        </svg>
+      </button>
 
-              <div
-                onClick={toggleNewMeetingMenu}
-                class="flex items-center space-x-1 text-[11px] font-medium text-gray-300 cursor-pointer hover:text-white"
-              >
-                <span>New meeting</span>
-                <svg class="w-2.5 h-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-              </div>
+      <div
+        onClick={toggleNewMeetingMenu}
+        class="flex items-center justify-center space-x-0.5 text-[10px] sm:text-[11px] font-medium text-gray-300 cursor-pointer hover:text-white w-full text-center"
+      >
+        <span class="truncate">New meeting</span>
+        <svg class="w-2.5 h-2.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </div>
 
-              {/* Main Dropdown */}
-              {showNewMeetingMenu() && (
-                <div class="absolute top-full left-0 mt-2 w-72 bg-[#222222] rounded-xl shadow-2xl border border-gray-700/80 overflow-visible z-50 py-1.5">
-                  {/* Start with video */}
-                  <div
-                    class="flex items-center px-4 py-2.5 hover:bg-[#2c2c2c] transition cursor-pointer"
-                    onClick={() => toggleSetting("start_with_video")}
-                  >
-                    <div class={`w-4 h-4 rounded flex items-center justify-center mr-3 border ${settings().start_with_video ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-500 bg-transparent'}`}>
-                      {settings().start_with_video && (
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <span class="text-sm text-gray-200">Start with video</span>
-                  </div>
-
-                  <div class="h-[1px] bg-gray-700/50 my-1"></div>
-
-                  {/* Use my personal meeting ID (PMI) */}
-                  <div
-                    class="flex items-center px-4 py-2.5 hover:bg-[#2c2c2c] transition cursor-pointer"
-                    onClick={() => toggleSetting("use_pmi")}
-                  >
-                    <div class={`w-4 h-4 rounded flex items-center justify-center mr-3 border ${settings().use_pmi ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-500 bg-transparent'}`}>
-                      {settings().use_pmi && (
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    <span class="text-sm text-gray-200">Use my personal meeting ID (PMI)</span>
-                  </div>
-
-                  {/* PMI number row */}
-                  <div
-                    class={`relative px-4 py-2.5 transition cursor-pointer flex items-center justify-between ${showPmiSubMenu() ? 'bg-[#0E71EB] text-white' : 'hover:bg-[#2c2c2c] text-gray-200'}`}
-                    onClick={togglePmiSubMenu}
-                  >
-                    <span class="text-sm font-medium tracking-wide">{profile().pmi}</span>
-                    <svg class="w-4 h-4 opacity-75" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-
-                    {/* Flyout Sub-menu */}
-                    {showPmiSubMenu() && (
-                      <div class="absolute left-full top-0 ml-1.5 w-56 bg-[#222222] rounded-xl shadow-2xl border border-gray-700/80 overflow-hidden z-50 py-1 text-white">
-                        <button
-                          onClick={() => handleNewMeetingAction("Copy meeting link")}
-                          class="w-full text-left px-4 py-2.5 text-sm hover:bg-[#2c2c2c] transition text-gray-200"
-                        >
-                          Copy meeting link
-                        </button>
-                        <button
-                          onClick={() => handleNewMeetingAction("Copy ID")}
-                          class="w-full text-left px-4 py-2.5 text-sm hover:bg-[#2c2c2c] transition text-gray-200"
-                        >
-                          Copy ID
-                        </button>
-                        <button
-                          onClick={() => handleNewMeetingAction("Copy invitation")}
-                          class="w-full text-left px-4 py-2.5 text-sm bg-[#0E71EB] hover:bg-blue-600 transition text-white"
-                        >
-                          Copy invitation
-                        </button>
-                        <button
-                          onClick={() => handleNewMeetingAction("PMI settings")}
-                          class="w-full text-left px-4 py-2.5 text-sm hover:bg-[#2c2c2c] transition text-gray-200"
-                        >
-                          PMI settings
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-           
-                </div>
+      {/* Main Dropdown */}
+      {showNewMeetingMenu() && (
+        <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 sm:w-72 bg-[#222222] rounded-xl shadow-2xl border border-gray-700/80 overflow-visible z-50 py-1.5 text-white">
+          <div
+            class="flex items-center px-4 py-2.5 hover:bg-[#2c2c2c] transition cursor-pointer"
+            onClick={() => toggleSetting("start_with_video")}
+          >
+            <div class={`w-4 h-4 rounded flex items-center justify-center mr-3 border ${settings().start_with_video ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-500 bg-transparent'}`}>
+              {settings().start_with_video && (
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
               )}
             </div>
-
-            {/* Join */}
-            <button
-              onClick={handleJoinClick}
-              class="flex flex-col items-center justify-center py-2.5 bg-transparent group"
-            >
-              <div class="w-16 h-16 bg-[#0E71EB] rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
-                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-              </div>
-              <span class="text-[11px] font-medium text-gray-300">Join</span>
-            </button>
-
-            {/* Schedule */}
-            <button
-              onClick={handleScheduleClick}
-              class="flex flex-col items-center justify-center py-2.5 bg-transparent group"
-            >
-              <div class="w-16 h-16 bg-[#0E71EB] rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
-                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              </div>
-              <span class="text-[11px] font-medium text-gray-300">Schedule</span>
-            </button>
-
-            {/* Share Screen */}
-            <button
-              onClick={handleStartMeeting}
-              class="flex flex-col items-center justify-center py-2.5 bg-transparent group"
-            >
-              <div class="w-16 h-16 bg-[#0E71EB] rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition">
-                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-              </div>
-              <span class="text-[11px] font-medium text-gray-300">Share screen</span>
-            </button>
-
-            {/* My Notes */}
-            <button
-              onClick={() => setActiveTab("notes")}
-              class={`flex flex-col items-center justify-center py-2.5 bg-transparent group ${
-                activeTab() === "notes" ? "text-blue-400" : ""
-              }`}
-            >
-              <div class={`w-16 h-16 rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 transition ${
-                activeTab() === "notes" ? "bg-blue-600" : "bg-[#0E71EB]"
-              }`}>
-                <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-              </div>
-              <span class="text-[11px] font-medium text-gray-300">My Notes</span>
-            </button>
+            <span class="text-sm text-gray-200">Start with video</span>
           </div>
+          <div class="h-[1px] bg-gray-700/50 my-1"></div>
+          <div
+            class="flex items-center px-4 py-2.5 hover:bg-[#2c2c2c] transition cursor-pointer"
+            onClick={() => toggleSetting("use_pmi")}
+          >
+            <div class={`w-4 h-4 rounded flex items-center justify-center mr-3 border ${settings().use_pmi ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-500 bg-transparent'}`}>
+              {settings().use_pmi && (
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span class="text-sm text-gray-200">Use my personal meeting ID (PMI)</span>
+          </div>
+          <div
+            class={`relative px-4 py-2.5 transition cursor-pointer flex items-center justify-between ${showPmiSubMenu() ? 'bg-[#0E71EB] text-white' : 'hover:bg-[#2c2c2c] text-gray-200'}`}
+            onClick={togglePmiSubMenu}
+          >
+            <span class="text-sm font-medium tracking-wide">{profile().pmi}</span>
+            <svg class="w-4 h-4 opacity-75" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+            {showPmiSubMenu() && (
+              <div class="absolute left-full top-0 ml-1.5 w-56 bg-[#222222] rounded-xl shadow-2xl border border-gray-700/80 overflow-hidden z-50 py-1 text-white">
+                <button onClick={() => handleNewMeetingAction("Copy meeting link")} class="w-full text-left px-4 py-2.5 text-sm hover:bg-[#2c2c2c] transition text-gray-200">Copy meeting link</button>
+                <button onClick={() => handleNewMeetingAction("Copy ID")} class="w-full text-left px-4 py-2.5 text-sm hover:bg-[#2c2c2c] transition text-gray-200">Copy ID</button>
+                <button onClick={() => handleNewMeetingAction("Copy invitation")} class="w-full text-left px-4 py-2.5 text-sm bg-[#0E71EB] hover:bg-blue-600 transition text-white">Copy invitation</button>
+                <button onClick={() => handleNewMeetingAction("PMI settings")} class="w-full text-left px-4 py-2.5 text-sm hover:bg-[#2c2c2c] transition text-gray-200">PMI settings</button>
+              </div>
+            )}
+          </div>        
         </div>
+      )}
+    </div>
+
+    {/* 2. Join */}
+    <button
+      onClick={handleJoinClick}
+      class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0"
+    >
+      <div class="w-13 h-13 sm:w-16 sm:h-16 bg-[#0E71EB] rounded-[20px] sm:rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 group-hover:-translate-y-1.5 transition-transform duration-200 ease-out">
+        <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+      </div>
+      <span class="text-[10px] sm:text-[11px] font-medium text-gray-300 text-center truncate w-full">Join</span>
+    </button>
+
+    {/* 3. Schedule */}
+    <button
+      onClick={handleScheduleClick}
+      class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0"
+    >
+      <div class="w-13 h-13 sm:w-16 sm:h-16 bg-[#0E71EB] rounded-[20px] sm:rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 group-hover:-translate-y-1.5 transition-transform duration-200 ease-out">
+        <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      </div>
+      <span class="text-[10px] sm:text-[11px] font-medium text-gray-300 text-center truncate w-full">Schedule</span>
+    </button>
+
+    {/* 4. My Notes */}
+    <button
+      onClick={() => setActiveTab("notes")}
+      class={`flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 ${
+        activeTab() === "notes" ? "text-blue-400" : ""
+      }`}
+    >
+      <div class={`w-13 h-13 sm:w-16 sm:h-16 rounded-[20px] sm:rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 group-hover:-translate-y-1.5 transition-transform duration-200 ease-out ${
+        activeTab() === "notes" ? "bg-blue-600" : "bg-[#0E71EB]"
+      }`}>
+        <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+      </div>
+      <span class="text-[10px] sm:text-[11px] font-medium text-gray-300 text-center truncate w-full">My Notes</span>
+    </button>
+
+  </div>
+</div>
+
+      {/*********** End **************/}
+
 
         {/* Meetings Panel */}
         <div class="max-w-2xl mx-auto w-full bg-[#1c1c1c] rounded-xl border border-gray-800/60 shadow-lg overflow-hidden mt-3">

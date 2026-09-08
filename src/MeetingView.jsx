@@ -415,162 +415,148 @@ export function MeetingView(props) {
     <div class="flex flex-col h-screen w-screen bg-[#1a1a1a] text-white select-none overflow-hidden">
 
       {/* ===== Pre-Join Screen (Mobile-optimized) ===== */}
+      {/* ===== Pre-Join Screen (Mobile & iOS Fixed Layout) ===== */}
       {preJoin() ? (
-        <div class="flex flex-1 flex-col items-center justify-center bg-[#1a1a1a] px-4 sm:px-8 pb-4 sm:pb-6">
-          {/* Video Preview Container */}
-          <div class="relative w-full max-w-3xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
-            {previewVideoEnabled() ? (
-              <video
-                autoplay
-                playsinline
-                muted
-                ref={(el) => { previewVideoRef = el; }}
-                class="w-full h-full object-cover scale-x-[-1]"
-              />
-            ) : (
-              <div class="w-full h-full flex items-center justify-center bg-[#2a2a2a]">
-                <div class="flex flex-col items-center">
-                  <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#3a3a3a] flex items-center justify-center mb-2">
-                    <svg class="w-8 h-8 sm:w-10 sm:h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        <div class="flex-1 w-full overflow-y-auto bg-[#1a1a1a] px-4 pb-10 pt-4 scrollbar-none">
+          <div class="flex flex-col items-center justify-start w-full max-w-3xl mx-auto space-y-4">
+            
+            {/* Video Preview Container */}
+            <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl shrink-0">
+              {previewVideoEnabled() ? (
+                <video
+                  autoplay
+                  playsinline
+                  muted
+                  ref={(el) => { previewVideoRef = el; }}
+                  style="transform: scaleX(1); -webkit-transform: scaleX(1);"
+                  class="w-full h-full object-cover"
+                />
+              ) : (
+                <div class="w-full h-full flex items-center justify-center bg-[#2a2a2a]">
+                  <div class="flex flex-col items-center">
+                    <div class="w-16 h-16 rounded-full bg-[#3a3a3a] flex items-center justify-center mb-2">
+                      <svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <span class="text-gray-400 text-sm">Camera is off</span>
+                  </div>
+                </div>
+              )}
+
+              {/* FIX: Absolute control panel position bounded cleanly across mobile widths */}
+              <div class="absolute bottom-3 inset-x-0 flex items-center justify-center space-x-6 z-20">
+                
+                {/* Audio Toggle */}
+                <button
+                  onClick={togglePreviewAudio}
+                  class={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition border-none bg-transparent !bg-transparent outline-none p-0 ${
+                    previewAudioEnabled() ? "text-white" : "text-red-500"
+                  }`}
+                >
+                  <div class={`w-10 h-10 rounded-full flex items-center justify-center mb-0.5 shadow-md ${previewAudioEnabled() ? 'bg-black/60 backdrop-blur-md' : 'bg-red-500'}`}>
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                     </svg>
                   </div>
-                  <span class="text-gray-400 text-sm">Camera is off</span>
-                </div>
-              </div>
-            )}
+                  <span class="text-[9px] font-semibold text-white drop-shadow-md">Audio</span>
+                </button>
 
-            {/* Floating Audio/Video Controls (smaller on mobile) */}
-            <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center space-x-2 sm:space-x-3">
-              <button
-                onClick={togglePreviewAudio}
-                class={`flex flex-col items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl transition backdrop-blur-md ${
-                  previewAudioEnabled()
-                    ? "bg-black/60 hover:bg-black/80 text-white"
-                    : "bg-red-500/90 hover:bg-red-600 text-white"
-                }`}
-              >
-                {previewAudioEnabled() ? (
-                  <svg class="w-5 h-5 sm:w-6 sm:h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                ) : (
-                  <svg class="w-5 h-5 sm:w-6 sm:h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                  </svg>
-                )}
-                <span class="text-[8px] sm:text-[10px] font-medium">Audio</span>
-              </button>
-
-              <button
-                onClick={togglePreviewVideo}
-                class={`flex flex-col items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl transition backdrop-blur-md ${
-                  previewVideoEnabled()
-                    ? "bg-black/60 hover:bg-black/80 text-white"
-                    : "bg-red-500/90 hover:bg-red-600 text-white"
-                }`}
-              >
-                {previewVideoEnabled() ? (
-                  <svg class="w-5 h-5 sm:w-6 sm:h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                ) : (
-                  <svg class="w-5 h-5 sm:w-6 sm:h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                  </svg>
-                )}
-                <span class="text-[8px] sm:text-[10px] font-medium">Video</span>
-              </button>
-            </div>
-
-            {/* Backgrounds Button (hidden on small screens) */}
-            <button class="absolute bottom-3 right-3 sm:bottom-6 sm:right-6 flex items-center space-x-1 sm:space-x-2 px-2 py-1.5 sm:px-4 sm:py-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-xl text-white text-[10px] sm:text-sm font-medium transition">
-              <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span class="hidden xs:inline">Backgrounds</span>
-            </button>
-          </div>
-
-          {/* Device Selectors (stacked on mobile) */}
-          <div class="w-full max-w-3xl mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-            {/* Microphone */}
-            <div class="relative">
-              <div class="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-              </div>
-              <select
-                value={selectedMic()}
-                onChange={(e) => changeDevice('audio', e.currentTarget.value)}
-                class="w-full bg-[#2a2a2a] text-white rounded-xl pl-8 sm:pl-10 pr-6 sm:pr-8 py-2 sm:py-3 text-xs sm:text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none cursor-pointer hover:bg-[#333333] transition"
-              >
-                <For each={devices().audio}>
-                  {(device) => <option value={device.deviceId}>{device.label || device.deviceId}</option>}
-                </For>
-              </select>
-              <div class="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-
-            {/* Camera */}
-            <div class="relative">
-              <div class="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <select
-                value={selectedCam()}
-                onChange={(e) => changeDevice('video', e.currentTarget.value)}
-                class="w-full bg-[#2a2a2a] text-white rounded-xl pl-8 sm:pl-10 pr-6 sm:pr-8 py-2 sm:py-3 text-xs sm:text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none cursor-pointer hover:bg-[#333333] transition"
-              >
-                <For each={devices().video}>
-                  {(device) => <option value={device.deviceId}>{device.label || device.deviceId}</option>}
-                </For>
-              </select>
-              <div class="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom Row: Checkbox + Start Button */}
-          <div class="w-full max-w-3xl mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
-            <label class="flex items-center space-x-2 cursor-pointer group text-sm sm:text-base">
-              <div class="relative">
-                <input
-                  type="checkbox"
-                  checked={alwaysShowPreview()}
-                  onChange={() => setAlwaysShowPreview(!alwaysShowPreview())}
-                  class="peer sr-only"
-                />
-                <div class="w-4 h-4 sm:w-5 sm:h-5 rounded border border-gray-500 bg-transparent peer-checked:bg-blue-600 peer-checked:border-blue-600 transition flex items-center justify-center">
-                  {alwaysShowPreview() && (
-                    <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                {/* Video Toggle */}
+                <button
+                  onClick={togglePreviewVideo}
+                  class={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition border-none bg-transparent !bg-transparent outline-none p-0 ${
+                    previewVideoEnabled() ? "text-white" : "text-red-500"
+                  }`}
+                >
+                  <div class={`w-10 h-10 rounded-full flex items-center justify-center mb-0.5 shadow-md ${previewVideoEnabled() ? 'bg-black/60 backdrop-blur-md' : 'bg-red-500'}`}>
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                  )}
+                  </div>
+                  <span class="text-[9px] font-semibold text-white drop-shadow-md">Video</span>
+                </button>
+                
+              </div>
+            </div>
+
+
+            {/* Device Selectors Container - Explicit heights for iOS scrolling stability */}
+            <div class="w-full flex flex-col space-y-3">
+              {/* Microphone */}
+              <div class="relative w-full">
+                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </div>
+                <select
+                  value={selectedMic()}
+                  onChange={(e) => changeDevice('audio', e.currentTarget.value)}
+                  class="w-full bg-[#2a2a2a] text-white rounded-xl pl-10 pr-10 py-3 text-sm border border-[#3a3a3a] outline-none appearance-none cursor-pointer"
+                >
+                  <For each={devices().audio}>
+                    {(device) => <option value={device.deviceId}>{device.label || device.deviceId}</option>}
+                  </For>
+                </select>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                 </div>
               </div>
-              <span class="text-xs sm:text-sm text-gray-300 group-hover:text-white transition">Always show preview</span>
-            </label>
 
-            <button
-              onClick={joinMeeting}
-              disabled={isConnecting()}
-              class="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-2.5 bg-[#0E71EB] hover:bg-[#0d65d4] disabled:bg-[#0E71EB]/50 text-white font-semibold text-sm rounded-lg transition shadow-lg"
-            >
-              {isConnecting() ? 'Connecting...' : 'Start'}
-            </button>
+              {/* Camera */}
+              <div class="relative w-full">
+                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <select
+                  value={selectedCam()}
+                  onChange={(e) => changeDevice('video', e.currentTarget.value)}
+                  class="w-full bg-[#2a2a2a] text-white rounded-xl pl-10 pr-10 py-3 text-sm border border-[#3a3a3a] outline-none appearance-none cursor-pointer"
+                >
+                  <For each={devices().video}>
+                    {(device) => <option value={device.deviceId}>{device.label || device.deviceId}</option>}
+                  </For>
+                </select>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Row Controls */}
+            <div class="w-full flex flex-col space-y-4 pt-2">
+              <label class="flex items-center space-x-3 cursor-pointer group select-none">
+                <div class="relative">
+                  <input
+                    type="checkbox"
+                    checked={alwaysShowPreview()}
+                    onChange={() => setAlwaysShowPreview(!alwaysShowPreview())}
+                    class="peer sr-only"
+                  />
+                  <div class="w-5 h-5 rounded border border-gray-500 bg-transparent peer-checked:bg-blue-600 peer-checked:border-blue-600 transition flex items-center justify-center">
+                    {alwaysShowPreview() && (
+                      <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span class="text-sm text-gray-300 group-hover:text-white transition">Always show preview</span>
+              </label>
+
+              {/* Start Button - Now completely in view */}
+              <button
+                onClick={joinMeeting}
+                disabled={isConnecting()}
+                class="w-full py-3.5 bg-[#0E71EB] hover:bg-[#0d65d4] disabled:bg-[#0E71EB]/50 text-white font-semibold text-sm rounded-xl transition shadow-lg border-none outline-none"
+              >
+                {isConnecting() ? 'Connecting...' : 'Start'}
+              </button>
+            </div>
+
           </div>
         </div>
       ) : (
@@ -587,91 +573,122 @@ export function MeetingView(props) {
               <VideoGrid participants={participants()} />
             </main>
 
-            <footer class="p-2 sm:p-4 border-t border-[#2a2a2a] flex flex-wrap justify-center gap-2 sm:gap-4 bg-[#1a1a1a] shrink-0">
-              <button
-                onClick={toggleMute}
-                class={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1 sm:space-x-2 ${
-                  isMuted() ? "bg-red-500/90 hover:bg-red-600 text-white" : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
-                }`}
-              >
-                {isMuted() ? (
-                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                  </svg>
-                ) : (
-                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                )}
-                <span>{isMuted() ? "Unmute" : "Mute"}</span>
-              </button>
-              <button
-                onClick={toggleCamera}
-                class={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1 sm:space-x-2 ${
-                  isCameraOff() ? "bg-red-500/90 hover:bg-red-600 text-white" : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
-                }`}
-              >
-                {isCameraOff() ? (
-                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                  </svg>
-                ) : (
-                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                )}
-                <span>{isCameraOff() ? "Start Camera" : "Stop Camera"}</span>
-              </button>
-              <button
-                onClick={toggleScreenShare}
-                class={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1 sm:space-x-2 ${
-                  isSharingScreen()
-                    ? "bg-red-500/90 hover:bg-red-600 text-white"
-                    : "bg-green-600 hover:bg-green-700 text-white"
-                }`}
-              >
-                {isSharingScreen() ? (
-                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                  </svg>
-                ) : (
-                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L15 12.75 9.75 8.5M4.5 4.5h15v15h-15z" />
-                  </svg>
-                )}
-                <span>{isSharingScreen() ? "Stop Sharing" : "Share Screen"}</span>
-              </button>
-
-              {/* Chat toggle button */}
-              <button
-                onClick={toggleChat}
-                class={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1 sm:space-x-2 relative ${
-                  chatOpen() ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
-                }`}
-              >
-                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <span>Chat</span>
-                {unreadCount() > 0 && !chatOpen() && (
-                  <span class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                    {unreadCount()}
+            {/* ===== RESTYLED 5-BUTTON PREMIUM MEETING ACTION BAR ===== */}
+            <footer class="border-t border-[#2a2a2a] bg-[#1c1c1c] shrink-0 w-full px-1 pt-3 pb-5 sm:py-4 shadow-xl z-10">
+              {/* Enforced 5-column grid system keeping all tools balanced inline */}
+              <div class="max-w-md mx-auto grid grid-cols-5 gap-x-0.5 justify-items-center items-start">
+                
+                {/* 1. Mute Action Button */}
+                <button
+                  onClick={toggleMute}
+                  class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 select-none"
+                >
+                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
+                    isMuted() ? "bg-red-500 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+                  }`}>
+                    {isMuted() ? (
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                      </svg>
+                    ) : (
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                      </svg>
+                    )}
+                  </div>
+                  <span class={`text-[9px] sm:text-[10px] font-medium tracking-wide truncate w-full text-center ${isMuted() ? "text-red-400" : "text-gray-400"}`}>
+                    {isMuted() ? "Unmute" : "Mute"}
                   </span>
-                )}
-              </button>
+                </button>
 
-              <button
-                onClick={handleCloseClick}
-                class="px-3 sm:px-5 py-1.5 sm:py-2.5 bg-red-500/90 hover:bg-red-600 rounded-xl text-xs sm:text-sm font-medium transition text-white flex items-center space-x-1 sm:space-x-2"
-              >
-                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                <span>Leave</span>
-              </button>
+                {/* 2. Camera Action Button */}
+                <button
+                  onClick={toggleCamera}
+                  class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 select-none"
+                >
+                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
+                    isCameraOff() ? "bg-red-500 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+                  }`}>
+                    {isCameraOff() ? (
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                      </svg>
+                    ) : (
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    )}
+                  </div>
+                  <span class={`text-[9px] sm:text-[10px] font-medium tracking-wide truncate w-full text-center ${isCameraOff() ? "text-red-400" : "text-gray-400"}`}>
+                    Camera
+                  </span>
+                </button>
+
+                {/* 3. Restyled Share Screen Button */}
+                <button
+                  onClick={toggleScreenShare}
+                  class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 select-none"
+                >
+                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
+                    isSharingScreen() ? "bg-green-600 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+                  }`}>
+                    {isSharingScreen() ? (
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                    ) : (
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span class={`text-[9px] sm:text-[10px] font-medium tracking-wide truncate w-full text-center ${isSharingScreen() ? "text-green-400" : "text-gray-400"}`}>
+                    Share
+                  </span>
+                </button>
+
+                {/* 4. Chat Action Button */}
+                <button
+                  onClick={toggleChat}
+                  class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 relative select-none"
+                >
+                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
+                    chatOpen() ? "bg-blue-600 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+                  }`}>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                  {unreadCount() > 0 && !chatOpen() && (
+                    <span class="absolute top-0 right-2 bg-red-500 text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center animate-pulse">
+                      {unreadCount()}
+                    </span>
+                  )}
+                  <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-gray-400 text-center truncate w-full">
+                    Chat
+                  </span>
+                </button>
+
+                {/* 5. End Call/Leave Button */}
+                <button
+                  onClick={handleCloseClick}
+                  class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 select-none"
+                >
+                  <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] bg-red-600 hover:bg-red-700 text-white flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  </div>
+                  <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-red-500 text-center truncate w-full">
+                    Leave
+                  </span>
+                </button>
+
+              </div>
             </footer>
+
           </div>
 
           {/* Chat Sidebar (mobile: full width overlay) */}
