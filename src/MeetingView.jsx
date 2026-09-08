@@ -3,6 +3,7 @@ import { Room, RoomEvent, Track, DataPacket_Kind } from "livekit-client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { VideoGrid } from "./components/VideoGrid";
+import { requestMediaPermissions } from "./components/Permissions";
 
 export function MeetingView(props) {
   const ROOM = props.roomName || "general";
@@ -41,6 +42,11 @@ export function MeetingView(props) {
 
   // ---- Load devices and start preview ----
   onMount(async () => {
+    const status = await requestMediaPermissions();
+    if (!status.camera || !status.microphone) {
+      setError('Permissions required');
+      return;
+    }    
     await startPreview();
     await loadDevices();
   });
@@ -408,10 +414,10 @@ export function MeetingView(props) {
   return (
     <div class="flex flex-col h-screen w-screen bg-[#1a1a1a] text-white select-none overflow-hidden">
 
-      {/* ===== Pre-Join Screen ===== */}
+      {/* ===== Pre-Join Screen (Mobile-optimized) ===== */}
       {preJoin() ? (
-        <div class="flex flex-1 flex-col items-center justify-center bg-[#1a1a1a] px-8 pb-6">
-          {/* ... (unchanged) ... */}
+        <div class="flex flex-1 flex-col items-center justify-center bg-[#1a1a1a] px-4 sm:px-8 pb-4 sm:pb-6">
+          {/* Video Preview Container */}
           <div class="relative w-full max-w-3xl aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
             {previewVideoEnabled() ? (
               <video
@@ -424,8 +430,8 @@ export function MeetingView(props) {
             ) : (
               <div class="w-full h-full flex items-center justify-center bg-[#2a2a2a]">
                 <div class="flex flex-col items-center">
-                  <div class="w-20 h-20 rounded-full bg-[#3a3a3a] flex items-center justify-center mb-3">
-                    <svg class="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#3a3a3a] flex items-center justify-center mb-2">
+                    <svg class="w-8 h-8 sm:w-10 sm:h-10 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
@@ -434,61 +440,65 @@ export function MeetingView(props) {
               </div>
             )}
 
-            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center space-x-3">
+            {/* Floating Audio/Video Controls (smaller on mobile) */}
+            <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center space-x-2 sm:space-x-3">
               <button
                 onClick={togglePreviewAudio}
-                class={`flex flex-col items-center justify-center w-16 h-16 rounded-xl transition backdrop-blur-md ${
+                class={`flex flex-col items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl transition backdrop-blur-md ${
                   previewAudioEnabled()
                     ? "bg-black/60 hover:bg-black/80 text-white"
                     : "bg-red-500/90 hover:bg-red-600 text-white"
                 }`}
               >
                 {previewAudioEnabled() ? (
-                  <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5 sm:w-6 sm:h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 ) : (
-                  <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5 sm:w-6 sm:h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
                   </svg>
                 )}
-                <span class="text-[10px] font-medium">Audio</span>
+                <span class="text-[8px] sm:text-[10px] font-medium">Audio</span>
               </button>
 
               <button
                 onClick={togglePreviewVideo}
-                class={`flex flex-col items-center justify-center w-16 h-16 rounded-xl transition backdrop-blur-md ${
+                class={`flex flex-col items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-xl transition backdrop-blur-md ${
                   previewVideoEnabled()
                     ? "bg-black/60 hover:bg-black/80 text-white"
                     : "bg-red-500/90 hover:bg-red-600 text-white"
                 }`}
               >
                 {previewVideoEnabled() ? (
-                  <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5 sm:w-6 sm:h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 ) : (
-                  <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-5 h-5 sm:w-6 sm:h-6 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
                   </svg>
                 )}
-                <span class="text-[10px] font-medium">Video</span>
+                <span class="text-[8px] sm:text-[10px] font-medium">Video</span>
               </button>
             </div>
 
-            <button class="absolute bottom-6 right-6 flex items-center space-x-2 px-4 py-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-xl text-white text-sm font-medium transition">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* Backgrounds Button (hidden on small screens) */}
+            <button class="absolute bottom-3 right-3 sm:bottom-6 sm:right-6 flex items-center space-x-1 sm:space-x-2 px-2 py-1.5 sm:px-4 sm:py-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-xl text-white text-[10px] sm:text-sm font-medium transition">
+              <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span>Backgrounds</span>
+              <span class="hidden xs:inline">Backgrounds</span>
             </button>
           </div>
 
-          <div class="w-full max-w-3xl mt-4 grid grid-cols-2 gap-3">
+          {/* Device Selectors (stacked on mobile) */}
+          <div class="w-full max-w-3xl mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+            {/* Microphone */}
             <div class="relative">
-              <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <div class="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
@@ -496,21 +506,22 @@ export function MeetingView(props) {
               <select
                 value={selectedMic()}
                 onChange={(e) => changeDevice('audio', e.currentTarget.value)}
-                class="w-full bg-[#2a2a2a] text-white rounded-xl pl-10 pr-8 py-3 text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none cursor-pointer hover:bg-[#333333] transition"
+                class="w-full bg-[#2a2a2a] text-white rounded-xl pl-8 sm:pl-10 pr-6 sm:pr-8 py-2 sm:py-3 text-xs sm:text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none cursor-pointer hover:bg-[#333333] transition"
               >
                 <For each={devices().audio}>
                   {(device) => <option value={device.deviceId}>{device.label || device.deviceId}</option>}
                 </For>
               </select>
-              <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+              <div class="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
               </div>
             </div>
 
+            {/* Camera */}
             <div class="relative">
-              <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <div class="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 text-gray-400">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
@@ -518,13 +529,13 @@ export function MeetingView(props) {
               <select
                 value={selectedCam()}
                 onChange={(e) => changeDevice('video', e.currentTarget.value)}
-                class="w-full bg-[#2a2a2a] text-white rounded-xl pl-10 pr-8 py-3 text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none cursor-pointer hover:bg-[#333333] transition"
+                class="w-full bg-[#2a2a2a] text-white rounded-xl pl-8 sm:pl-10 pr-6 sm:pr-8 py-2 sm:py-3 text-xs sm:text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none cursor-pointer hover:bg-[#333333] transition"
               >
                 <For each={devices().video}>
                   {(device) => <option value={device.deviceId}>{device.label || device.deviceId}</option>}
                 </For>
               </select>
-              <div class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+              <div class="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
@@ -532,8 +543,9 @@ export function MeetingView(props) {
             </div>
           </div>
 
-          <div class="w-full max-w-3xl mt-4 flex items-center justify-between">
-            <label class="flex items-center space-x-2 cursor-pointer group">
+          {/* Bottom Row: Checkbox + Start Button */}
+          <div class="w-full max-w-3xl mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+            <label class="flex items-center space-x-2 cursor-pointer group text-sm sm:text-base">
               <div class="relative">
                 <input
                   type="checkbox"
@@ -541,24 +553,21 @@ export function MeetingView(props) {
                   onChange={() => setAlwaysShowPreview(!alwaysShowPreview())}
                   class="peer sr-only"
                 />
-                <div class="w-5 h-5 rounded border border-gray-500 bg-transparent peer-checked:bg-blue-600 peer-checked:border-blue-600 transition flex items-center justify-center">
+                <div class="w-4 h-4 sm:w-5 sm:h-5 rounded border border-gray-500 bg-transparent peer-checked:bg-blue-600 peer-checked:border-blue-600 transition flex items-center justify-center">
                   {alwaysShowPreview() && (
-                    <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                    <svg class="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
               </div>
-              <span class="text-sm text-gray-300 group-hover:text-white transition">Always show this preview when joining</span>
-              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <span class="text-xs sm:text-sm text-gray-300 group-hover:text-white transition">Always show preview</span>
             </label>
 
             <button
               onClick={joinMeeting}
               disabled={isConnecting()}
-              class="px-8 py-2.5 bg-[#0E71EB] hover:bg-[#0d65d4] disabled:bg-[#0E71EB]/50 text-white font-semibold text-sm rounded-lg transition shadow-lg"
+              class="w-full sm:w-auto px-6 sm:px-8 py-2 sm:py-2.5 bg-[#0E71EB] hover:bg-[#0d65d4] disabled:bg-[#0E71EB]/50 text-white font-semibold text-sm rounded-lg transition shadow-lg"
             >
               {isConnecting() ? 'Connecting...' : 'Start'}
             </button>
@@ -567,31 +576,31 @@ export function MeetingView(props) {
       ) : (
         // ===== In-Meeting View with Chat =====
         <div class="flex flex-1 overflow-hidden">
-          {/* Video Grid Container (flex-1) */}
+          {/* Video Grid Container */}
           <div class="flex-1 flex flex-col overflow-hidden bg-[#0f0f0f]">
-            <header class="p-4 border-b border-[#2a2a2a] flex justify-between items-center bg-[#1a1a1a]/80 shrink-0">
-              <h1 class="text-lg font-semibold tracking-wide">VisualTalk Meeting</h1>
-              <div class="text-sm text-gray-400">Room: #{ROOM}</div>
+            <header class="px-3 sm:px-4 py-2 sm:py-4 border-b border-[#2a2a2a] flex justify-between items-center bg-[#1a1a1a]/80 shrink-0">
+              <h1 class="text-base sm:text-lg font-semibold tracking-wide">VisualTalk Meeting</h1>
+              <div class="text-xs sm:text-sm text-gray-400">#{ROOM}</div>
             </header>
 
             <main class="flex-1 overflow-hidden">
               <VideoGrid participants={participants()} />
             </main>
 
-            <footer class="p-4 border-t border-[#2a2a2a] flex justify-center gap-4 bg-[#1a1a1a] shrink-0 flex-wrap">
+            <footer class="p-2 sm:p-4 border-t border-[#2a2a2a] flex flex-wrap justify-center gap-2 sm:gap-4 bg-[#1a1a1a] shrink-0">
               <button
                 onClick={toggleMute}
-                class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
+                class={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1 sm:space-x-2 ${
                   isMuted() ? "bg-red-500/90 hover:bg-red-600 text-white" : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
                 }`}
               >
                 {isMuted() ? (
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
                   </svg>
                 ) : (
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 )}
@@ -599,17 +608,17 @@ export function MeetingView(props) {
               </button>
               <button
                 onClick={toggleCamera}
-                class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
+                class={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1 sm:space-x-2 ${
                   isCameraOff() ? "bg-red-500/90 hover:bg-red-600 text-white" : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
                 }`}
               >
                 {isCameraOff() ? (
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
                   </svg>
                 ) : (
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                 )}
@@ -617,37 +626,37 @@ export function MeetingView(props) {
               </button>
               <button
                 onClick={toggleScreenShare}
-                class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 ${
+                class={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1 sm:space-x-2 ${
                   isSharingScreen()
                     ? "bg-red-500/90 hover:bg-red-600 text-white"
                     : "bg-green-600 hover:bg-green-700 text-white"
                 }`}
               >
                 {isSharingScreen() ? (
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                   </svg>
                 ) : (
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L15 12.75 9.75 8.5M4.5 4.5h15v15h-15z" />
                   </svg>
                 )}
                 <span>{isSharingScreen() ? "Stop Sharing" : "Share Screen"}</span>
               </button>
 
-              {/* 👇 Chat toggle button with unread badge */}
+              {/* Chat toggle button */}
               <button
                 onClick={toggleChat}
-                class={`px-5 py-2.5 rounded-xl text-sm font-medium transition flex items-center space-x-2 relative ${
+                class={`px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1 sm:space-x-2 relative ${
                   chatOpen() ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white"
                 }`}
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
                 <span>Chat</span>
                 {unreadCount() > 0 && !chatOpen() && (
-                  <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span class="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
                     {unreadCount()}
                   </span>
                 )}
@@ -655,20 +664,20 @@ export function MeetingView(props) {
 
               <button
                 onClick={handleCloseClick}
-                class="px-5 py-2.5 bg-red-500/90 hover:bg-red-600 rounded-xl text-sm font-medium transition text-white flex items-center space-x-2"
+                class="px-3 sm:px-5 py-1.5 sm:py-2.5 bg-red-500/90 hover:bg-red-600 rounded-xl text-xs sm:text-sm font-medium transition text-white flex items-center space-x-1 sm:space-x-2"
               >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span>Leave Call</span>
+                <span>Leave</span>
               </button>
             </footer>
           </div>
 
-          {/* ===== Chat Sidebar ===== */}
+          {/* Chat Sidebar (mobile: full width overlay) */}
           {chatOpen() && (
-            <div class="w-80 bg-[#1a1a1a] border-l border-[#2a2a2a] flex flex-col shrink-0">
-              <div class="p-4 border-b border-[#2a2a2a] flex items-center justify-between">
+            <div class="fixed inset-0 bg-[#1a1a1a] z-50 flex flex-col md:relative md:inset-auto md:w-80 md:bg-[#1a1a1a] md:border-l md:border-[#2a2a2a]">
+              <div class="p-3 border-b border-[#2a2a2a] flex items-center justify-between">
                 <h2 class="text-sm font-semibold text-white">Chat</h2>
                 <button onClick={toggleChat} class="text-gray-400 hover:text-white transition">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -677,11 +686,11 @@ export function MeetingView(props) {
                 </button>
               </div>
 
-              <div class="flex-1 overflow-y-auto p-4 space-y-3">
+              <div class="flex-1 overflow-y-auto p-3 space-y-3">
                 <For each={messages()}>
                   {(msg) => (
                     <div class={`flex flex-col ${msg.local ? 'items-end' : 'items-start'}`}>
-                      <div class={`max-w-[80%] rounded-xl px-4 py-2 ${msg.local ? 'bg-blue-600 text-white' : 'bg-[#2a2a2a] text-gray-200'}`}>
+                      <div class={`max-w-[80%] rounded-xl px-3 py-2 ${msg.local ? 'bg-blue-600 text-white' : 'bg-[#2a2a2a] text-gray-200'}`}>
                         <div class="text-xs font-semibold text-opacity-70">{msg.sender}</div>
                         <div class="text-sm break-words">{msg.text}</div>
                         <div class="text-[10px] text-opacity-50 text-right mt-0.5">{formatTime(msg.timestamp)}</div>
@@ -694,7 +703,7 @@ export function MeetingView(props) {
                 )}
               </div>
 
-              <div class="p-3 border-t border-[#2a2a2a]">
+              <div class="p-2 border-t border-[#2a2a2a]">
                 <div class="flex items-center space-x-2">
                   <input
                     type="text"
@@ -702,12 +711,12 @@ export function MeetingView(props) {
                     value={messageInput()}
                     onInput={(e) => setMessageInput(e.currentTarget.value)}
                     onKeyDown={handleKeyDown}
-                    class="flex-1 bg-[#2a2a2a] text-white rounded-xl px-4 py-2.5 text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    class="flex-1 bg-[#2a2a2a] text-white rounded-xl px-3 py-2 text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
                   <button
                     onClick={sendMessage}
                     disabled={!messageInput().trim()}
-                    class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800/50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition flex items-center"
+                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800/50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition flex items-center"
                   >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
