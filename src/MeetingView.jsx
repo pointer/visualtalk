@@ -46,7 +46,7 @@ export function MeetingView(props) {
     if (!status.camera || !status.microphone) {
       setError('Permissions required');
       return;
-    }    
+    }
     await startPreview();
     await loadDevices();
   });
@@ -102,7 +102,7 @@ export function MeetingView(props) {
     const stream = previewStream();
     if (previewVideoRef && stream) {
       previewVideoRef.srcObject = stream;
-      previewVideoRef.play().catch(() => {});
+      previewVideoRef.play().catch(() => { });
     }
   });
 
@@ -329,17 +329,17 @@ export function MeetingView(props) {
   const sendMessage = async () => {
     const text = messageInput().trim();
     console.log("📤 Send button clicked, text:", text);
-    
+
     if (!text) {
       console.log("⚠️ Message empty, ignoring");
       return;
     }
-    
+
     if (!room) {
       console.error("❌ Room is undefined! Cannot send message.");
       return;
     }
-    
+
     console.log("✅ Room exists, localParticipant:", room.localParticipant);
 
     const payload = {
@@ -355,7 +355,7 @@ export function MeetingView(props) {
       console.log("📤 Publishing data:", payload);
       await room.localParticipant.publishData(JSON.stringify(payload), DataPacket_Kind.RELIABLE);
       console.log("✅ Message published successfully");
-      
+
       // Add to local messages
       setMessages((prev) => {
         const newMsg = {
@@ -384,7 +384,7 @@ export function MeetingView(props) {
 
   // ---- Leave / close ----
   const leaveCall = () => {
-    if (room) room.disconnect().catch(() => {});
+    if (room) room.disconnect().catch(() => { });
     const stream = localStream();
     if (stream) stream.getTracks().forEach(t => t.stop());
     const pStream = previewStream();
@@ -419,7 +419,7 @@ export function MeetingView(props) {
       {preJoin() ? (
         <div class="flex-1 w-full overflow-y-auto bg-[#1a1a1a] px-4 pb-10 pt-4 scrollbar-none">
           <div class="flex flex-col items-center justify-start w-full max-w-3xl mx-auto space-y-4">
-            
+
             {/* Video Preview Container */}
             <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl shrink-0">
               {previewVideoEnabled() ? (
@@ -446,13 +446,12 @@ export function MeetingView(props) {
 
               {/* FIX: Absolute control panel position bounded cleanly across mobile widths */}
               <div class="absolute bottom-3 inset-x-0 flex items-center justify-center space-x-6 z-20">
-                
+
                 {/* Audio Toggle */}
                 <button
                   onClick={togglePreviewAudio}
-                  class={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition border-none bg-transparent !bg-transparent outline-none p-0 ${
-                    previewAudioEnabled() ? "text-white" : "text-red-500"
-                  }`}
+                  class={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition border-none bg-transparent !bg-transparent outline-none p-0 ${previewAudioEnabled() ? "text-white" : "text-red-500"
+                    }`}
                 >
                   <div class={`w-10 h-10 rounded-full flex items-center justify-center mb-0.5 shadow-md ${previewAudioEnabled() ? 'bg-black/60 backdrop-blur-md' : 'bg-red-500'}`}>
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -465,9 +464,8 @@ export function MeetingView(props) {
                 {/* Video Toggle */}
                 <button
                   onClick={togglePreviewVideo}
-                  class={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition border-none bg-transparent !bg-transparent outline-none p-0 ${
-                    previewVideoEnabled() ? "text-white" : "text-red-500"
-                  }`}
+                  class={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition border-none bg-transparent !bg-transparent outline-none p-0 ${previewVideoEnabled() ? "text-white" : "text-red-500"
+                    }`}
                 >
                   <div class={`w-10 h-10 rounded-full flex items-center justify-center mb-0.5 shadow-md ${previewVideoEnabled() ? 'bg-black/60 backdrop-blur-md' : 'bg-red-500'}`}>
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -476,7 +474,7 @@ export function MeetingView(props) {
                   </div>
                   <span class="text-[9px] font-semibold text-white drop-shadow-md">Video</span>
                 </button>
-                
+
               </div>
             </div>
 
@@ -577,15 +575,14 @@ export function MeetingView(props) {
             <footer class="border-t border-[#2a2a2a] bg-[#1c1c1c] shrink-0 w-full px-1 pt-3 pb-5 sm:py-4 shadow-xl z-10">
               {/* Enforced 5-column grid system keeping all tools balanced inline */}
               <div class="max-w-md mx-auto grid grid-cols-5 gap-x-0.5 justify-items-center items-start">
-                
+
                 {/* 1. Mute Action Button */}
                 <button
                   onClick={toggleMute}
                   class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 select-none"
                 >
-                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
-                    isMuted() ? "bg-red-500 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
-                  }`}>
+                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${isMuted() ? "bg-red-500 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+                    }`}>
                     {isMuted() ? (
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
@@ -607,9 +604,8 @@ export function MeetingView(props) {
                   onClick={toggleCamera}
                   class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 select-none"
                 >
-                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
-                    isCameraOff() ? "bg-red-500 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
-                  }`}>
+                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${isCameraOff() ? "bg-red-500 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+                    }`}>
                     {isCameraOff() ? (
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -631,16 +627,15 @@ export function MeetingView(props) {
                   onClick={toggleScreenShare}
                   class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 select-none"
                 >
-                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
-                    isSharingScreen() ? "bg-green-600 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
-                  }`}>
+                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${isSharingScreen() ? "bg-green-600 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+                    }`}>
                     {isSharingScreen() ? (
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                       </svg>
                     ) : (
                       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                       </svg>
                     )}
                   </div>
@@ -654,9 +649,8 @@ export function MeetingView(props) {
                   onClick={toggleChat}
                   class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 relative select-none"
                 >
-                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
-                    chatOpen() ? "bg-blue-600 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
-                  }`}>
+                  <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${chatOpen() ? "bg-blue-600 text-white" : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+                    }`}>
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
