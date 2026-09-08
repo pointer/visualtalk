@@ -18,7 +18,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' tauri://localhost https://tauri.localhost; media-src 'self' blob: mediastream: https://tauri.localhost;"
     }
   },
   "bundle": {
@@ -34,6 +34,13 @@
       "macOS": {
           "entitlements": "./Entitlements.plist",
           "infoPlist": "./Info.plist"
+      },
+      "iOS": {
+        "infoPlist": "./Info.plist"
+      },
+      "android": {
+        "minSdkVersion": 26,
+        "autoIncrementVersionCode": true
       }
     },
     "plugins": {

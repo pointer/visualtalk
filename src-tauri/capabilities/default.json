@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capability for all application windows",
+  "description": "Default capability for all Visukatalk application windows",
   "windows": ["*"],
   "permissions": [
     "core:default",
