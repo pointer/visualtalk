@@ -417,11 +417,12 @@ export function MeetingView(props) {
       {/* ===== Pre-Join Screen (Mobile-optimized) ===== */}
       {/* ===== Pre-Join Screen (Mobile & iOS Fixed Layout) ===== */}
       {preJoin() ? (
-        <div class="flex-1 w-full overflow-y-auto bg-[#1a1a1a] px-4 pb-10 pt-4 scrollbar-none">
-          <div class="flex flex-col items-center justify-start w-full max-w-3xl mx-auto space-y-4">
+        <div class="flex flex-col h-screen w-full bg-[#1a1a1a] overflow-hidden" style="height: 100dvh;">
+          {/* Video Preview Area - Use grid to control height distribution */}
+          <div class="relative flex-1 w-full px-2 sm:px-4 py-2 overflow-hidden flex items-center justify-center">
 
             {/* Video Preview Container */}
-            <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl shrink-0">
+            <div class="relative w-full h-full bg-black rounded-2xl overflow-hidden shadow-2xl max-w-3xl">
               {previewVideoEnabled() ? (
                 <video
                   autoplay
@@ -478,9 +479,11 @@ export function MeetingView(props) {
               </div>
             </div>
 
+          </div>
 
-            {/* Device Selectors Container - Explicit heights for iOS scrolling stability */}
-            <div class="w-full flex flex-col space-y-3">
+          {/* Fixed Bottom Controls Section */}
+          <div class="shrink-0 bg-[#1a1a1a] border-t border-[#2a2a2a] px-2 sm:px-4 py-2 sm:py-3 space-y-2 sm:space-y-2.5 w-full">
+            <div class="max-w-3xl mx-auto w-full flex flex-col space-y-2 sm:space-y-2.5">
               {/* Microphone */}
               <div class="relative w-full">
                 <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none">
@@ -491,7 +494,7 @@ export function MeetingView(props) {
                 <select
                   value={selectedMic()}
                   onChange={(e) => changeDevice('audio', e.currentTarget.value)}
-                  class="w-full bg-[#2a2a2a] text-white rounded-xl pl-10 pr-10 py-3 text-sm border border-[#3a3a3a] outline-none appearance-none cursor-pointer"
+                  class="w-full bg-[#2a2a2a] text-white rounded-xl pl-10 pr-10 py-2 sm:py-2.5 text-xs sm:text-sm border border-[#3a3a3a] outline-none appearance-none cursor-pointer"
                 >
                   <For each={devices().audio}>
                     {(device) => <option value={device.deviceId}>{device.label || device.deviceId}</option>}
@@ -512,7 +515,7 @@ export function MeetingView(props) {
                 <select
                   value={selectedCam()}
                   onChange={(e) => changeDevice('video', e.currentTarget.value)}
-                  class="w-full bg-[#2a2a2a] text-white rounded-xl pl-10 pr-10 py-3 text-sm border border-[#3a3a3a] outline-none appearance-none cursor-pointer"
+                  class="w-full bg-[#2a2a2a] text-white rounded-xl pl-10 pr-10 py-2 sm:py-2.5 text-xs sm:text-sm border border-[#3a3a3a] outline-none appearance-none cursor-pointer"
                 >
                   <For each={devices().video}>
                     {(device) => <option value={device.deviceId}>{device.label || device.deviceId}</option>}
@@ -522,39 +525,38 @@ export function MeetingView(props) {
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                 </div>
               </div>
-            </div>
 
-            {/* Bottom Row Controls */}
-            <div class="w-full flex flex-col space-y-4 pt-2">
-              <label class="flex items-center space-x-3 cursor-pointer group select-none">
-                <div class="relative">
-                  <input
-                    type="checkbox"
-                    checked={alwaysShowPreview()}
-                    onChange={() => setAlwaysShowPreview(!alwaysShowPreview())}
-                    class="peer sr-only"
-                  />
-                  <div class="w-5 h-5 rounded border border-gray-500 bg-transparent peer-checked:bg-blue-600 peer-checked:border-blue-600 transition flex items-center justify-center">
-                    {alwaysShowPreview() && (
-                      <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
+              {/* Checkbox and Button Row */}
+              <div class="w-full flex flex-col space-y-2">
+                <label class="flex items-center space-x-1.5 sm:space-x-2 cursor-pointer group select-none px-0.5 sm:px-1">
+                  <div class="relative shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={alwaysShowPreview()}
+                      onChange={() => setAlwaysShowPreview(!alwaysShowPreview())}
+                      class="peer sr-only"
+                    />
+                    <div class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded border border-gray-500 bg-transparent peer-checked:bg-blue-600 peer-checked:border-blue-600 transition flex items-center justify-center">
+                      {alwaysShowPreview() && (
+                        <svg class="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <span class="text-sm text-gray-300 group-hover:text-white transition">Always show preview</span>
-              </label>
+                  <span class="text-xs sm:text-sm text-gray-300 group-hover:text-white transition">Always show preview</span>
+                </label>
 
-              {/* Start Button - Now completely in view */}
-              <button
-                onClick={joinMeeting}
-                disabled={isConnecting()}
-                class="w-full py-3.5 bg-[#0E71EB] hover:bg-[#0d65d4] disabled:bg-[#0E71EB]/50 text-white font-semibold text-sm rounded-xl transition shadow-lg border-none outline-none"
-              >
-                {isConnecting() ? 'Connecting...' : 'Start'}
-              </button>
+                {/* Start Button */}
+                <button
+                  onClick={joinMeeting}
+                  disabled={isConnecting()}
+                  class="w-full py-2.5 sm:py-3 bg-[#0E71EB] hover:bg-[#0d65d4] disabled:bg-[#0E71EB]/50 text-white font-semibold text-xs sm:text-sm rounded-xl transition shadow-lg border-none outline-none"
+                >
+                  {isConnecting() ? 'Connecting...' : 'Start'}
+                </button>
+              </div>
             </div>
-
           </div>
         </div>
       ) : (
