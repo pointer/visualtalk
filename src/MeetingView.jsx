@@ -419,7 +419,7 @@ export function MeetingView(props) {
       {preJoin() ? (
         <div class="flex flex-col h-screen w-full bg-[#1a1a1a] overflow-hidden" style="height: 100dvh;">
           {/* Video Preview Area - Use grid to control height distribution */}
-          <div class="relative flex-1 w-full px-2 sm:px-4 py-2 overflow-hidden flex items-center justify-center">
+          <div class="relative flex-1 w-full px-2 sm:px-4 py-2 overflow-hidden flex items-center justify-center" style="max-height: 65vh;">
 
             {/* Video Preview Container */}
             <div class="relative w-full h-full bg-black rounded-2xl overflow-hidden shadow-2xl max-w-3xl">
@@ -482,7 +482,7 @@ export function MeetingView(props) {
           </div>
 
           {/* Fixed Bottom Controls Section */}
-          <div class="shrink-0 bg-[#1a1a1a] border-t border-[#2a2a2a] px-2 sm:px-4 py-2 sm:py-3 space-y-2 sm:space-y-2.5 w-full">
+          <div class="shrink-0 bg-[#1a1a1a] border-t border-[#2a2a2a] px-2 sm:px-4 py-2 sm:py-3 pb-6 sm:pb-8 space-y-2 sm:space-y-2.5 w-full" style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))">
             <div class="max-w-3xl mx-auto w-full flex flex-col space-y-2 sm:space-y-2.5">
               {/* Microphone */}
               <div class="relative w-full">
