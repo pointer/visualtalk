@@ -412,7 +412,7 @@ export function MeetingView(props) {
   };
 
   return (
-    <div class="flex flex-col h-screen w-screen bg-[#1a1a1a] text-white select-none overflow-hidden">
+    <div class="flex flex-col h-screen w-full bg-[#1a1a1a] text-white select-none overflow-hidden">
 
       {/* ===== Pre-Join Screen (Mobile-optimized) ===== */}
       {/* ===== Pre-Join Screen (Mobile & iOS Fixed Layout) ===== */}
@@ -482,8 +482,8 @@ export function MeetingView(props) {
           </div>
 
           {/* Fixed Bottom Controls Section */}
-          <div class="shrink-0 bg-[#1a1a1a] border-t border-[#2a2a2a] px-2 sm:px-4 py-2 sm:py-3 pb-6 sm:pb-8 space-y-2 sm:space-y-2.5 w-full" style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom))">
-            <div class="max-w-3xl mx-auto w-full flex flex-col space-y-2 sm:space-y-2.5">
+          <div class="shrink-0 bg-[#1a1a1a] border-t border-[#2a2a2a] px-2 sm:px-4 py-2 sm:py-3 pb-6 sm:pb-8 space-y-2 sm:space-y-2.5 w-full" style="padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); box-sizing: border-box;">
+            <div class="w-full flex flex-col space-y-2 sm:space-y-2.5" style="box-sizing: border-box; max-width: 100%; margin: 0 auto;">
               {/* Microphone */}
               <div class="relative w-full">
                 <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10 pointer-events-none">
