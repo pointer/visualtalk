@@ -574,7 +574,7 @@ export function MeetingView(props) {
             </main>
 
             {/* ===== RESTYLED 5-BUTTON PREMIUM MEETING ACTION BAR ===== */}
-            <footer class="border-t border-[#2a2a2a] bg-[#1c1c1c] shrink-0 w-full px-1 pt-3 pb-5 sm:py-4 shadow-xl z-10">
+            <footer class="border-t border-[#2a2a2a] bg-[#1c1c1c] shrink-0 w-full px-1 pt-3 pb-[4rem] sm:py-4 shadow-xl z-10">
               {/* Enforced 5-column grid system keeping all tools balanced inline */}
               <div class="max-w-md mx-auto grid grid-cols-5 gap-x-0.5 justify-items-center items-start">
 
@@ -690,7 +690,9 @@ export function MeetingView(props) {
           {/* Chat Sidebar (mobile: full width overlay) */}
           {chatOpen() && (
             <div class="fixed inset-0 bg-[#1a1a1a] z-50 flex flex-col md:relative md:inset-auto md:w-80 md:bg-[#1a1a1a] md:border-l md:border-[#2a2a2a]">
-              <div class="p-3 border-b border-[#2a2a2a] flex items-center justify-between">
+              {/* <div class="p-3 border-b border-[#2a2a2a] flex items-center justify-between"> */}
+              <div class="flex justify-between items-center px-4 pt-[3rem] pb-4 sm:pt-4 border-b border-[#2a2a2a]">
+
                 <h2 class="text-sm font-semibold text-white">Chat</h2>
                 <button onClick={toggleChat} class="text-gray-400 hover:text-white transition">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -716,8 +718,8 @@ export function MeetingView(props) {
                 )}
               </div>
 
-              <div class="p-2 border-t border-[#2a2a2a]">
-                <div class="flex items-center space-x-2">
+              <div class="px-3 pt-3 pb-[3rem] sm:pb-4 border-t border-[#2a2a2a] bg-[#1c1c1c]">
+                <div class="flex items-center gap-2 max-w-md mx-auto">
                   <input
                     type="text"
                     placeholder="Type a message..."
