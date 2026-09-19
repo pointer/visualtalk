@@ -1,5 +1,6 @@
 use tauri::{AppHandle, Manager, State};
 
+mod backgrounds;
 mod device;
 mod layout;
 mod meeting;
@@ -10,6 +11,7 @@ mod state;
 mod token;
 mod window;
 
+use backgrounds::{get_background, set_background, BackgroundState};
 use device::{DevicePreferences, MediaDevice};
 use layout::{LayoutCalculator, LayoutConfig};
 use meeting::{format_invitation, MeetingRecord, ScheduledMeeting};
@@ -30,14 +32,12 @@ pub struct AppConfig {
 
 #[tauri::command]
 fn get_config() -> Result<AppConfig, String> {
-    let livekit_url = std::env::var("LIVEKIT_URL")
-        .map_err(|_| "LIVEKIT_URL not set".to_string())?;
-    let api_key = std::env::var("LIVEKIT_API_KEY")
-        .map_err(|_| "LIVEKIT_API_KEY not set".to_string())?;
-    let room = std::env::var("ROOM")
-        .map_err(|_| "ROOM not set".to_string())?;
-    let identity = std::env::var("IDENTITY")
-        .map_err(|_| "IDENTITY not set".to_string())?;
+    let livekit_url =
+        std::env::var("LIVEKIT_URL").map_err(|_| "LIVEKIT_URL not set".to_string())?;
+    let api_key =
+        std::env::var("LIVEKIT_API_KEY").map_err(|_| "LIVEKIT_API_KEY not set".to_string())?;
+    let room = std::env::var("ROOM").map_err(|_| "ROOM not set".to_string())?;
+    let identity = std::env::var("IDENTITY").map_err(|_| "IDENTITY not set".to_string())?;
     Ok(AppConfig {
         livekit_url,
         api_key,
@@ -46,12 +46,8 @@ fn get_config() -> Result<AppConfig, String> {
     })
 }
 
-
 #[tauri::command]
-fn get_meeting_session(
-    room: String,
-    state: State<'_, AppState>,
-) -> Result<MeetingSession, String> {
+fn get_meeting_session(room: String, state: State<'_, AppState>) -> Result<MeetingSession, String> {
     let data = state
         .data
         .lock()
@@ -86,10 +82,7 @@ fn get_user_profile(state: State<'_, AppState>) -> Result<UserProfile, String> {
 }
 
 #[tauri::command]
-fn update_user_profile(
-    profile: UserProfile,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+fn update_user_profile(profile: UserProfile, state: State<'_, AppState>) -> Result<(), String> {
     let mut data = state
         .data
         .lock()
@@ -108,10 +101,7 @@ fn get_user_settings(state: State<'_, AppState>) -> Result<UserSettings, String>
 }
 
 #[tauri::command]
-fn update_user_settings(
-    settings: UserSettings,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+fn update_user_settings(settings: UserSettings, state: State<'_, AppState>) -> Result<(), String> {
     let mut data = state
         .data
         .lock()
@@ -193,10 +183,7 @@ fn get_all_participants(state: State<'_, AppState>) -> Result<Vec<Participant>, 
 }
 
 #[tauri::command]
-fn add_participant(
-    participant: Participant,
-    state: State<'_, AppState>,
-) -> Result<bool, String> {
+fn add_participant(participant: Participant, state: State<'_, AppState>) -> Result<bool, String> {
     let mut manager = state
         .participant_manager
         .lock()
@@ -205,10 +192,7 @@ fn add_participant(
 }
 
 #[tauri::command]
-fn remove_participant(
-    participant_id: String,
-    state: State<'_, AppState>,
-) -> Result<bool, String> {
+fn remove_participant(participant_id: String, state: State<'_, AppState>) -> Result<bool, String> {
     let mut manager = state
         .participant_manager
         .lock()
@@ -291,10 +275,7 @@ fn get_participant_count(state: State<'_, AppState>) -> Result<usize, String> {
 }
 
 #[tauri::command]
-fn participant_exists(
-    participant_id: String,
-    state: State<'_, AppState>,
-) -> Result<bool, String> {
+fn participant_exists(participant_id: String, state: State<'_, AppState>) -> Result<bool, String> {
     let manager = state
         .participant_manager
         .lock()
@@ -322,10 +303,7 @@ fn clear_participants(state: State<'_, AppState>) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn remove_screen_share(
-    participant_id: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+fn remove_screen_share(participant_id: String, state: State<'_, AppState>) -> Result<(), String> {
     let mut manager = state
         .participant_manager
         .lock()
@@ -337,10 +315,7 @@ fn remove_screen_share(
 // ===== DEVICE MANAGEMENT =====
 
 #[tauri::command]
-fn set_devices(
-    devices: Vec<MediaDevice>,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+fn set_devices(devices: Vec<MediaDevice>, state: State<'_, AppState>) -> Result<(), String> {
     let mut manager = state
         .device_manager
         .lock()
@@ -438,7 +413,9 @@ fn get_all_devices(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, Strin
 }
 
 #[tauri::command]
-fn get_device_groups(state: State<'_, AppState>) -> Result<Vec<crate::device::DeviceGroup>, String> {
+fn get_device_groups(
+    state: State<'_, AppState>,
+) -> Result<Vec<crate::device::DeviceGroup>, String> {
     let manager = state
         .device_manager
         .lock()
@@ -463,7 +440,9 @@ fn validate_device(
 
 #[tauri::command]
 fn calculate_grid_dimensions(participant_count: usize) -> Result<(usize, usize), String> {
-    Ok(LayoutCalculator::calculate_grid_dimensions(participant_count))
+    Ok(LayoutCalculator::calculate_grid_dimensions(
+        participant_count,
+    ))
 }
 
 #[tauri::command]
@@ -553,10 +532,7 @@ fn get_user_notes(state: State<'_, AppState>) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn update_user_notes(
-    notes: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+fn update_user_notes(notes: String, state: State<'_, AppState>) -> Result<(), String> {
     let mut data = state
         .data
         .lock()
@@ -579,8 +555,6 @@ fn generate_livekit_token(
 
 // ===================
 
-
-
 // ==========
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -589,12 +563,13 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(BackgroundState(Default::default()))
         .setup(|app| {
             let config_dir = app
                 .path()
                 .app_config_dir()
                 .unwrap_or_else(|_| std::env::temp_dir().join("visualtalk"));
-            
+
             let _ = std::fs::create_dir_all(&config_dir);
             app.manage(AppState::new(config_dir));
             Ok(())
@@ -603,7 +578,6 @@ pub fn run() {
             // Meeting & Session
             get_meeting_session,
             open_meeting_window,
-            
             // User Management
             get_user_profile,
             update_user_profile,
@@ -611,14 +585,12 @@ pub fn run() {
             update_user_settings,
             get_user_notes,
             update_user_notes,
-
             // Meetings History & Scheduling
             get_scheduled_meetings,
             schedule_meeting,
             delete_scheduled_meeting,
             get_meeting_history,
             get_meeting_invite,
-            
             // Participant Management
             get_all_participants,
             add_participant,
@@ -634,7 +606,6 @@ pub fn run() {
             get_sorted_participants,
             clear_participants,
             remove_screen_share,
-            
             // Device Management
             set_devices,
             set_device_preferences,
@@ -648,7 +619,6 @@ pub fn run() {
             get_all_devices,
             get_device_groups,
             validate_device,
-            
             // Layout Calculations
             calculate_grid_dimensions,
             calculate_optimal_layout,
@@ -658,10 +628,12 @@ pub fn run() {
             calculate_tile_size,
             should_feature_screen_share,
             calculate_filmstrip_dimensions,
-            
             // Token Generation
             generate_livekit_token,
             get_config,
+            // Backgrounds
+            get_background,
+            set_background,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
