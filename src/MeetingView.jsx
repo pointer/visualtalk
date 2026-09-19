@@ -4,6 +4,8 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { VideoGrid } from "./components/VideoGrid";
 import { requestMediaPermissions } from "./components/Permissions";
+// import { getBackground, setBackground } from "../lib/backgrounds";
+
 
 export function MeetingView(props) {
   const ROOM = props.roomName || "general";
@@ -30,7 +32,11 @@ export function MeetingView(props) {
   const [previewAudioEnabled, setPreviewAudioEnabled] = createSignal(true);
   const [previewVideoEnabled, setPreviewVideoEnabled] = createSignal(true);
   const [alwaysShowPreview, setAlwaysShowPreview] = createSignal(true);
-
+  const [backgroundsOpen, setBackgroundsOpen] = createSignal(false);
+  const [background, setBackground] = createSignal({
+    enabled: false,
+    kind: { type: "none" },
+  });
   // ---- Meeting state ----
   const [participants, setParticipants] = createSignal([]);
   const [isMuted, setIsMuted] = createSignal(false);
@@ -46,6 +52,13 @@ export function MeetingView(props) {
     if (!status.camera || !status.microphone) {
       setError('Permissions required');
       return;
+    }
+    try {
+      const savedBackground = await invoke("get_background");
+      setBackground(savedBackground);
+      applyBackgroundEffect(savedBackground);
+    } catch (error) {
+      console.error("Could not load background settings:", error);
     }
     await startPreview();
     await loadDevices();
@@ -384,6 +397,7 @@ export function MeetingView(props) {
 
   // ---- Leave / close ----
   const leaveCall = () => {
+    console.log("Leave call called")
     if (room) room.disconnect().catch(() => { });
     const stream = localStream();
     if (stream) stream.getTracks().forEach(t => t.stop());
@@ -409,6 +423,54 @@ export function MeetingView(props) {
   const formatTime = (ts) => {
     const d = new Date(ts);
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+
+  function toggleBackgrounds() {
+    setBackgroundsOpen((open) => !open);
+  }
+
+  // Save a new choice through Rust and apply it to this preview.
+  const selectBackground = async (next) => {
+    try {
+      const savedBackground = await invoke("set_background", {
+        settings: next,
+      });
+
+      setBackground(savedBackground);
+      setBackgroundsOpen(false);
+      applyBackgroundEffect(savedBackground);
+    } catch (error) {
+      console.error("Could not set background:", error);
+    }
+  };
+
+  // First-pass visual preview effect.
+  // It does NOT yet create a true virtual background in outgoing WebRTC video.
+  const applyBackgroundEffect = (settings) => {
+    if (!previewVideo) return;
+
+    const selected = settings?.kind?.type;
+
+    if (!settings.enabled || selected === "none") {
+      previewVideo.style.filter = "";
+      previewVideo.style.backgroundColor = "";
+      previewVideo.style.backgroundImage = "";
+      return;
+    }
+
+    if (selected === "blur") {
+      previewVideo.style.filter = "blur(8px)";
+      previewVideo.style.backgroundColor = "";
+      previewVideo.style.backgroundImage = "";
+      return;
+    }
+
+    if (selected === "color") {
+      previewVideo.style.filter = "";
+      previewVideo.style.backgroundColor = settings.kind.value;
+      previewVideo.style.backgroundImage = "";
+    }
   };
 
   return (
@@ -475,6 +537,103 @@ export function MeetingView(props) {
                   </div>
                   <span class="text-[9px] font-semibold text-white drop-shadow-md">Video</span>
                 </button>
+
+                {/* Backgrounds Button (hidden on small screens) */}
+                {/* <button class="absolute bottom-3 right-3 sm:bottom-6 sm:right-6 flex items-center space-x-1 sm:space-x-2 px-2 py-1.5 sm:px-4 sm:py-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md rounded-xl text-white text-[10px] sm:text-sm font-medium transition"> */}
+                <button
+                  onClick={toggleBackgrounds}
+                  class={`absolute bottom-3 right-3 sm:bottom-6 sm:right-6
+                            flex items-center space-x-1 sm:space-x-2
+                            px-2 py-1.5 sm:px-4 sm:py-2.5
+                            rounded-xl text-white text-[10px] sm:text-sm font-medium
+                            transition backdrop-blur-md
+                            ${backgroundsOpen()
+                      ? "bg-blue-500/90 hover:bg-blue-600"
+                      : "bg-black/60 hover:bg-black/80"
+                    }`}
+                >
+                  <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span class="hidden xs:inline">Backgrounds</span>
+                </button>
+
+
+
+                {/* Background picker: appears above the Backgrounds button */}
+                {backgroundsOpen() && (
+                  <div
+                    class="absolute bottom-14 right-3 z-50 grid grid-cols-2 gap-2
+            rounded-xl bg-zinc-900/95 p-3 shadow-xl backdrop-blur-md
+            sm:bottom-20 sm:right-6"
+                  >
+                    <button
+                      onClick={() =>
+                        selectBackground({
+                          enabled: false,
+                          kind: { type: "none" },
+                        })
+                      }
+                      class={`rounded-lg px-3 py-2 text-xs text-white transition
+              ${background().kind.type === "none"
+                          ? "bg-blue-600"
+                          : "bg-zinc-700 hover:bg-zinc-600"
+                        }`}
+                    >
+                      None
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        selectBackground({
+                          enabled: true,
+                          kind: { type: "blur" },
+                        })
+                      }
+                      class={`rounded-lg px-3 py-2 text-xs text-white transition
+              ${background().kind.type === "blur" && background().enabled
+                          ? "bg-blue-600"
+                          : "bg-blue-500 hover:bg-blue-600"
+                        }`}
+                    >
+                      Blur
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        selectBackground({
+                          enabled: true,
+                          kind: { type: "color", value: "#7c3aed" },
+                        })
+                      }
+                      class={`rounded-lg bg-violet-600 px-3 py-2 text-xs text-white transition
+              ${background().kind.type === "color" &&
+                          background().kind.value === "#7c3aed"
+                          ? "ring-2 ring-white"
+                          : "hover:bg-violet-700"
+                        }`}
+                    >
+                      Purple
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        selectBackground({
+                          enabled: true,
+                          kind: { type: "color", value: "#065f46" },
+                        })
+                      }
+                      class={`rounded-lg bg-emerald-700 px-3 py-2 text-xs text-white transition
+              ${background().kind.type === "color" &&
+                          background().kind.value === "#065f46"
+                          ? "ring-2 ring-white"
+                          : "hover:bg-emerald-800"
+                        }`}
+                    >
+                      Nature
+                    </button>
+                  </div>
+                )}
 
               </div>
             </div>
