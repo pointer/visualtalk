@@ -54,3 +54,5 @@ config.json
 Notes.txt
 *.lock
 *.md
+ExportOptions copy.plist
+ExportOptions.plist
