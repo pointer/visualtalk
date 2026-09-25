@@ -33,7 +33,7 @@ export function MainWindow(props) {
     title: "Team Sync",
     room: "",
     date: new Date().toISOString().split("T")[0],
-    time: "10:00",
+    time: "12:00",
   });
   // const [toggleChat] = createSignal([]);
 
@@ -288,7 +288,7 @@ export function MainWindow(props) {
 
   const startScheduledMeeting = async (meeting) => {
     try {
-      console.log("Starting scheduled meeting:", meeting.room_id);
+      console.log("Starting scheduled meeting:", meeting);
 
       // 1. Ask Rust to generate the Host Token and get the LiveKit URL
       const hostData = await invoke("get_host_meeting_data", { room: meeting.room_id });

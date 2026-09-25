@@ -634,6 +634,9 @@ pub fn run() {
             get_background,
             set_background,
             get_host_meeting_data,
+            //Settings
+            load_settings,
+            save_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -4,16 +4,25 @@ import { invoke } from "@tauri-apps/api/core";
 export function SettingsTab(props) {
   const [activeSection, setActiveSection] = createSignal("audio-video");
   const [loading, setLoading] = createSignal(true);
-  
+
   // Audio/Video Settings
   const [audioInputs, setAudioInputs] = createSignal([]);
   const [videoInputs, setVideoInputs] = createSignal([]);
   const [audioOutputs, setAudioOutputs] = createSignal([]);
-  
+
   const [selectedMic, setSelectedMic] = createSignal("");
   const [selectedCamera, setSelectedCamera] = createSignal("");
   const [selectedSpeaker, setSelectedSpeaker] = createSignal("");
-  
+
+  // From Settings.jsx file
+  const [url, setUrl] = createSignal('');
+  const [apiKey, setApiKey] = createSignal('');
+  const [apiSecret, setApiSecret] = createSignal('');
+  const [identity, setIdentity] = createSignal('');
+  const [status, setStatus] = createSignal('');
+  // const [loading, setLoading] = createSignal(false);
+  /////
+
   // Meeting Settings
   const [profile, setProfile] = createSignal({
     identity: "",
@@ -21,7 +30,7 @@ export function SettingsTab(props) {
     email: "",
     pmi: "",
   });
-  
+
   const [settings, setSettings] = createSignal({
     start_with_video: true,
     use_pmi: false,
@@ -33,28 +42,36 @@ export function SettingsTab(props) {
   onMount(async () => {
     try {
       setLoading(true);
-      
+
+      const settings = await invoke('load_settings');
+      if (settings) {
+        setUrl(settings.url);
+        setApiKey(settings.api_key);
+        setApiSecret(settings.api_secret);
+        setIdentity(settings.identity);
+      }
+
       // Load devices
       const mics = await invoke("get_audio_inputs");
       const cameras = await invoke("get_video_inputs");
       const speakers = await invoke("get_audio_outputs");
-      
+
       setAudioInputs(mics);
       setVideoInputs(cameras);
       setAudioOutputs(speakers);
-      
+
       // Set defaults from first devices
       if (mics.length > 0) setSelectedMic(mics[0].id);
       if (cameras.length > 0) setSelectedCamera(cameras[0].id);
       if (speakers.length > 0) setSelectedSpeaker(speakers[0].id);
-      
+
       // Load profile and settings
       const prof = await invoke("get_user_profile");
       setProfile(prof);
-      
+
       const sett = await invoke("get_user_settings");
       setSettings(sett);
-      
+
     } catch (err) {
       console.error("Failed to load settings:", err);
     } finally {
@@ -105,6 +122,31 @@ export function SettingsTab(props) {
     setSettings({ ...settings(), [key]: !settings()[key] });
   };
 
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setStatus('');
+
+    try {
+      await invoke('save_settings', {
+        settings: {
+          url: url(),
+          api_key: apiKey(),
+          api_secret: apiSecret(),
+          identity: identity(),
+        },
+      });
+      setStatus('✅ Settings saved securely!');
+
+      // Clear status message after 3 seconds
+      setTimeout(() => setStatus(''), 3000);
+    } catch (err) {
+      setStatus(`❌ Error: ${err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div class="w-full h-full bg-[#111111] text-white overflow-hidden flex">
       {/* Sidebar Navigation */}
@@ -113,21 +155,21 @@ export function SettingsTab(props) {
           <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">
             Settings
           </h2>
-          
+
           <nav class="space-y-1">
             {[
               { id: "audio-video", label: "Audio & Video", icon: "🎤" },
               { id: "meeting", label: "Meeting", icon: "📹" },
               { id: "profile", label: "Profile", icon: "👤" },
+              { id: "livekit", label: "LiveKit", icon: "⏚" },
               { id: "about", label: "About", icon: "ℹ️" },
             ].map((section) => (
               <button
                 onClick={() => setActiveSection(section.id)}
-                class={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
-                  activeSection() === section.id
-                    ? "bg-blue-600/20 text-blue-400 border-l-2 border-blue-600"
-                    : "text-gray-400 hover:text-white hover:bg-gray-800/40"
-                }`}
+                class={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition ${activeSection() === section.id
+                  ? "bg-blue-600/20 text-blue-400 border-l-2 border-blue-600"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800/40"
+                  }`}
               >
                 <span>{section.icon}</span>
                 <span>{section.label}</span>
@@ -145,7 +187,7 @@ export function SettingsTab(props) {
             <div class="space-y-6">
               <div>
                 <h3 class="text-lg font-semibold mb-4">Audio & Video</h3>
-                
+
                 {/* Microphone Selection */}
                 <div class="bg-[#1a1a1a] rounded-lg p-4 mb-4">
                   <label class="block text-sm font-medium text-gray-300 mb-2">
@@ -215,7 +257,7 @@ export function SettingsTab(props) {
             <div class="space-y-6">
               <div>
                 <h3 class="text-lg font-semibold mb-4">Meeting Preferences</h3>
-                
+
                 <div class="space-y-3">
                   {/* Start with Video */}
                   <div class="bg-[#1a1a1a] rounded-lg p-4 flex items-center justify-between">
@@ -225,16 +267,14 @@ export function SettingsTab(props) {
                     </div>
                     <button
                       onClick={() => toggleSetting("start_with_video")}
-                      class={`relative w-12 h-7 rounded-full transition ${
-                        settings().start_with_video
-                          ? "bg-blue-600"
-                          : "bg-gray-700"
-                      }`}
+                      class={`relative w-12 h-7 rounded-full transition ${settings().start_with_video
+                        ? "bg-blue-600"
+                        : "bg-gray-700"
+                        }`}
                     >
                       <div
-                        class={`absolute top-1 w-5 h-5 bg-white rounded-full transition ${
-                          settings().start_with_video ? "left-6" : "left-1"
-                        }`}
+                        class={`absolute top-1 w-5 h-5 bg-white rounded-full transition ${settings().start_with_video ? "left-6" : "left-1"
+                          }`}
                       />
                     </button>
                   </div>
@@ -247,16 +287,14 @@ export function SettingsTab(props) {
                     </div>
                     <button
                       onClick={() => toggleSetting("use_pmi")}
-                      class={`relative w-12 h-7 rounded-full transition ${
-                        settings().use_pmi
-                          ? "bg-blue-600"
-                          : "bg-gray-700"
-                      }`}
+                      class={`relative w-12 h-7 rounded-full transition ${settings().use_pmi
+                        ? "bg-blue-600"
+                        : "bg-gray-700"
+                        }`}
                     >
                       <div
-                        class={`absolute top-1 w-5 h-5 bg-white rounded-full transition ${
-                          settings().use_pmi ? "left-6" : "left-1"
-                        }`}
+                        class={`absolute top-1 w-5 h-5 bg-white rounded-full transition ${settings().use_pmi ? "left-6" : "left-1"
+                          }`}
                       />
                     </button>
                   </div>
@@ -269,16 +307,14 @@ export function SettingsTab(props) {
                     </div>
                     <button
                       onClick={() => toggleSetting("mute_on_join")}
-                      class={`relative w-12 h-7 rounded-full transition ${
-                        settings().mute_on_join
-                          ? "bg-blue-600"
-                          : "bg-gray-700"
-                      }`}
+                      class={`relative w-12 h-7 rounded-full transition ${settings().mute_on_join
+                        ? "bg-blue-600"
+                        : "bg-gray-700"
+                        }`}
                     >
                       <div
-                        class={`absolute top-1 w-5 h-5 bg-white rounded-full transition ${
-                          settings().mute_on_join ? "left-6" : "left-1"
-                        }`}
+                        class={`absolute top-1 w-5 h-5 bg-white rounded-full transition ${settings().mute_on_join ? "left-6" : "left-1"
+                          }`}
                       />
                     </button>
                   </div>
@@ -291,16 +327,14 @@ export function SettingsTab(props) {
                     </div>
                     <button
                       onClick={() => toggleSetting("always_show_preview")}
-                      class={`relative w-12 h-7 rounded-full transition ${
-                        settings().always_show_preview
-                          ? "bg-blue-600"
-                          : "bg-gray-700"
-                      }`}
+                      class={`relative w-12 h-7 rounded-full transition ${settings().always_show_preview
+                        ? "bg-blue-600"
+                        : "bg-gray-700"
+                        }`}
                     >
                       <div
-                        class={`absolute top-1 w-5 h-5 bg-white rounded-full transition ${
-                          settings().always_show_preview ? "left-6" : "left-1"
-                        }`}
+                        class={`absolute top-1 w-5 h-5 bg-white rounded-full transition ${settings().always_show_preview ? "left-6" : "left-1"
+                          }`}
                       />
                     </button>
                   </div>
@@ -321,7 +355,7 @@ export function SettingsTab(props) {
             <div class="space-y-6">
               <div>
                 <h3 class="text-lg font-semibold mb-4">Profile Settings</h3>
-                
+
                 <div class="space-y-4">
                   {/* Display Name */}
                   <div class="bg-[#1a1a1a] rounded-lg p-4">
@@ -398,23 +432,100 @@ export function SettingsTab(props) {
             </div>
           </Show>
 
+          {/* Livekit Settings */}
+          <Show when={activeSection() === "livekit"}>
+            <div class="w-full max-w-md bg-[#1c1c1c] rounded-2xl p-6 shadow-xl border border-[#2a2a2a]">
+              <h2 class="text-2xl font-bold mb-6 text-center">LiveKit Settings</h2>
+
+              <form onSubmit={handleSave} class="flex flex-col gap-4">
+                {/* Identity / Display Name */}
+                <div class="flex flex-col gap-1">
+                  <label class="text-sm text-gray-400">Your Identity / Name</label>
+                  <input
+                    type="text"
+                    value={identity()}
+                    onInput={(e) => setIdentity(e.currentTarget.value)}
+                    class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors"
+                    placeholder="e.g. John Doe"
+                    required
+                  />
+                </div>
+
+                {/* LiveKit URL */}
+                <div class="flex flex-col gap-1">
+                  <label class="text-sm text-gray-400">LiveKit Server URL</label>
+                  <input
+                    type="url"
+                    value={url()}
+                    onInput={(e) => setUrl(e.currentTarget.value)}
+                    class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors"
+                    placeholder="wss://your-project.livekit.cloud"
+                    required
+                  />
+                </div>
+
+                {/* API Key */}
+                <div class="flex flex-col gap-1">
+                  <label class="text-sm text-gray-400">API Key</label>
+                  <input
+                    type="text"
+                    value={apiKey()}
+                    onInput={(e) => setApiKey(e.currentTarget.value)}
+                    class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+                    placeholder="API..."
+                    required
+                  />
+                </div>
+
+                {/* API Secret */}
+                <div class="flex flex-col gap-1">
+                  <label class="text-sm text-gray-400">API Secret</label>
+                  <input
+                    type="password" // Masked for security
+                    value={apiSecret()}
+                    onInput={(e) => setApiSecret(e.currentTarget.value)}
+                    class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+                    placeholder="••••••••••••"
+                    required
+                  />
+                </div>
+
+                {/* Status Message */}
+                <Show when={status()}>
+                  <div class={`text-sm text-center mt-2 ${status().includes('Error') ? 'text-red-400' : 'text-green-400'}`}>
+                    {status()}
+                  </div>
+                </Show>
+
+                {/* Save Button */}
+                <button
+                  type="submit"
+                  disabled={loading()}
+                  class="mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all active:scale-95"
+                >
+                  {loading() ? 'Saving...' : 'Save Configuration'}
+                </button>
+              </form>
+            </div>
+          </Show>
+
           {/* About */}
           <Show when={activeSection() === "about"}>
             <div class="space-y-6">
               <div>
                 <h3 class="text-lg font-semibold mb-4">About VisualTalk</h3>
-                
+
                 <div class="bg-[#1a1a1a] rounded-lg p-6 space-y-4">
                   <div>
                     <p class="text-sm text-gray-400">Application Version</p>
                     <p class="text-lg font-medium">1.0.0</p>
                   </div>
-                  
+
                   <div>
                     <p class="text-sm text-gray-400">Build Date</p>
                     <p class="text-lg font-medium">August 31, 2026</p>
                   </div>
-                  
+
                   <div>
                     <p class="text-sm text-gray-400">Platform</p>
                     <p class="text-lg font-medium">Tauri + SolidJS</p>
