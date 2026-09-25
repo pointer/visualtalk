@@ -68,7 +68,9 @@ impl AppData {
                     if data.profile.identity == "User1" || data.profile.identity.is_empty() {
                         let rand_suffix = (chrono::Utc::now().timestamp_millis() % 9000) + 1000;
                         data.profile.identity = format!("User-{}", rand_suffix);
-                        if data.profile.display_name == "You" || data.profile.display_name == "User1" {
+                        if data.profile.display_name == "You"
+                            || data.profile.display_name == "User1"
+                        {
                             data.profile.display_name = data.profile.identity.clone();
                         }
                         let _ = data.save(config_dir);

@@ -1,8 +1,11 @@
+
+
 import { createSignal, onCleanup, onMount, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { SettingsTab } from "./components/SettingsTab";
 import { NotesTab } from "./components/NotesTab";
 import { Modal } from "./components/Modal";
+
 
 export function MainWindow(props) {
   const [activeTab, setActiveTab] = createSignal("home");
@@ -125,16 +128,28 @@ export function MainWindow(props) {
     }
   };
 
-  const handleStartMeeting = () => {
-    const room = settings().use_pmi
-      ? profile().pmi.replace(/\s+/g, "")
-      : "general";
-    props.onJoinMeeting(room);
+  // Rename this to handleNewMeetingClick (or keep it as is, just update the logic)
+  const handleNewMeetingClick = async () => { // Assuming this is what triggers the orange button
+    try {
+      const room = settings().use_pmi ? profile().pmi.replace(/\s+/g, "") : "general";
+
+      // Ask Rust for the token/url for this instant room
+      const hostData = await invoke("get_host_meeting_data", { room: room });
+
+      props.onJoinMeeting({
+        room: room,
+        token: hostData.token,
+        url: hostData.url,
+        identity: profile().identity || "Host"
+      });
+    } catch (err) {
+      console.error("Failed to start instant meeting:", err);
+      alert("Could not start meeting. Are LiveKit keys configured?");
+    }
   };
 
   const handleJoinClick = () => {
     setJoinRoomCode("");
-    console.log(">>>>>>>>>>>> handleJoinClick")
     setShowJoinModal(true);
   };
 
@@ -271,7 +286,28 @@ export function MainWindow(props) {
     // });
   };
 
+  const startScheduledMeeting = async (meeting) => {
+    try {
+      console.log("Starting scheduled meeting:", meeting.room_id);
 
+      // 1. Ask Rust to generate the Host Token and get the LiveKit URL
+      const hostData = await invoke("get_host_meeting_data", { room: meeting.room_id });
+
+      console.log("Got Host Data from Rust:", hostData);
+
+      // 2. Pass the CLEAN object to App.jsx
+      props.onJoinMeeting({
+        room: meeting.room_id, // <--- Map room_id to room!
+        token: hostData.token,
+        url: hostData.url,
+        identity: profile().identity || "Host"
+      });
+
+    } catch (err) {
+      console.error("Failed to start meeting:", err);
+      alert(`Could not start meeting: ${err}\n\nDid you configure your LiveKit API keys in Settings?`);
+    }
+  };
 
   return (
     <div class="flex h-screen bg-[#111111] text-white select-none overflow-hidden">
@@ -445,7 +481,7 @@ export function MainWindow(props) {
               {/* 1. New Meeting with dropdown */}
               <div class="new-meeting-dropdown-container relative flex flex-col items-center w-full bg-transparent group">
                 <button
-                  onClick={handleStartMeeting}
+                  onClick={handleNewMeetingClick}
                   style="background-color: #FF7429;"
                   class="w-13 h-13 sm:w-16 sm:h-16 rounded-[20px] sm:rounded-[22px] flex items-center justify-center mb-1.5 shadow-lg group-hover:scale-105 group-hover:-translate-y-1.5 transition-transform duration-200 ease-out cursor-pointer !bg-[#FF7429]"
                 >
@@ -613,7 +649,7 @@ export function MainWindow(props) {
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                           </button>
                           <button
-                            onClick={() => props.onJoinMeeting(m.room_id)}
+                            onClick={() => startScheduledMeeting(m)}
                             class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-md transition text-white"
                           >
                             Start

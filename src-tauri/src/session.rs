@@ -14,16 +14,12 @@ pub struct MeetingSession {
     pub mute_on_join: bool,
 }
 
-pub fn create_session(
-    room_name: String,
-    app_data: &AppData,
-) -> Result<MeetingSession, String> {
+pub fn create_session(room_name: String, app_data: &AppData) -> Result<MeetingSession, String> {
     // Default to the project's LiveKit cloud instance if .env is missing in release bundles
     let livekit_url = env::var("LIVEKIT_URL")
         .unwrap_or_else(|_| "wss://visual-talk-84j2fcwy.livekit.cloud".to_string());
 
-    let api_key = env::var("LIVEKIT_API_KEY")
-        .unwrap_or_else(|_| "APIHKPPK2KC3WdL".to_string());
+    let api_key = env::var("LIVEKIT_API_KEY").unwrap_or_else(|_| "APIHKPPK2KC3WdL".to_string());
 
     let api_secret = env::var("LIVEKIT_API_SECRET")
         .unwrap_or_else(|_| "kIgjMH9XjfxXnUA0dwMPo8bzoHx0WTyRuQoFLg9eEaJ".to_string());

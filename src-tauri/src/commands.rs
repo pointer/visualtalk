@@ -1,8 +1,10 @@
 use crate::token;
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt; // Assuming your token module is imported at the root
+                                  // use tauri_plugin_opener::StoreExt;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LiveKitSettings {
@@ -38,6 +40,12 @@ pub struct Meeting {
 pub struct ParsedInvite {
     pub url: String,
     pub room: String,
+    pub token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HostMeetingData {
+    pub url: String,
     pub token: String,
 }
 
@@ -153,7 +161,7 @@ fn generate_magic_link(settings: &LiveKitSettings, room: &str) -> Result<String,
 }
 
 #[tauri::command]
-pub async fn schedule_meeting(
+pub async fn schedule_meeting_0(
     app: AppHandle,
     title: String,
     room_id: String,
@@ -205,6 +213,35 @@ pub async fn get_meeting_invite(app: AppHandle, room: String) -> Result<String, 
     );
 
     Ok(invite_text)
+}
+
+#[tauri::command]
+pub async fn get_host_meeting_data(
+    app: AppHandle,
+    room: String,
+) -> Result<HostMeetingData, String> {
+    // 1. Load Settings
+    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    let value = store
+        .get(SETTINGS_KEY)
+        .ok_or("LiveKit settings not configured. Go to Settings first!")?;
+    let settings: LiveKitSettings = serde_json::from_value(value).map_err(|e| e.to_string())?;
+
+    // 2. Generate HOST token (using the user's actual identity, not "guest")
+    // Valid for 24 hours (86400 seconds)
+    let host_token = token::generate_token(
+        &settings.api_key,
+        &settings.api_secret,
+        &settings.identity, // Use the Host's actual name/ID
+        &room,
+        86400,
+    )
+    .map_err(|e| format!("Token generation failed: {}", e))?;
+
+    Ok(HostMeetingData {
+        url: settings.url,
+        token: host_token,
+    })
 }
 
 #[tauri::command]

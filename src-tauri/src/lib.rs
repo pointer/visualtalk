@@ -1,6 +1,7 @@
 use tauri::{AppHandle, Manager, State};
 
 mod backgrounds;
+mod commands;
 mod device;
 mod layout;
 mod meeting;
@@ -12,6 +13,7 @@ mod token;
 mod window;
 
 use backgrounds::{get_background, set_background, BackgroundState};
+use commands::*;
 use device::{DevicePreferences, MediaDevice};
 use layout::{LayoutCalculator, LayoutConfig};
 use meeting::{format_invitation, MeetingRecord, ScheduledMeeting};
@@ -66,10 +68,20 @@ fn get_meeting_session(room: String, state: State<'_, AppState>) -> Result<Meeti
 fn open_meeting_window(
     app: AppHandle,
     room: String,
+    token: Option<String>,
+    url: Option<String>,
+    identity: Option<String>,
     width: Option<f64>,
     height: Option<f64>,
 ) -> Result<String, String> {
-    window::spawn_meeting_window(&app, room, width, height)
+    println!(
+        "Rust received room: {}, token present: {}",
+        room,
+        token.is_some()
+    );
+
+    // Pass the new arguments down to the spawn function
+    window::spawn_meeting_window(&app, room, token, url, identity, width, height)
 }
 
 #[tauri::command]
@@ -156,19 +168,6 @@ fn get_meeting_history(state: State<'_, AppState>) -> Result<Vec<MeetingRecord>,
         .lock()
         .map_err(|_| "Failed to lock meetings".to_string())?;
     Ok(meetings.history.clone())
-}
-
-#[tauri::command]
-fn get_meeting_invite(room: String, state: State<'_, AppState>) -> Result<String, String> {
-    let data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    Ok(format_invitation(
-        &data.profile.display_name,
-        &room,
-        &data.profile.pmi,
-    ))
 }
 
 // ===== PARTICIPANT MANAGEMENT =====
@@ -554,7 +553,6 @@ fn generate_livekit_token(
 }
 
 // ===================
-
 // ==========
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -562,6 +560,7 @@ pub fn run() {
     dotenvy::dotenv().ok();
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .manage(BackgroundState(Default::default()))
         .setup(|app| {
@@ -634,6 +633,7 @@ pub fn run() {
             // Backgrounds
             get_background,
             set_background,
+            get_host_meeting_data,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
