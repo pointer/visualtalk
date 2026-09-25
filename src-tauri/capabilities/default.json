@@ -2,12 +2,15 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Default capability for all Visukatalk application windows",
-  "windows": ["*"],
+  "windows": [
+    "*"
+  ],
   "permissions": [
     "core:default",
     "opener:default",
     "core:window:allow-close",
     "core:window:allow-start-dragging",
-    "core:webview:allow-create-webview-window"    
+    "core:webview:allow-create-webview-window",
+    "store:default"
   ]
 }

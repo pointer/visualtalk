@@ -3,12 +3,28 @@ use tauri::{AppHandle, WebviewUrl, WebviewWindowBuilder};
 pub fn spawn_meeting_window(
     app: &AppHandle,
     room: String,
+    token: Option<String>,
+    url: Option<String>,
+    identity: Option<String>,
     _width: Option<f64>,
     _height: Option<f64>,
 ) -> Result<String, String> {
     let label = format!("meeting-{}", chrono::Utc::now().timestamp_millis());
-    let window_title = format!("VisualTalk Meeting - Room: {}", room);
-    let target_path = format!("index.html?mode=meeting&room={}", room);
+    let window_title = format!("VisualTalk - {}", room);
+
+    // 1. Build the target URL with all LiveKit credentials
+    let mut target_path = format!("index.html?mode=meeting&room={}", room);
+
+    if let Some(t) = token {
+        target_path.push_str(&format!("&token={}", t));
+    }
+    if let Some(u) = url {
+        // CRITICAL: URL encode the wss:// string so it doesn't break the query params
+        target_path.push_str(&format!("&url={}", urlencoding::encode(&u)));
+    }
+    if let Some(i) = identity {
+        target_path.push_str(&format!("&identity={}", i));
+    }
 
     println!("Opening meeting window with URL: {}", target_path);
 
@@ -20,19 +36,10 @@ pub fn spawn_meeting_window(
     #[cfg(all(not(target_os = "android"), not(target_os = "ios")))]
     {
         builder = builder
-            .min_inner_size(900.0, 900.0)
-            .inner_size(900.0, 900.0)
+            .min_inner_size(900.0, 600.0) // Adjusted height for better desktop ratio
+            .inner_size(900.0, 600.0)
             .center()
             .fullscreen(false);
-    }
-
-    // ⭐ MOBILE SIZING (iOS + Android)
-    #[cfg(any(target_os = "android", target_os = "ios"))]
-    {
-        // On iOS/Android, the window is naturally fullscreen.
-        // We rely on CSS `env(safe-area-inset-*)` in the frontend
-        // to handle the notch/status bar and home indicator.
-        // No manual Rust positioning needed here!
     }
 
     // ⭐ BUILD THE WINDOW

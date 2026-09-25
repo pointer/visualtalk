@@ -1,24 +1,48 @@
 import { createSignal, onMount } from "solid-js";
-import {MainWindow} from "./MainWindow";
+import { MainWindow } from "./MainWindow";
 import { MeetingView } from "./MeetingView";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
 function App() {
   const [showMeeting, setShowMeeting] = createSignal(false);
-  const [roomName, setRoomName] = createSignal("general");
+
+  // Expand state to hold all LiveKit connection details
+  const [meetingData, setMeetingData] = createSignal({
+    room: "general",
+    token: null,
+    url: null,
+    identity: "Guest"
+  });
 
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("mode") === "meeting") {
       setShowMeeting(true);
-      setRoomName(params.get("room") || "general");
+
+      // Extract everything Rust passed us in the URL
+      setMeetingData({
+        room: params.get("room") || "general",
+        token: params.get("token"),
+        url: params.get("url"),
+        identity: params.get("identity") || "Guest"
+      });
     }
   });
 
-  const joinMeeting = async (room) => {
+  // UPDATED: Accepts the rich object from MainWindow
+  const joinMeeting = async (data) => {
     try {
-      await invoke("open_meeting_window", { room });
+
+      console.log("Sending to Rust:", data);
+
+      // Pass the whole object to Rust
+      await invoke("open_meeting_window", {
+        room: data.room,
+        token: data.token,
+        url: data.url,
+        identity: data.identity
+      });
     } catch (err) {
       console.error("Failed to open meeting window via Rust:", err);
     }
@@ -27,7 +51,8 @@ function App() {
   return (
     <>
       {showMeeting() ? (
-        <MeetingView roomName={roomName()} />
+        // Pass the full meeting data to the MeetingView
+        <MeetingView meetingData={meetingData()} />
       ) : (
         <MainWindow onJoinMeeting={joinMeeting} />
       )}

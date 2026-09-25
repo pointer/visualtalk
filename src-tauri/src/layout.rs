@@ -239,7 +239,8 @@ mod tests {
 
     #[test]
     fn test_optimal_layout_spotlight() {
-        let layout = LayoutCalculator::calculate_optimal_layout(4, false, Some("user1".to_string()));
+        let layout =
+            LayoutCalculator::calculate_optimal_layout(4, false, Some("user1".to_string()));
         assert_eq!(layout.layout_type, LayoutType::Spotlight);
     }
 
@@ -260,10 +261,10 @@ mod tests {
     fn test_featured_layout_decision() {
         // Should use featured layout with screen share
         assert!(LayoutCalculator::should_use_featured_layout(3, true));
-        
+
         // Should use featured layout with 7+ participants
         assert!(LayoutCalculator::should_use_featured_layout(7, false));
-        
+
         // Should use gallery layout for small group
         assert!(!LayoutCalculator::should_use_featured_layout(3, false));
     }
@@ -272,8 +273,8 @@ mod tests {
     fn test_aspect_ratio_edge_cases() {
         // Test zero height edge case
         let ratio_zero = LayoutCalculator::calculate_aspect_ratio(1920, 0);
-        assert_eq!(ratio_zero, 16.0/9.0);
-        
+        assert_eq!(ratio_zero, 16.0 / 9.0);
+
         // Test square aspect ratio
         let ratio_square = LayoutCalculator::calculate_aspect_ratio(1080, 1080);
         assert_eq!(ratio_square, 1.0);
@@ -289,9 +290,12 @@ mod tests {
     #[test]
     fn test_filmstrip_dimensions_right_position() {
         let dims = LayoutCalculator::calculate_filmstrip_dimensions(
-            1920, 1080, &FilmstripPosition::Right, 0.2
+            1920,
+            1080,
+            &FilmstripPosition::Right,
+            0.2,
         );
-        
+
         assert!(!dims.is_horizontal);
         assert_eq!(dims.filmstrip_width, 384); // 20% of 1920
     }
@@ -299,9 +303,12 @@ mod tests {
     #[test]
     fn test_filmstrip_dimensions_top_position() {
         let dims = LayoutCalculator::calculate_filmstrip_dimensions(
-            1920, 1080, &FilmstripPosition::Top, 0.2
+            1920,
+            1080,
+            &FilmstripPosition::Top,
+            0.2,
         );
-        
+
         assert!(dims.is_horizontal);
         assert!(dims.filmstrip_height > 0);
     }

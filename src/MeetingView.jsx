@@ -8,7 +8,14 @@ import { requestMediaPermissions } from "./components/Permissions";
 
 
 export function MeetingView(props) {
-  const ROOM = props.roomName || "general";
+  //  const ROOM = props.roomName || "general";
+  const { room, token, url, identity } = props.meetingData;
+
+  console.log("MeetingView Loaded!");
+  console.log("Room:", room);
+  console.log("Identity:", identity);
+  console.log("LiveKit URL:", url);
+  console.log("Token present:", !!token);
 
   // ---- UI state ----
   const [preJoin, setPreJoin] = createSignal(true);
@@ -20,7 +27,7 @@ export function MeetingView(props) {
   const [messages, setMessages] = createSignal([]);
   const [messageInput, setMessageInput] = createSignal("");
   const [unreadCount, setUnreadCount] = createSignal(0);
-  let identity = "";
+  // let identity = "";
 
   // ---- Media devices ----
   const [devices, setDevices] = createSignal({ audio: [], video: [] });
@@ -43,7 +50,7 @@ export function MeetingView(props) {
   const [isCameraOff, setIsCameraOff] = createSignal(false);
   const [isSharingScreen, setIsSharingScreen] = createSignal(false);
   const [localStream, setLocalStream] = createSignal(null);
-  let room;
+  // let room;
   let previewVideoRef = null;
 
   // ---- Load devices and start preview ----
@@ -54,6 +61,8 @@ export function MeetingView(props) {
       return;
     }
     try {
+      const lkRoom = new Room();
+      await lkRoom.connect(url, token);
       const savedBackground = await invoke("get_background");
       setBackground(savedBackground);
       applyBackgroundEffect(savedBackground);
@@ -157,7 +166,7 @@ export function MeetingView(props) {
 
     const LIVEKIT_URL = conf.livekit_url;
     const API_KEY = conf.api_key;
-    identity = conf.identity;
+    //    identity = conf.identity;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -187,7 +196,7 @@ export function MeetingView(props) {
       return;
     }
 
-    room = new Room();
+    // room = new Room();
 
     // ---- Remote tracks ----
     room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
@@ -725,8 +734,13 @@ export function MeetingView(props) {
           <div class="flex-1 flex flex-col overflow-hidden bg-[#0f0f0f]">
             <header class="px-3 sm:px-4 py-2 sm:py-4 border-b border-[#2a2a2a] flex justify-between items-center bg-[#1a1a1a]/80 shrink-0">
               <h1 class="text-base sm:text-lg font-semibold tracking-wide">VisualTalk Meeting</h1>
-              <div class="text-xs sm:text-sm text-gray-400">#{ROOM}</div>
+              <div class="text-xs sm:text-sm text-gray-400">#{room}</div>
+              <span class="text-sm text-gray-400">Joined as: {identity}</span>
             </header>
+
+            <div class="flex-1 flex items-center justify-center">
+              <p class="text-gray-500">Waiting for LiveKit connection...</p>
+            </div>
 
             <main class="flex-1 overflow-hidden">
               <VideoGrid participants={participants()} />

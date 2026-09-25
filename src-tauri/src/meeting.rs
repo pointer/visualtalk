@@ -105,4 +105,3 @@ pub fn format_invitation(display_name: &str, room: &str, pmi: &str) -> String {
         pmi = pmi
     )
 }
-
