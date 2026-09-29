@@ -1,6 +1,8 @@
 use tauri::{AppHandle, Manager, State};
+use tauri_plugin_store::StoreExt;
 
 mod backgrounds;
+mod chat;
 mod commands;
 mod device;
 mod layout;
@@ -133,12 +135,22 @@ fn get_scheduled_meetings(state: State<'_, AppState>) -> Result<Vec<ScheduledMee
 
 #[tauri::command]
 fn schedule_meeting(
+    app: AppHandle,
     title: String,
     room_id: String,
     start_time: String,
     duration_minutes: u32,
     state: State<'_, AppState>,
 ) -> Result<ScheduledMeeting, String> {
+    // Load LiveKit settings to generate the invite link
+    let store = app.store(commands::STORE_FILE).map_err(|e| e.to_string())?;
+    let value = store
+        .get(commands::SETTINGS_KEY)
+        .ok_or("LiveKit settings not configured. Please set your API keys in Settings first.")?;
+    let settings: LiveKitSettings =
+        serde_json::from_value(value).map_err(|e| e.to_string())?;
+    let invite_link = commands::generate_magic_link(&settings, &room_id)?;
+
     let mut meetings = state
         .meetings
         .lock()
@@ -146,6 +158,7 @@ fn schedule_meeting(
     meetings.add_scheduled(
         title,
         room_id,
+        invite_link,
         start_time,
         duration_minutes,
         &state.config_dir,
@@ -562,6 +575,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(BackgroundState(Default::default()))
         .setup(|app| {
             let config_dir = app
@@ -637,6 +651,11 @@ pub fn run() {
             //Settings
             load_settings,
             save_settings,
+            // Chat & File Transfer
+            chat::pick_file,
+            chat::read_file_chunk,
+            chat::get_file_info,
+            chat::save_download,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

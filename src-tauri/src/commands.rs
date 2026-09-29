@@ -14,8 +14,8 @@ pub struct LiveKitSettings {
     pub identity: String, // The user's display name/ID
 }
 
-const STORE_FILE: &str = "settings.json";
-const SETTINGS_KEY: &str = "livekit_config";
+pub(crate) const STORE_FILE: &str = "settings.json";
+pub(crate) const SETTINGS_KEY: &str = "livekit_config";
 
 // The payload we will send back to SolidJS
 #[derive(Debug, Serialize, Deserialize)]
@@ -140,7 +140,7 @@ pub async fn get_meeting_token(app: AppHandle, room: String) -> Result<String, S
 }
 
 // Helper function to generate the magic link (DRY - Don't Repeat Yourself)
-fn generate_magic_link(settings: &LiveKitSettings, room: &str) -> Result<String, String> {
+pub(crate) fn generate_magic_link(settings: &LiveKitSettings, room: &str) -> Result<String, String> {
     // Generate 24h guest token
     let guest_token = token::generate_token(
         &settings.api_key,

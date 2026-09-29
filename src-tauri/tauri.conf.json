@@ -37,7 +37,8 @@
       "infoPlist": "./Info.plist"
     },
     "iOS": {
-      "infoPlist": "./Info.plist"
+      "infoPlist": "./Info.plist",
+      "developmentTeam": "PERSONAL"
     },
     "android": {
       "minSdkVersion": 26,
