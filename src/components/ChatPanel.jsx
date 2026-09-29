@@ -1,7 +1,7 @@
 import { createSignal, createEffect, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
-import * as chat from "../lib/chat";
+import * as chat from "./chat";
 
 export function ChatPanel(props) {
   const [messages, setMessages] = createSignal([]);
@@ -286,4 +286,99 @@ export function ChatPanel(props) {
                   when={
                     msg.kind === "file-upload" ||
                     msg.kind === "file-incoming" ||
-                    msg.kind
+                    msg.kind === "file"
+                  }
+                >
+                  <div class="mt-1">
+                    <div class="flex items-center gap-1.5 text-xs text-gray-200">
+                      <svg class="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <span class="truncate max-w-[140px]">{msg.fileName}</span>
+                      <span class="text-[9px] text-gray-400 shrink-0">{formatFileSize(msg.fileSize)}</span>
+                    </div>
+
+                    {/* Progress bar for in-progress transfers */}
+                    <Show when={msg.progress != null && msg.progress < 100}>
+                      <div class="w-full bg-gray-700 rounded-full h-1.5 mt-1.5">
+                        <div
+                          class="bg-blue-500 h-1.5 rounded-full transition-all duration-200"
+                          style={{ width: `${msg.progress}%` }}
+                        />
+                      </div>
+                      <span class="text-[9px] text-gray-400 mt-0.5">{msg.progress}%</span>
+                    </Show>
+
+                    {/* Completed file: show open button */}
+                    <Show when={msg.status === "completed"}>
+                      <button
+                        onClick={() => msg.savedPath && openSavedFile(msg.savedPath)}
+                        class="mt-1.5 text-[10px] text-blue-400 hover:text-blue-300 transition flex items-center gap-1"
+                      >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Open file
+                      </button>
+                    </Show>
+                  </div>
+                </Show>
+              </div>
+            </div>
+          )}
+        </For>
+        {messages().length === 0 && (
+          <div class="text-center text-gray-500 text-sm mt-10">No messages yet</div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div class="px-3 py-3 border-t border-[#2a2a2a] bg-[#1c1c1c]">
+        <div class="flex items-center gap-2">
+          <button
+            onClick={handleFileSelect}
+            disabled={isUploading()}
+            class="shrink-0 p-2 text-gray-400 hover:text-blue-400 disabled:text-gray-600 transition rounded-lg hover:bg-[#2a2a2a]"
+            title="Send file"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+            </svg>
+          </button>
+          <input
+            type="text"
+            placeholder="Type a message..."
+            value={inputText()}
+            onInput={(e) => setInputText(e.currentTarget.value)}
+            onKeyDown={handleKeyDown}
+            class="flex-1 bg-[#2a2a2a] text-white rounded-xl px-3 py-2 text-sm border border-[#3a3a3a] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none placeholder-gray-500"
+          />
+          <button
+            onClick={handleSend}
+            disabled={!inputText().trim()}
+            class="shrink-0 p-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800/50 disabled:cursor-not-allowed text-white rounded-xl transition"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        </div>
+        <Show when={isUploading()}>
+          <div class="mt-2">
+            <div class="flex items-center gap-2 text-[10px] text-gray-400">
+              <span>Uploading...</span>
+              <span>{uploadProgress()}%</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-1 mt-1">
+              <div
+                class="bg-blue-500 h-1 rounded-full transition-all duration-200"
+                style={{ width: `${uploadProgress()}%` }}
+              />
+            </div>
+          </div>
+        </Show>
+      </div>
+    </div>
+  );
+}

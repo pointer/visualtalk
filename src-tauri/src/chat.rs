@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::Path;
-use tauri::AppHandle;
+use base64::Engine;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_dialog::DialogExt;
 
 #[derive(serde::Serialize)]

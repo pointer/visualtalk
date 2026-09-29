@@ -54,6 +54,12 @@ function VideoTile(props) {
         class={`w-full h-full ${isScreen() ? "object-contain bg-black" : "object-cover"
           }`}
       />
+      {/* Hand raise indicator */}
+      <Show when={props.raisedHands && props.raisedHands.includes(props.participant.name)}>
+        <div class="absolute top-2 right-2 bg-yellow-500/90 backdrop-blur-md w-8 h-8 rounded-full flex items-center justify-center shadow-lg animate-bounce text-base">
+          ✋
+        </div>
+      </Show>
       <div class="absolute bottom-2 left-2 bg-slate-900/85 backdrop-blur-md px-2.5 py-0.5 rounded-md text-[11px] text-slate-200 flex items-center gap-1.5 shadow">
         {isScreen() && <span class="text-blue-400 text-xs">🖥</span>}
         <span>{props.participant.name}</span>
@@ -146,6 +152,7 @@ export function VideoGrid(props) {
               participant={featuredParticipant()}
               isFeatured={true}
               onSelect={() => setPinnedId(null)}
+              raisedHands={props.raisedHands}
             />
 
             {/* Stage Controls: View Mode & Reset Pin */}
@@ -246,6 +253,7 @@ export function VideoGrid(props) {
                     <VideoTile
                       participant={participant}
                       onSelect={(p) => setPinnedId(p.id)}
+                      raisedHands={props.raisedHands}
                     />
                   </div>
                 )}
