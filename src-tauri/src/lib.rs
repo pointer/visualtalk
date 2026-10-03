@@ -5,6 +5,7 @@ mod backgrounds;
 mod chat;
 mod commands;
 mod device;
+mod e2ee;
 mod layout;
 mod meeting;
 mod participant;
@@ -18,7 +19,7 @@ use backgrounds::{get_background, set_background, BackgroundState};
 use commands::*;
 use device::{DevicePreferences, MediaDevice};
 use layout::{LayoutCalculator, LayoutConfig};
-use meeting::{format_invitation, MeetingRecord, ScheduledMeeting};
+use meeting::{MeetingRecord, ScheduledMeeting};
 use participant::Participant;
 use session::{create_session, MeetingSession};
 use settings::{UserProfile, UserSettings};
@@ -147,8 +148,7 @@ fn schedule_meeting(
     let value = store
         .get(commands::SETTINGS_KEY)
         .ok_or("LiveKit settings not configured. Please set your API keys in Settings first.")?;
-    let settings: LiveKitSettings =
-        serde_json::from_value(value).map_err(|e| e.to_string())?;
+    let settings: LiveKitSettings = serde_json::from_value(value).map_err(|e| e.to_string())?;
     let invite_link = commands::generate_magic_link(&settings, &room_id)?;
 
     let mut meetings = state
@@ -591,6 +591,8 @@ pub fn run() {
             // Meeting & Session
             get_meeting_session,
             open_meeting_window,
+            parse_invite_link,
+            create_meeting_invite,
             // User Management
             get_user_profile,
             update_user_profile,
@@ -656,6 +658,17 @@ pub fn run() {
             chat::read_file_chunk,
             chat::get_file_info,
             chat::save_download,
+            // E2EE (Rust-native crypto)
+            e2ee::e2ee_init,
+            e2ee::e2ee_import_peer,
+            e2ee::e2ee_encrypt_chat,
+            e2ee::e2ee_decrypt_chat,
+            e2ee::e2ee_prepare_file,
+            e2ee::e2ee_unwrap_file_key,
+            e2ee::e2ee_encrypt_chunk,
+            e2ee::e2ee_decrypt_chunk,
+            e2ee::e2ee_cleanup_file,
+            e2ee::e2ee_destroy,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

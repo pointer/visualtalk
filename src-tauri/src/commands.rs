@@ -1,5 +1,4 @@
 use crate::token;
-use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tauri::AppHandle;
@@ -23,17 +22,6 @@ pub struct MeetingInvite {
     pub room: String,
     pub title: String,
     pub invite_link: String,
-}
-
-// --- MEETING STRUCT ---
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Meeting {
-    pub id: String,
-    pub title: String,
-    pub room_id: String,
-    pub start_time: String,
-    pub duration_minutes: i32,
-    pub invite_link: String, // <--- ADDED THIS
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -115,30 +103,6 @@ pub async fn load_settings(app: AppHandle) -> Result<Option<LiveKitSettings>, St
     }
 }
 
-// 3. Generate Token (Using your existing module!)
-#[tauri::command]
-pub async fn get_meeting_token(app: AppHandle, room: String) -> Result<String, String> {
-    // First, load the saved settings
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-    let value = store
-        .get(SETTINGS_KEY)
-        .ok_or("Settings not found. Please configure API keys first.")?;
-    let settings: LiveKitSettings = serde_json::from_value(value).map_err(|e| e.to_string())?;
-
-    // Call your existing token generator!
-    // validity: e.g., 3600 seconds (1 hour)
-    let token = token::generate_token(
-        &settings.api_key,
-        &settings.api_secret,
-        &settings.identity,
-        &room,
-        3600,
-    )
-    .map_err(|e| format!("Token generation failed: {}", e))?;
-
-    Ok(token)
-}
-
 // Helper function to generate the magic link (DRY - Don't Repeat Yourself)
 pub(crate) fn generate_magic_link(settings: &LiveKitSettings, room: &str) -> Result<String, String> {
     // Generate 24h guest token
@@ -158,39 +122,6 @@ pub(crate) fn generate_magic_link(settings: &LiveKitSettings, room: &str) -> Res
         "visualtalk://join?room={}&url={}&token={}",
         room, encoded_url, encoded_token
     ))
-}
-
-#[tauri::command]
-pub async fn schedule_meeting_0(
-    app: AppHandle,
-    title: String,
-    room_id: String,
-    start_time: String,
-    duration_minutes: i32,
-) -> Result<Meeting, String> {
-    // Load settings to get API keys
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-    let value = store
-        .get(SETTINGS_KEY)
-        .ok_or("LiveKit settings not configured.")?;
-    let settings: LiveKitSettings = serde_json::from_value(value).map_err(|e| e.to_string())?;
-
-    // Generate the magic link right now!
-    let invite_link = generate_magic_link(&settings, &room_id)?;
-
-    let new_meeting = Meeting {
-        id: Utc::now().timestamp_millis().to_string(),
-        title,
-        room_id,
-        start_time,
-        duration_minutes,
-        invite_link, // Save the link with the meeting
-    };
-
-    // TODO: Your existing logic to save this to the local database/store goes here
-    // e.g., store.set("meetings", ...); store.save()?;
-
-    Ok(new_meeting)
 }
 
 // Get Meeting Invite (For your PMI / Instant meetings)
