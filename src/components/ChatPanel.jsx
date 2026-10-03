@@ -1,7 +1,11 @@
-import { createSignal, createEffect, For, Show } from "solid-js";
+import { createSignal, createEffect, onMount, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
+import { RoomEvent } from "livekit-client";
 import * as chat from "./chat";
+
+// Compile-time feature flag — tree-shaken out in community builds
+const E2EE_ENABLED = typeof __E2EE_ENABLED__ !== "undefined" && __E2EE_ENABLED__ === true;
 
 export function ChatPanel(props) {
   const [messages, setMessages] = createSignal([]);
@@ -9,8 +13,10 @@ export function ChatPanel(props) {
   const [isUploading, setIsUploading] = createSignal(false);
   const [uploadProgress, setUploadProgress] = createSignal(0);
   const [activeTransfers, setActiveTransfers] = createSignal({});
+  const [e2eeActive, setE2eeActive] = createSignal(false);
 
   let messagesEndRef = null;
+  let storedPublicKeyB64 = null; // Stored for re-broadcasting on new participants
 
   createEffect(() => {
     messages();
@@ -23,11 +29,49 @@ export function ChatPanel(props) {
     const room = props.room;
     if (!room) return;
 
-    const cleanup = chat.setupChatListener(room, {
-      onChatMessage: (msg) => {
-        setMessages((prev) => [...prev, { ...msg, kind: "chat" }]);
-      },
-      onFileStart: (data) => {
+    // Initialize E2EE session and set up listener
+    let cleanupListener = null;
+    let cleanupParticipant = null;
+
+    const setup = async () => {
+      // Initialize E2EE via Rust backend if enabled
+      if (E2EE_ENABLED) {
+        try {
+          storedPublicKeyB64 = await invoke("e2ee_init", {
+            localIdentity: room.localParticipant.identity,
+          });
+          setE2eeActive(true);
+          if (props.onE2EEStatus) props.onE2EEStatus(true);
+
+          // Broadcast our public key to existing participants
+          chat.sendPublicKey(room, storedPublicKeyB64);
+
+          // Re-broadcast when new participants join
+          const onParticipantConnected = () => {
+            if (storedPublicKeyB64) {
+              chat.sendPublicKey(room, storedPublicKeyB64);
+            }
+          };
+          room.on(RoomEvent.ParticipantConnected, onParticipantConnected);
+          cleanupParticipant = () =>
+            room.off(RoomEvent.ParticipantConnected, onParticipantConnected);
+        } catch (err) {
+          console.warn("E2EE initialization failed, using plaintext:", err);
+          storedPublicKeyB64 = null;
+        }
+      }
+
+      // Set up chat listener — e2eeActive flag controls Rust crypto path
+      cleanupListener = chat.setupChatListener(
+        room,
+        {
+          onChatMessage: (msg) => {
+            setMessages((prev) => [...prev, { ...msg, kind: "chat" }]);
+          },
+          onKeyExchange: () => {
+            // Peer key imported in Rust — nothing extra needed in UI
+          },
+          onFileStart: (data) => {
         setActiveTransfers((prev) => ({
           ...prev,
           [data.id]: {
@@ -123,16 +167,27 @@ export function ChatPanel(props) {
           return next;
         });
       },
-    });
+        },
+        e2eeActive()
+      );
+    };
+    setup();
 
-    return cleanup;
+    return () => {
+      if (cleanupListener) cleanupListener();
+      if (cleanupParticipant) cleanupParticipant();
+      // Clean up Rust E2EE session when room changes
+      if (E2EE_ENABLED) {
+        invoke("e2ee_destroy").catch(() => {});
+      }
+    };
   });
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = inputText().trim();
     if (!text || !props.room) return;
 
-    const msg = chat.sendChatMessage(props.room, text, props.displayName);
+    const msg = await chat.sendChatMessage(props.room, text, props.displayName, e2eeActive());
     setMessages((prev) => [...prev, { ...msg, kind: "chat", isLocal: true }]);
     setInputText("");
   };
@@ -158,10 +213,11 @@ export function ChatPanel(props) {
       setIsUploading(true);
       setUploadProgress(0);
 
-      chat.sendFileStart(
+      await chat.sendFileStart(
         props.room,
         { id: fileId, name: info.name, size: info.size, totalChunks },
-        props.displayName
+        props.displayName,
+        e2eeActive()
       );
 
       setMessages((prev) => [
@@ -192,7 +248,7 @@ export function ChatPanel(props) {
           chunk[j] = binaryString.charCodeAt(j);
         }
 
-        chat.sendFileChunk(props.room, chunk, fileId, i);
+        await chat.sendFileChunk(props.room, chunk, fileId, i, e2eeActive());
 
         const progress = Math.round(((i + 1) / totalChunks) * 100);
         setUploadProgress(progress);
@@ -205,7 +261,7 @@ export function ChatPanel(props) {
         );
       }
 
-      chat.sendFileComplete(props.room, fileId);
+      await chat.sendFileComplete(props.room, fileId, e2eeActive());
 
       setMessages((msgs) =>
         msgs.map((m) =>
@@ -258,6 +314,24 @@ export function ChatPanel(props) {
           </svg>
         </button>
       </div>
+
+      {/* E2EE Banner */}
+      <Show when={e2eeActive()}>
+        <div class="px-4 py-1.5 bg-emerald-900/30 border-b border-emerald-800/40 flex items-center gap-1.5">
+          <svg class="w-3 h-3 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <span class="text-[10px] text-emerald-300 font-medium">End-to-end encrypted</span>
+        </div>
+      </Show>
+      <Show when={E2EE_ENABLED && !e2eeActive()}>
+        <div class="px-4 py-1.5 bg-amber-900/20 border-b border-amber-800/30 flex items-center gap-1.5">
+          <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <span class="text-[10px] text-amber-300 font-medium">Chat not encrypted</span>
+        </div>
+      </Show>
 
       {/* Messages */}
       <div class="flex-1 overflow-y-auto px-3 py-2 space-y-3">

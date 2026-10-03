@@ -96,16 +96,3 @@ impl MeetingStore {
         Ok(())
     }
 }
-
-pub fn format_invitation(display_name: &str, room: &str, pmi: &str) -> String {
-    format!(
-        "{name} is inviting you to a VisualTalk meeting.\n\n\
-        Topic: VisualTalk Meeting\n\
-        Room: {room}\n\
-        Personal Meeting ID: {pmi}\n\n\
-        Join with VisualTalk App or enter Room Code: {room}",
-        name = display_name,
-        room = room,
-        pmi = pmi
-    )
-}

@@ -8,6 +8,11 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [tailwindcss(), solid()],
 
+  // Compile-time constants for edition gating
+  define: {
+    __E2EE_ENABLED__: JSON.stringify(process.env.VITE_ENABLE_E2EE === "true"),
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors
@@ -16,7 +21,7 @@ export default defineConfig(async () => ({
   server: {
     port: 1420,
     strictPort: true,
-    host: host || "0.0.0.0",   // 👈 Allow access from other devices
+    host: host ||  "0.0.0.0",   // 👈 Allow access from other devices
     hmr: host
       ? {
           protocol: "ws",

@@ -22,6 +22,7 @@ export function MeetingView(props) {
   const [showLeaveDialog, setShowLeaveDialog] = createSignal(false);
   const [chatOpen, setChatOpen] = createSignal(false);
   const [alwaysShowPreview, setAlwaysShowPreview] = createSignal(true);
+  const [e2eeActive, setE2eeActive] = createSignal(false);
 
   // ---- Composables ----
   const media = useMediaDevices();
@@ -113,6 +114,7 @@ export function MeetingView(props) {
                 isSharingScreen={room.isSharingScreen}
                 isHandRaised={room.isHandRaised}
                 chatOpen={chatOpen}
+                e2eeActive={e2eeActive}
                 onToggleMute={room.toggleMute}
                 onToggleCamera={room.toggleCamera}
                 onToggleScreenShare={room.toggleScreenShare}
@@ -125,7 +127,7 @@ export function MeetingView(props) {
 
           {/* Chat Sidebar */}
           <Show when={chatOpen()}>
-            <ChatPanel room={room.lkRoom()} onClose={toggleChat} displayName={identity} />
+            <ChatPanel room={room.lkRoom()} onClose={toggleChat} displayName={identity} onE2EEStatus={setE2eeActive} />
           </Show>
         </div>
       }>

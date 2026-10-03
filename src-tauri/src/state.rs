@@ -1,4 +1,5 @@
 use crate::device::DeviceManager;
+use crate::e2ee::E2EESession;
 use crate::meeting::MeetingStore;
 use crate::participant::ParticipantManager;
 use crate::settings::AppData;
@@ -11,6 +12,7 @@ pub struct AppState {
     pub meetings: Mutex<MeetingStore>,
     pub device_manager: Mutex<DeviceManager>,
     pub participant_manager: Mutex<ParticipantManager>,
+    pub e2ee_session: Mutex<Option<E2EESession>>,
 }
 
 impl AppState {
@@ -24,6 +26,7 @@ impl AppState {
             meetings: Mutex::new(meetings),
             device_manager: Mutex::new(DeviceManager::new()),
             participant_manager: Mutex::new(ParticipantManager::new()),
+            e2ee_session: Mutex::new(None),
         }
     }
 }
