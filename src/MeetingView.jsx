@@ -2,6 +2,7 @@ import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import { useMediaDevices } from "./lib/useMediaDevices";
 import { useLiveKitRoom } from "./lib/useLiveKitRoom";
 import { useBackgroundEffects } from "./lib/useBackgroundEffects";
+import { useRecording } from "./lib/useRecording";
 import { requestMediaPermissions } from "./components/Permissions";
 import { PreJoinScreen } from "./components/PreJoinScreen";
 import { MeetingToolbar } from "./components/MeetingToolbar";
@@ -28,6 +29,7 @@ export function MeetingView(props) {
   const media = useMediaDevices();
   const room = useLiveKitRoom();
   const bg = useBackgroundEffects();
+  const rec = useRecording();
 
   // ---- DOM ref for background effect preview ----
   let previewVideoEl = null;
@@ -42,10 +44,12 @@ export function MeetingView(props) {
     await room.startPreview(media.selectedMic(), media.selectedCam());
     await media.loadDevices();
     bg.loadSavedBackground(previewVideoEl);
+    rec.checkFfmpeg();
   });
 
   onCleanup(() => {
     room.stopAllStreams();
+    if (rec.isRecording()) rec.stopRecording();
     if (room.lkRoom()) room.lkRoom().disconnect();
   });
 
@@ -88,6 +92,17 @@ export function MeetingView(props) {
 
   const toggleChat = () => setChatOpen(!chatOpen());
 
+  // ---- Recording handlers ----
+  const handleStartRecording = async () => {
+    const lkRoom = room.lkRoom();
+    if (!lkRoom) return;
+    await rec.startLocalRecording(lkRoom, roomName);
+  };
+
+  const handleStopRecording = async () => {
+    await rec.stopRecording();
+  };
+
   // ---- Render ----
   return (
     <div class="flex flex-col h-screen w-full bg-[#1a1a1a] text-white select-none overflow-hidden">
@@ -98,7 +113,15 @@ export function MeetingView(props) {
           <div class="flex-1 flex flex-col overflow-hidden bg-[#0f0f0f]">
             <header class="px-3 sm:px-4 py-2 sm:py-4 border-b border-[#2a2a2a] flex justify-between items-center bg-[#1a1a1a]/80 shrink-0">
               <h1 class="text-base sm:text-lg font-semibold tracking-wide">VisualTalk Meeting</h1>
-              <div class="text-xs sm:text-sm text-gray-400">#{roomName}</div>
+              <div class="flex items-center gap-3">
+                <Show when={rec.isRecording()}>
+                  <div class="flex items-center gap-1.5 px-2 py-0.5 bg-red-600/20 rounded-full border border-red-500/30">
+                    <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span class="text-xs text-red-400 font-medium tabular-nums">{rec.formatDuration()}</span>
+                  </div>
+                </Show>
+                <div class="text-xs sm:text-sm text-gray-400">#{roomName}</div>
+              </div>
               <span class="text-sm text-gray-400">Joined as: {identity}</span>
             </header>
 
@@ -115,11 +138,15 @@ export function MeetingView(props) {
                 isHandRaised={room.isHandRaised}
                 chatOpen={chatOpen}
                 e2eeActive={e2eeActive}
+                isRecording={rec.isRecording}
+                recordingDuration={rec.formatDuration}
                 onToggleMute={room.toggleMute}
                 onToggleCamera={room.toggleCamera}
                 onToggleScreenShare={room.toggleScreenShare}
                 onToggleHand={() => room.toggleHand(identity)}
                 onToggleChat={toggleChat}
+                onStartRecording={handleStartRecording}
+                onStopRecording={handleStopRecording}
                 onLeave={handleCloseClick}
               />
             </footer>
@@ -161,6 +188,18 @@ export function MeetingView(props) {
           onCancel={() => setShowLeaveDialog(false)}
           onConfirm={confirmLeave}
         />
+      </Show>
+
+      {/* Recording Error Toast */}
+      <Show when={rec.recordingError()}>
+        <div class="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-red-900/90 text-red-200 text-sm px-4 py-2 rounded-lg shadow-lg border border-red-700/50 max-w-sm">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{rec.recordingError()}</span>
+          </div>
+        </div>
       </Show>
     </div>
   );

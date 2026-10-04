@@ -57,6 +57,13 @@ pub enum VtEvent {
         action: String,
         participant: Option<Participant>,
     },
+
+    /// Recording state changed (started, stopped, error).
+    RecordingStatusChanged {
+        status: String,
+        recording_id: String,
+        message: Option<String>,
+    },
 }
 
 /// Emit a typed event to all webview windows.
@@ -88,6 +95,7 @@ fn event_name(event: &VtEvent) -> &'static str {
         VtEvent::MeetingStarted { .. } => "meeting-started",
         VtEvent::MeetingEnded { .. } => "meeting-ended",
         VtEvent::ParticipantChanged { .. } => "participant-changed",
+        VtEvent::RecordingStatusChanged { .. } => "recording-status-changed",
     }
 }
 

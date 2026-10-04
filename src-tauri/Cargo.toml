@@ -35,6 +35,8 @@ urlencoding = "2.1"
 tauri-plugin-store = "2.5.0"
 url = "2.5.8"
 tauri-plugin-dialog = "2.8.0"
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["process", "io-util"] }
 # E2EE crypto stack (ECDH P-256 + AES-256-GCM) — only in Pro Edition
 # HKDF implemented manually via hmac + sha2 to avoid digest version conflicts
 p256 = { version = "0.13", features = ["ecdh"], optional = true }
