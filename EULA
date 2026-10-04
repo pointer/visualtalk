@@ -1,0 +1,132 @@
+VISUALTALK COMMUNITY EDITION — END USER LICENSE AGREEMENT
+
+Last Updated: October 4, 2026
+
+IMPORTANT — READ CAREFULLY: This End User License Agreement ("EULA") is a
+legal agreement between you ("User") and the VisualTalk developers
+("Licensor") for the VisualTalk Community Edition software application
+("Software"). By installing, copying, or otherwise using this Software,
+you agree to be bound by the terms of this EULA. If you do not agree,
+do not install or use the Software.
+
+
+1. LICENSE GRANT
+
+The Licensor grants you a non-exclusive, non-transferable, revocable
+license to install and use the Software on devices you own or control,
+solely for Noncommercial Purposes as defined in Section 3.
+
+
+2. EDITION
+
+This EULA applies to the VisualTalk Community Edition, which provides
+video conferencing, chat messaging, screen sharing, and file transfer
+capabilities. The Community Edition does NOT include End-to-End
+Encryption (E2EE) capabilities. For E2EE, see the VisualTalk Pro
+Edition EULA (EULA-PRO).
+
+
+3. PERMITTED USE
+
+You may use the Software for:
+
+  a) Personal, non-commercial communication (family calls, friends);
+  b) Educational and academic purposes;
+  c) Non-profit and charitable organization activities;
+  d) Community group and volunteer organization meetings;
+  e) Evaluation and testing of the Software.
+
+
+4. PROHIBITED USE
+
+You may NOT use the Software for:
+
+  a) Commercial business operations, corporate communications,
+     client meetings, or paid consulting;
+  b) Providing paid services or hosting as a managed service;
+  c) Internal business operations of any for-profit entity;
+  d) Any purpose that generates revenue or is part of a
+     revenue-generating activity;
+  e) Redistributing, selling, or sublicensing the Software;
+  f) Reverse engineering, decompiling, or disassembling the Software;
+  g) Removing or altering any proprietary notices or labels on
+     the Software;
+  h) Using the Software in any way that violates applicable laws.
+
+
+5. INTELLECTUAL PROPERTY
+
+The Software is licensed, not sold. All rights, title, and interest
+in and to the Software (including all intellectual property rights)
+remain with the Licensor. This EULA does not grant you any rights
+to trademarks, service marks, or logos of the Licensor.
+
+
+6. OPEN SOURCE COMPONENTS
+
+The Software may include open-source components governed by their
+respective licenses. A list of open-source components and their
+licenses can be found in the Software's source code repository.
+These open-source licenses take precedence over this EULA for
+those specific components.
+
+
+7. DATA AND PRIVACY
+
+  a) The Software connects to a LiveKit server for real-time
+     communication. Your data is transmitted through this server.
+  b) Chat messages and file transfers in the Community Edition
+     are NOT end-to-end encrypted and may be visible to the
+     LiveKit server operator.
+  c) The Licensor does not operate or control the LiveKit server
+     you connect to. You are responsible for ensuring your server
+     configuration meets your privacy requirements.
+
+
+8. DISCLAIMER OF WARRANTIES
+
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+THE LICENSOR DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NON-INFRINGEMENT.
+
+
+9. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE LICENSOR
+SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS,
+REVENUE, DATA, OR BUSINESS OPPORTUNITIES, ARISING OUT OF OR IN
+CONNECTION WITH THE SOFTWARE.
+
+
+10. TERMINATION
+
+This EULA is effective until terminated. It will terminate
+automatically if you fail to comply with any term. Upon
+termination, you must cease all use of the Software and destroy
+all copies.
+
+
+11. COMMERCIAL LICENSE
+
+To use VisualTalk for commercial purposes, you must obtain a
+commercial license or purchase the VisualTalk Pro Edition through
+the Apple App Store, Google Play Store, or Microsoft Store.
+
+Contact for commercial licensing: <insert-contact-email>
+
+
+12. GOVERNING LAW
+
+This EULA shall be governed by and construed in accordance with
+the laws of the jurisdiction in which the Licensor is established,
+without regard to conflict of law principles.
+
+
+13. ENTIRE AGREEMENT
+
+This EULA constitutes the entire agreement between you and the
+Licensor regarding the Software and supersedes all prior
+communications, proposals, and representations.

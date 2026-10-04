@@ -47,6 +47,10 @@ package-lock.json
 src-tauri/target/
 src-tauri/gen/
 
+# Private Pro Edition E2EE module (NOT for public repo)
+src-tauri/e2ee-pro/
+*.community-backup
+
 config.json
 .env*
 .env.*

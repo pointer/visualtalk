@@ -1,0 +1,162 @@
+VISUALTALK PRO EDITION — END USER LICENSE AGREEMENT
+
+Last Updated: October 4, 2026
+
+IMPORTANT — READ CAREFULLY: This End User License Agreement ("EULA") is a
+legal agreement between you ("User") and the VisualTalk developers
+("Licensor") for the VisualTalk Pro Edition software application
+("Software"), which includes End-to-End Encryption (E2EE) capabilities.
+By installing, copying, purchasing, or otherwise using this Software,
+you agree to be bound by the terms of this EULA. If you do not agree,
+do not install or use the Software.
+
+
+1. LICENSE GRANT
+
+Subject to your compliance with this EULA and payment of the
+applicable purchase price or subscription fee, the Licensor grants
+you a non-exclusive, non-transferable, limited license to install
+and use the Software on devices you own or control.
+
+This license covers both personal and commercial use, including:
+
+  a) Business meetings and corporate communications;
+  b) Client and customer-facing video conferences;
+  c) Internal business operations of for-profit entities;
+  d) Paid consulting, coaching, and professional services;
+  e) All uses permitted under the Community Edition EULA.
+
+
+2. EDITION & E2EE
+
+The Pro Edition includes all features of the Community Edition plus
+End-to-End Encryption (E2EE) for chat messages and file transfers.
+E2EE provides cryptographic protection such that only meeting
+participants can read messages and files — the server operator
+cannot access the content.
+
+E2EE uses the following cryptographic stack:
+  - Key Exchange: ECDH P-256
+  - Key Derivation: HKDF-SHA-256
+  - Symmetric Encryption: AES-256-GCM
+
+
+3. PERMITTED USE
+
+You may use the Software for any lawful purpose, including all
+personal, educational, non-profit, and commercial activities,
+subject to the restrictions in Section 4.
+
+
+4. PROHIBITED USE
+
+You may NOT:
+
+  a) Redistribute, sublicense, rent, lease, or sell the Software
+     or its E2EE capabilities as a standalone service;
+  b) Reverse engineer, decompile, or disassemble the Software;
+  c) Use the Software to violate any applicable law or regulation;
+  d) Use the Software to transmit illegal, harmful, or abusive
+     content;
+  e) Attempt to circumvent or disable the E2EE encryption;
+  f) Share your license key or app store purchase with others
+     for the purpose of bypassing licensing;
+  g) Use the Software as a managed service or hosting platform
+     for third parties without a separate hosting license.
+
+
+5. INTELLECTUAL PROPERTY
+
+The Software is licensed, not sold. All rights, title, and interest
+in and to the Software, including the E2EE cryptographic
+implementation, remain with the Licensor.
+
+
+6. DATA AND PRIVACY
+
+  a) The Software connects to a LiveKit server for real-time
+     communication.
+  b) When E2EE is active, chat messages and file transfers are
+     encrypted on your device before transmission and can only
+     be decrypted by other meeting participants who have
+     completed the key exchange.
+  c) Audio and video streams are transmitted through the LiveKit
+     server and are subject to LiveKit's security measures
+     (not E2EE in this edition).
+  d) The Licensor does not operate or control the LiveKit server
+     you connect to.
+
+
+7. NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
+THE LICENSOR DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NON-INFRINGEMENT.
+
+SPECIFICALLY, THE LICENSOR MAKES NO WARRANTY THAT:
+  a) The E2EE encryption is free from vulnerabilities;
+  b) The Software will operate without errors or interruptions;
+  c) The Software will be compatible with all systems.
+
+
+8. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW:
+
+  a) THE LICENSOR SHALL NOT BE LIABLE FOR ANY INDIRECT,
+     INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES,
+     INCLUDING LOSS OF PROFITS, DATA, OR BUSINESS.
+
+  b) THE TOTAL CUMULATIVE LIABILITY OF THE LICENSOR SHALL NOT
+     EXCEED THE AMOUNT YOU PAID FOR THE SOFTWARE IN THE
+     TWELVE (12) MONTHS PRECEDING THE CLAIM.
+
+
+9. TERMINATION
+
+This EULA is effective until terminated. The Licensor may
+terminate this EULA if you fail to comply with any term.
+Upon termination, you must cease all use of the Software,
+including E2EE capabilities, and destroy all copies.
+
+
+10. REFUND POLICY
+
+Refunds are governed by the platform through which you purchased
+the Software (Apple App Store, Google Play Store, or Microsoft
+Store). Contact the respective platform for refund requests.
+
+
+11. SUPPORT AND UPDATES
+
+The Licensor may, at its discretion, provide support and updates
+for the Pro Edition. Support is not guaranteed and is provided
+on a best-effort basis.
+
+
+12. GOVERNING LAW
+
+This EULA shall be governed by and construed in accordance with
+the laws of the jurisdiction in which the Licensor is established,
+without regard to conflict of law principles.
+
+
+13. SEVERABILITY
+
+If any provision of this EULA is held to be unenforceable, the
+remaining provisions shall remain in full force and effect.
+
+
+14. ENTIRE AGREEMENT
+
+This EULA constitutes the entire agreement between you and the
+Licensor regarding the Software and supersedes all prior
+communications, proposals, and representations.
+
+
+15. CONTACT
+
+For support, licensing inquiries, or questions:
+  <insert-contact-email>

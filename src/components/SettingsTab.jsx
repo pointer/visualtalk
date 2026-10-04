@@ -1,9 +1,11 @@
 import { createSignal, onMount, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { LicenseScreen } from "./LicenseScreen";
 
 export function SettingsTab(props) {
   const [activeSection, setActiveSection] = createSignal("audio-video");
   const [loading, setLoading] = createSignal(true);
+  const [showLicenseModal, setShowLicenseModal] = createSignal(false);
 
   // Audio/Video Settings
   const [audioInputs, setAudioInputs] = createSignal([]);
@@ -552,9 +554,52 @@ export function SettingsTab(props) {
                       </div>
                     </div>
                   </div>
+
+                  {/* License Button */}
+                  <div class="pt-4 border-t border-gray-700">
+                    <button
+                      onClick={() => setShowLicenseModal(true)}
+                      class="w-full flex items-center justify-between px-4 py-3 bg-[#0f0f0f] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg transition-colors"
+                    >
+                      <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <div class="text-left">
+                          <p class="text-sm font-medium text-white">License Agreement</p>
+                          <p class="text-xs text-gray-500">View EULA and source license terms</p>
+                        </div>
+                      </div>
+                      <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* License Modal */}
+            <Show when={showLicenseModal()}>
+              <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div class="bg-[#1c1c1c] border border-[#2a2a2a] rounded-2xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden shadow-2xl">
+                  <div class="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a]">
+                    <h2 class="text-lg font-semibold">VisualTalk License</h2>
+                    <button
+                      onClick={() => setShowLicenseModal(false)}
+                      class="p-1.5 hover:bg-[#2a2a2a] rounded-lg transition-colors"
+                    >
+                      <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="p-6 overflow-y-auto max-h-[calc(80vh-4rem)]">
+                    <LicenseScreen version="1.0.0" />
+                  </div>
+                </div>
+              </div>
+            </Show>
           </Show>
         </div>
       </main>
