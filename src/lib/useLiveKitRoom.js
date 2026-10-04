@@ -25,6 +25,9 @@ export function useLiveKitRoom() {
   const [isHandRaised, setIsHandRaised] = createSignal(false);
   const [raisedHands, setRaisedHands] = createSignal([]);
 
+  // Track current room name so leaveCall can emit the meeting-ended event.
+  const [currentRoom, setCurrentRoom] = createSignal(null);
+
   // ---- Preview: get a local MediaStream for the pre-join video preview ----
   const startPreview = async (micId, camId) => {
     try {
@@ -63,6 +66,8 @@ export function useLiveKitRoom() {
 
   // ---- Connect to LiveKit meeting ----
   const connectToMeeting = async ({ identity, roomName, micId, camId }) => {
+    // Store room name for the meeting-ended event on leave.
+    setCurrentRoom(roomName);
     // Stop preview stream
     const pStream = previewStream();
     if (pStream) pStream.getTracks().forEach((t) => t.stop());
@@ -221,12 +226,27 @@ export function useLiveKitRoom() {
   };
 
   // ---- Leave call: disconnect, stop streams, close window ----
-  const leaveCall = () => {
+  const leaveCall = async () => {
     if (lkRoom()) lkRoom().disconnect().catch(() => {});
     const stream = localStream();
     if (stream) stream.getTracks().forEach((t) => t.stop());
     const pStream = previewStream();
     if (pStream) pStream.getTracks().forEach((t) => t.stop());
+
+    // Notify the main window that this meeting has ended, so it can
+    // update its state without polling.
+    // [CONCERN: If the invoke fails (e.g. IPC already torn down), the
+    //  main window never gets the event.  The fallback is the
+    //  tauri://window-destroyed listener mentioned in lib.rs.]
+    const room = currentRoom();
+    if (room) {
+      try {
+        await invoke("notify_meeting_ended", { room });
+      } catch (err) {
+        console.warn("[leaveCall] Failed to emit meeting-ended event:", err);
+      }
+    }
+
     getCurrentWindow().close();
   };
 

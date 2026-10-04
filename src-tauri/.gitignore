@@ -59,3 +59,8 @@ config.json
 *.txt
 Notes.txt
 *.lock
+tauri.conf.json
+package.json
+vite.config.js
+.gitignore
+App.jsx

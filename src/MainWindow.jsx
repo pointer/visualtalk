@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { SettingsTab } from "./components/SettingsTab";
 import { NotesTab } from "./components/NotesTab";
 import { Modal } from "./components/Modal";
+import { useTauriEvents } from "./lib/useTauriEvents";
 
 
 export function MainWindow(props) {
@@ -36,6 +37,42 @@ export function MainWindow(props) {
     time: "12:00",
   });
   // const [toggleChat] = createSignal([]);
+
+  // ---- Push event subscriptions from Rust backend ----
+  // [CONCERN: These handlers run in every window.  The local state setters
+  //  below may duplicate work already done by the invoking window's local
+  //  update (e.g. handleScheduleConfirm also calls setScheduledMeetings).
+  //  We use idempotent upserts / filters to keep this safe.]
+  const { subscribe } = useTauriEvents();
+
+  subscribe("profile-updated", (payload) => {
+    setProfile(payload.profile);
+  });
+
+  subscribe("settings-updated", (payload) => {
+    setSettings(payload.settings);
+  });
+
+  subscribe("meeting-scheduled", (payload) => {
+    // [CONCERN: Idempotent upsert — skip if the meeting is already in the
+    //  list (i.e. this window initiated the schedule and added it locally).]
+    setScheduledMeetings((prev) => {
+      if (prev.find((m) => m.id === payload.meeting.id)) return prev;
+      return [...prev, payload.meeting];
+    });
+  });
+
+  subscribe("meeting-deleted", (payload) => {
+    // Idempotent — filtering an already-filtered list is safe.
+    setScheduledMeetings((prev) => prev.filter((m) => m.id !== payload.id));
+  });
+
+  subscribe("meeting-ended", (payload) => {
+    // [CONCERN: The main window could use this to refresh meeting history
+    //  or show a "meeting ended" toast.  For now we just log it.
+    //  A future enhancement: call loadBackendState() here to refresh.]
+    console.log(`[event] Meeting ended: ${payload.room}`);
+  });
 
   const getFormattedDate = (date) => {
     return date.toLocaleDateString("en-US", {

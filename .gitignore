@@ -56,3 +56,7 @@ Notes.txt
 *.md
 ExportOptions copy.plist
 ExportOptions.plist
+tauri.conf.json
+package.json
+vite.config.js
+.gitignore
