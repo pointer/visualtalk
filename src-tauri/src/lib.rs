@@ -6,6 +6,7 @@ mod chat;
 mod commands;
 mod device;
 mod e2ee;
+mod events;
 mod layout;
 mod meeting;
 mod participant;
@@ -18,6 +19,7 @@ mod window;
 use backgrounds::{get_background, set_background, BackgroundState};
 use commands::*;
 use device::{DevicePreferences, MediaDevice};
+use events::{emit as emit_event, VtEvent};
 use layout::{LayoutCalculator, LayoutConfig};
 use meeting::{MeetingRecord, ScheduledMeeting};
 use participant::Participant;
@@ -84,7 +86,17 @@ fn open_meeting_window(
     );
 
     // Pass the new arguments down to the spawn function
-    window::spawn_meeting_window(&app, room, token, url, identity, width, height)
+    let result = window::spawn_meeting_window(&app, room.clone(), token, url, identity, width, height);
+
+    // [CONCERN: We emit MeetingStarted only if the window was created
+    //  successfully.  If spawn fails, no event is emitted — correct
+    //  behavior.  But the main window has no way to know the meeting
+    //  window *failed* to open other than the invoke rejection.]
+    if result.is_ok() {
+        emit_event(&app, VtEvent::MeetingStarted { room });
+    }
+
+    result
 }
 
 #[tauri::command]
@@ -97,13 +109,25 @@ fn get_user_profile(state: State<'_, AppState>) -> Result<UserProfile, String> {
 }
 
 #[tauri::command]
-fn update_user_profile(profile: UserProfile, state: State<'_, AppState>) -> Result<(), String> {
+fn update_user_profile(
+    app: AppHandle,
+    profile: UserProfile,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let mut data = state
         .data
         .lock()
         .map_err(|_| "Failed to lock app data".to_string())?;
-    data.profile = profile;
-    data.save(&state.config_dir)
+    data.profile = profile.clone();
+    data.save(&state.config_dir)?;
+
+    // [CONCERN: The invoking window already received the updated profile
+    //  via the invoke response.  This event will fire in ALL windows
+    //  including the one that initiated the update.  The JS handler
+    //  must be idempotent — setting the same profile twice is harmless
+    //  but the re-render is wasted work.]
+    emit_event(&app, VtEvent::ProfileUpdated { profile });
+    Ok(())
 }
 
 #[tauri::command]
@@ -116,13 +140,26 @@ fn get_user_settings(state: State<'_, AppState>) -> Result<UserSettings, String>
 }
 
 #[tauri::command]
-fn update_user_settings(settings: UserSettings, state: State<'_, AppState>) -> Result<(), String> {
+fn update_user_settings(
+    app: AppHandle,
+    settings: UserSettings,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let mut data = state
         .data
         .lock()
         .map_err(|_| "Failed to lock app data".to_string())?;
-    data.settings = settings;
-    data.save(&state.config_dir)
+    data.settings = settings.clone();
+    data.save(&state.config_dir)?;
+
+    // [CONCERN: Same idempotency concern as ProfileUpdated.  The JS
+    //  SettingsTab currently calls `setSettings(updated)` locally AND
+    //  awaits invoke().  The event will re-set it from the parent.
+    //  This is safe (same value) but causes a redundant SolidJS
+    //  re-evaluation.  Consider removing the local set in the child
+    //  and relying solely on the event for cross-window sync.]
+    emit_event(&app, VtEvent::SettingsUpdated { settings });
+    Ok(())
 }
 
 #[tauri::command]
@@ -155,23 +192,49 @@ fn schedule_meeting(
         .meetings
         .lock()
         .map_err(|_| "Failed to lock meetings".to_string())?;
-    meetings.add_scheduled(
+    let meeting = meetings.add_scheduled(
         title,
         room_id,
         invite_link,
         start_time,
         duration_minutes,
         &state.config_dir,
-    )
+    )?;
+
+    // [CONCERN: schedule_meeting already has AppHandle from the store
+    //  lookup above, so reusing it here is fine.  But note that the
+    //  invoke response already returns the ScheduledMeeting to the
+    //  caller.  The event is for OTHER windows that didn't initiate
+    //  the schedule.  The caller's local `setScheduledMeetings(prev =>
+    //  [...prev, newMeeting])` and this event will both add it.
+    //  Must ensure the JS handler checks for duplicates or is
+    //  idempotent.]
+    emit_event(&app, VtEvent::MeetingScheduled { meeting: meeting.clone() });
+    Ok(meeting)
 }
 
 #[tauri::command]
-fn delete_scheduled_meeting(id: String, state: State<'_, AppState>) -> Result<bool, String> {
+fn delete_scheduled_meeting(
+    app: AppHandle,
+    id: String,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
     let mut meetings = state
         .meetings
         .lock()
         .map_err(|_| "Failed to lock meetings".to_string())?;
-    meetings.remove_scheduled(&id, &state.config_dir)
+    let removed = meetings.remove_scheduled(&id, &state.config_dir)?;
+
+    // [CONCERN: The caller's JS already does `setScheduledMeetings(prev =>
+    //  prev.filter(m => m.id !== id))` locally.  The event will trigger
+    //  the same filter again in ALL windows.  Double-filtering is
+    //  harmless (idempotent) but the redundant re-render is wasteful.
+    //  This is the trade-off of global broadcast vs. targeted emit.]
+    if removed {
+        emit_event(&app, VtEvent::MeetingDeleted { id });
+    }
+
+    Ok(removed)
 }
 
 #[tauri::command]
@@ -195,21 +258,63 @@ fn get_all_participants(state: State<'_, AppState>) -> Result<Vec<Participant>, 
 }
 
 #[tauri::command]
-fn add_participant(participant: Participant, state: State<'_, AppState>) -> Result<bool, String> {
+fn add_participant(
+    app: AppHandle,
+    participant: Participant,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
     let mut manager = state
         .participant_manager
         .lock()
         .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.add_participant(participant))
+    let added = manager.add_participant(participant.clone());
+
+    // [CONCERN: During a meeting join burst, 10-20 participants may be
+    //  added in quick succession.  Each emit triggers JSON serialization
+    //  of the full Participant struct and a JS-side re-render.  If the
+    //  video grid re-renders are expensive, debounce participant-changed
+    //  events on the JS side (e.g. coalesce within a 100ms window).]
+    if added {
+        emit_event(
+            &app,
+            VtEvent::ParticipantChanged {
+                action: "added".to_string(),
+                participant: Some(participant),
+            },
+        );
+    }
+
+    Ok(added)
 }
 
 #[tauri::command]
-fn remove_participant(participant_id: String, state: State<'_, AppState>) -> Result<bool, String> {
+fn remove_participant(
+    app: AppHandle,
+    participant_id: String,
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
     let mut manager = state
         .participant_manager
         .lock()
         .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.remove_participant(&participant_id))
+
+    // [CONCERN: We need to grab the participant *before* removal so we
+    //  can include it in the event.  This is a minor extra lookup but
+    //  keeps the event payload self-contained for the JS listener.]
+    let removed_participant = manager.get_participant(&participant_id);
+    let removed = manager.remove_participant(&participant_id);
+
+    if removed {
+        emit_event(
+            &app,
+            VtEvent::ParticipantChanged {
+                action: "removed".to_string(),
+                participant: removed_participant,
+            },
+        );
+    }
+
+    Ok(removed)
 }
 
 #[tauri::command]
@@ -226,6 +331,7 @@ fn get_participant(
 
 #[tauri::command]
 fn set_participant_muted(
+    app: AppHandle,
     participant_id: String,
     muted: bool,
     state: State<'_, AppState>,
@@ -234,11 +340,30 @@ fn set_participant_muted(
         .participant_manager
         .lock()
         .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.set_participant_muted(&participant_id, muted))
+    let updated = manager.set_participant_muted(&participant_id, muted);
+
+    // [CONCERN: Mute toggles can happen rapidly (e.g. push-to-talk).
+    //  Each toggle emits immediately.  On the JS side this may cause
+    //  rapid icon flicker.  Consider only emitting when the state
+    //  actually changed, which `set_participant_muted` already
+    //  guarantees (returns true only on actual mutation).]
+    if updated {
+        let participant = manager.get_participant(&participant_id);
+        emit_event(
+            &app,
+            VtEvent::ParticipantChanged {
+                action: if muted { "muted" } else { "unmuted" }.to_string(),
+                participant,
+            },
+        );
+    }
+
+    Ok(updated)
 }
 
 #[tauri::command]
 fn set_participant_video_enabled(
+    app: AppHandle,
     participant_id: String,
     enabled: bool,
     state: State<'_, AppState>,
@@ -247,7 +372,20 @@ fn set_participant_video_enabled(
         .participant_manager
         .lock()
         .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.set_participant_video_enabled(&participant_id, enabled))
+    let updated = manager.set_participant_video_enabled(&participant_id, enabled);
+
+    if updated {
+        let participant = manager.get_participant(&participant_id);
+        emit_event(
+            &app,
+            VtEvent::ParticipantChanged {
+                action: if enabled { "video-on" } else { "video-off" }.to_string(),
+                participant,
+            },
+        );
+    }
+
+    Ok(updated)
 }
 
 #[tauri::command]
@@ -305,22 +443,53 @@ fn get_sorted_participants(state: State<'_, AppState>) -> Result<Vec<Participant
 }
 
 #[tauri::command]
-fn clear_participants(state: State<'_, AppState>) -> Result<(), String> {
+fn clear_participants(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
     let mut manager = state
         .participant_manager
         .lock()
         .map_err(|_| "Failed to lock participant manager".to_string())?;
     manager.clear();
+
+    // [CONCERN: Clearing emits a single "cleared" event with no participant.
+    //  The JS side must treat this as "drop all participants", not "one
+    //  participant changed".  This is a slightly different semantic from
+    //  the other ParticipantChanged events — document this contract.]
+    emit_event(
+        &app,
+        VtEvent::ParticipantChanged {
+            action: "cleared".to_string(),
+            participant: None,
+        },
+    );
+
     Ok(())
 }
 
 #[tauri::command]
-fn remove_screen_share(participant_id: String, state: State<'_, AppState>) -> Result<(), String> {
+fn remove_screen_share(
+    app: AppHandle,
+    participant_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let mut manager = state
         .participant_manager
         .lock()
         .map_err(|_| "Failed to lock participant manager".to_string())?;
     manager.remove_screen_share(&participant_id);
+
+    // [CONCERN: The removed screen-share participant object isn't included
+    //  in the event (it's gone).  The JS listener gets only the ID via
+    //  the action string.  If the UI needs the full participant to animate
+    //  a removal, capture it before `remove_screen_share` like we do in
+    //  `remove_participant`.]
+    emit_event(
+        &app,
+        VtEvent::ParticipantChanged {
+            action: format!("screen-share-removed:{}", participant_id),
+            participant: None,
+        },
+    );
+
     Ok(())
 }
 
@@ -544,13 +713,25 @@ fn get_user_notes(state: State<'_, AppState>) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn update_user_notes(notes: String, state: State<'_, AppState>) -> Result<(), String> {
+fn update_user_notes(
+    app: AppHandle,
+    notes: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let mut data = state
         .data
         .lock()
         .map_err(|_| "Failed to lock app data".to_string())?;
-    data.notes = notes;
-    data.save(&state.config_dir)
+    data.notes = notes.clone();
+    data.save(&state.config_dir)?;
+
+    // [CONCERN: Notes can be large (multi-paragraph text).  Emitting the
+    //  full notes string on every keystroke-save would be wasteful.
+    //  Currently NotesTab only saves on explicit action (not on every
+    //  keystroke), so this is acceptable.  If a live-collaborative
+    //  notes feature is added, switch to debounced saves or a Channel.]
+    emit_event(&app, VtEvent::NotesUpdated { notes });
+    Ok(())
 }
 #[tauri::command]
 fn generate_livekit_token(
@@ -563,6 +744,24 @@ fn generate_livekit_token(
         .map_err(|_| "LIVEKIT_API_SECRET not set in environment".to_string())?;
     let validity = valid_for_seconds.unwrap_or(86400);
     token::generate_token(&api_key, &secret, &identity, &room, validity)
+}
+
+// ===================
+// ===== MEETING LIFECYCLE EVENTS =====
+// ===================
+
+/// Called from the meeting window's JS (`useLiveKitRoom.js`) when the meeting
+/// is ending, *before* the window closes.  Emits `MeetingEnded` so the main
+/// window can update its state without polling.
+///
+/// [CONCERN: The meeting window may crash or be force-quit before this
+///  command runs.  The main window would then never receive the `MeetingEnded`
+///  event.  Consider also listening for the Tauri `tauri://window-destroyed`
+///  event with label == "meeting" as a fallback in the frontend.]
+#[tauri::command]
+fn notify_meeting_ended(app: AppHandle, room: String) -> Result<(), String> {
+    emit_event(&app, VtEvent::MeetingEnded { room });
+    Ok(())
 }
 
 // ===================
@@ -591,6 +790,7 @@ pub fn run() {
             // Meeting & Session
             get_meeting_session,
             open_meeting_window,
+            notify_meeting_ended,
             parse_invite_link,
             create_meeting_invite,
             // User Management
