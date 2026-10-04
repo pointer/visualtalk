@@ -1,13 +1,13 @@
 import { Show } from "solid-js";
 
 /**
- * Meeting action toolbar with 6 buttons:
- * Mute, Camera, Screen Share, Raise Hand, Chat, Leave.
+ * Meeting action toolbar with 7 buttons:
+ * Mute, Camera, Screen Share, Raise Hand, Chat, Record, Leave.
  * All state props are SolidJS signal accessors.
  */
 export function MeetingToolbar(props) {
   return (
-    <div class="max-w-lg mx-auto grid grid-cols-6 gap-x-0.5 justify-items-center items-start">
+    <div class="max-w-lg mx-auto grid grid-cols-7 gap-x-0.5 justify-items-center items-start">
 
       {/* 1. Mute */}
       <button
@@ -133,7 +133,40 @@ export function MeetingToolbar(props) {
         </span>
       </button>
 
-      {/* 6. Leave */}
+      {/* 6. Record */}
+      <button
+        onClick={props.isRecording() ? props.onStopRecording : props.onStartRecording}
+        class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 relative select-none"
+      >
+        <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
+          props.isRecording()
+            ? "bg-red-600 text-white animate-pulse"
+            : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+        }`}>
+          {props.isRecording() ? (
+            /* Stop icon (square) */
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="6" y="6" width="12" height="12" rx="1" />
+            </svg>
+          ) : (
+            /* Record icon (circle) */
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="6" />
+            </svg>
+          )}
+        </div>
+        <Show when={props.isRecording()} fallback={
+          <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-gray-400 text-center truncate w-full">
+            Record
+          </span>
+        }>
+          <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-red-400 text-center truncate w-full tabular-nums">
+            {props.recordingDuration?.() || "00:00"}
+          </span>
+        </Show>
+      </button>
+
+      {/* 7. Leave */}
       <button
         onClick={props.onLeave}
         class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 select-none"

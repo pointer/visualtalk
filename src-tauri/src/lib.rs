@@ -6,10 +6,12 @@ mod chat;
 mod commands;
 mod device;
 mod e2ee;
+mod egress;
 mod events;
 mod layout;
 mod meeting;
 mod participant;
+mod recording;
 mod session;
 mod settings;
 mod state;
@@ -783,7 +785,8 @@ pub fn run() {
                 .unwrap_or_else(|_| std::env::temp_dir().join("visualtalk"));
 
             let _ = std::fs::create_dir_all(&config_dir);
-            app.manage(AppState::new(config_dir));
+            app.manage(AppState::new(config_dir.clone()));
+            app.manage(recording::RecordingState::new(config_dir));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -869,6 +872,18 @@ pub fn run() {
             e2ee::e2ee_decrypt_chunk,
             e2ee::e2ee_cleanup_file,
             e2ee::e2ee_destroy,
+            // Egress (LiveKit server-side recording/streaming)
+            egress::start_room_egress,
+            egress::stop_egress,
+            egress::list_egress,
+            // Local Recording & FFmpeg
+            recording::save_recording_chunk,
+            recording::finalize_recording,
+            recording::get_local_recordings,
+            recording::check_ffmpeg_available,
+            recording::ffmpeg_transcode,
+            recording::ffmpeg_stream_to_rtmp,
+            recording::delete_recording,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

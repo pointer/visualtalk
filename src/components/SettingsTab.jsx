@@ -525,7 +525,7 @@ export function SettingsTab(props) {
 
                   <div>
                     <p class="text-sm text-gray-400">Build Date</p>
-                    <p class="text-lg font-medium">August 31, 2026</p>
+                    <p class="text-lg font-medium">August 31, 2024</p>
                   </div>
 
                   <div>

@@ -78,3 +78,70 @@ pub fn generate_token(
 
     Ok(format!("{}.{}", message, sig_b64))
 }
+
+// ── Server API token (for Egress, Room management, etc.) ──────
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ServerVideoGrant {
+    room_record: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    room_list: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    room_create: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ServerClaims {
+    iss: String,
+    sub: String,
+    exp: usize,
+    nbf: usize,
+    iat: usize,
+    video: ServerVideoGrant,
+}
+
+/// Generates a LiveKit Server API JWT for egress/room management.
+/// Uses `roomRecord` grant instead of `roomJoin`.
+pub fn generate_server_token(
+    api_key: &str,
+    api_secret: &str,
+    valid_for_seconds: u64,
+) -> Result<String, String> {
+    let now = Utc::now().timestamp() as usize;
+    let exp = now + valid_for_seconds as usize;
+
+    let claims = ServerClaims {
+        iss: api_key.to_string(),
+        sub: "".to_string(),
+        exp,
+        nbf: now,
+        iat: now,
+        video: ServerVideoGrant {
+            room_record: true,
+            room_list: Some(true),
+            room_create: Some(true),
+        },
+    };
+
+    let header = BTreeMap::from([
+        ("alg".to_string(), "HS256".to_string()),
+        ("typ".to_string(), "JWT".to_string()),
+    ]);
+
+    let header_json = serde_json::to_string(&header).map_err(|e| e.to_string())?;
+    let claims_json = serde_json::to_string(&claims).map_err(|e| e.to_string())?;
+
+    let header_b64 = URL_SAFE_NO_PAD.encode(header_json.as_bytes());
+    let claims_b64 = URL_SAFE_NO_PAD.encode(claims_json.as_bytes());
+
+    let message = format!("{}.{}", header_b64, claims_b64);
+
+    let mut mac = Hmac::<Sha256>::new_from_slice(api_secret.as_bytes())
+        .map_err(|e| format!("HMAC key error: {}", e))?;
+    mac.update(message.as_bytes());
+    let signature = mac.finalize().into_bytes();
+    let sig_b64 = URL_SAFE_NO_PAD.encode(&signature);
+
+    Ok(format!("{}.{}", message, sig_b64))
+}

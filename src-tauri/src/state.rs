@@ -21,7 +21,7 @@ impl AppState {
         let meetings = MeetingStore::load_or_default(&config_dir);
 
         Self {
-            config_dir,
+            config_dir: config_dir.clone(),
             data: Mutex::new(data),
             meetings: Mutex::new(meetings),
             device_manager: Mutex::new(DeviceManager::new()),
@@ -30,3 +30,4 @@ impl AppState {
         }
     }
 }
+
