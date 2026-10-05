@@ -1,7 +1,9 @@
 import { createSignal, Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
+import { useI18n } from '../i18n/I18nProvider';
 
 export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
+    const { t } = useI18n();
     const [step, setStep] = createSignal('paste'); // 'paste' or 'details'
     const [inviteLink, setInviteLink] = createSignal('');
     const [parsedData, setParsedData] = createSignal(null);
@@ -31,7 +33,7 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
     // Step 2: Final Join Action
     const handleFinalJoin = () => {
         if (!guestName().trim()) {
-            setError("Please enter your name to join.");
+            setError(t("joinMeeting.enterName"));
             return;
         }
 
@@ -56,7 +58,7 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
 
                 {/* Header */}
                 <div class="flex justify-between items-center p-5 border-b border-[#2a2a2a]">
-                    <h2 class="text-xl font-bold text-white">Join Meeting</h2>
+                    <h2 class="text-xl font-bold text-white">{t("joinMeeting.title")}</h2>
                     <button onClick={onClose} class="text-gray-400 hover:text-white transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
@@ -68,7 +70,7 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
                     <Show when={step() === 'paste'}>
                         {/* === STEP 1: PASTE LINK === */}
                         <div class="flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            <label class="text-sm text-gray-400 font-medium">Paste Invite Link</label>
+                            <label class="text-sm text-gray-400 font-medium">{t("joinMeeting.pasteInvite")}</label>
                             <textarea
                                 value={inviteLink()}
                                 onInput={(e) => setInviteLink(e.currentTarget.value)}
@@ -87,12 +89,12 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
                         {/* === STEP 2: ENTER NAME & CONFIRM === */}
                         <div class="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
                             <div class="bg-[#0f0f0f] p-4 rounded-xl border border-[#2a2a2a] flex flex-col gap-1">
-                                <span class="text-xs text-gray-500 uppercase tracking-wider font-semibold">Room</span>
+                                <span class="text-xs text-gray-500 uppercase tracking-wider font-semibold">{t("joinMeeting.room")}</span>
                                 <span class="text-white font-mono text-lg">{parsedData()?.room}</span>
                             </div>
 
                             <div class="flex flex-col gap-2 mt-2">
-                                <label class="text-sm text-gray-400 font-medium">Your Display Name</label>
+                                <label class="text-sm text-gray-400 font-medium">{t("joinMeeting.displayName")}</label>
                                 <input
                                     type="text"
                                     value={guestName()}
@@ -115,7 +117,7 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
                 {/* Footer */}
                 <div class="p-5 border-t border-[#2a2a2a] flex justify-end gap-3 bg-[#151515]">
                     <button onClick={onClose} class="px-5 py-2.5 rounded-xl text-gray-300 hover:bg-[#2a2a2a] transition-colors font-medium">
-                        Cancel
+                        {t("common.cancel")}
                     </button>
 
                     <Show when={step() === 'paste'}>
@@ -124,7 +126,7 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
                             disabled={loading() || !inviteLink().trim()}
                             class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold transition-all active:scale-95"
                         >
-                            {loading() ? 'Validating...' : 'Continue'}
+                            {loading() ? t("joinMeeting.validating") : t("common.continue")}
                         </button>
                     </Show>
 
@@ -133,14 +135,14 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
                             onClick={() => setStep('paste')}
                             class="px-5 py-2.5 rounded-xl text-gray-300 hover:bg-[#2a2a2a] transition-colors font-medium"
                         >
-                            Back
+                            {t("common.back")}
                         </button>
                         <button
                             onClick={handleFinalJoin}
                             disabled={!guestName().trim()}
                             class="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold transition-all active:scale-95"
                         >
-                            Join Now
+                            {t("joinMeeting.joinNow")}
                         </button>
                     </Show>
                 </div>

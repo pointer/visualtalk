@@ -9,12 +9,14 @@ import { MeetingToolbar } from "./components/MeetingToolbar";
 import { LeaveConfirmDialog } from "./components/LeaveConfirmDialog";
 import { VideoGrid } from "./components/VideoGrid";
 import { ChatPanel } from "./components/ChatPanel";
+import { useI18n } from "./i18n/I18nProvider";
 
 /**
  * MeetingView — clean orchestrator.
  * Delegates all heavy logic to composables and renders extracted UI components.
  */
 export function MeetingView(props) {
+  const { t, locale } = useI18n();
   const { room: roomName, token, url, identity } = props.meetingData;
 
   // ---- UI state (owned by this component) ----
@@ -112,7 +114,7 @@ export function MeetingView(props) {
           {/* Video Grid + Toolbar */}
           <div class="flex-1 flex flex-col overflow-hidden bg-[#0f0f0f]">
             <header class="px-3 sm:px-4 py-2 sm:py-4 border-b border-[#2a2a2a] flex justify-between items-center bg-[#1a1a1a]/80 shrink-0">
-              <h1 class="text-base sm:text-lg font-semibold tracking-wide">VisualTalk Meeting</h1>
+              <h1 class="text-base sm:text-lg font-semibold tracking-wide">{t("meeting.title")}</h1>
               <div class="flex items-center gap-3">
                 <Show when={rec.isRecording()}>
                   <div class="flex items-center gap-1.5 px-2 py-0.5 bg-red-600/20 rounded-full border border-red-500/30">
@@ -122,7 +124,7 @@ export function MeetingView(props) {
                 </Show>
                 <div class="text-xs sm:text-sm text-gray-400">#{roomName}</div>
               </div>
-              <span class="text-sm text-gray-400">Joined as: {identity}</span>
+              <span class="text-sm text-gray-400">{t("meeting.joinedAs")} {identity}</span>
             </header>
 
             <main class="flex-1 overflow-hidden">

@@ -1,10 +1,12 @@
 import { For, Show, createEffect } from "solid-js";
+import { useI18n } from "../i18n/I18nProvider";
 
 /**
  * Pre-join screen with video preview, device selection, and join button.
  * All signal props are SolidJS accessor functions.
  */
 export function PreJoinScreen(props) {
+  const { t } = useI18n();
   let videoRef = null;
 
   // Attach preview stream to video element whenever it changes
@@ -31,7 +33,7 @@ export function PreJoinScreen(props) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
-                <span class="text-gray-400 text-sm">Camera is off</span>
+                <span class="text-gray-400 text-sm">{t("preJoin.cameraOff")}</span>
               </div>
             </div>
           }>
@@ -65,7 +67,7 @@ export function PreJoinScreen(props) {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
               </div>
-              <span class="text-[9px] font-semibold text-white drop-shadow-md">Audio</span>
+              <span class="text-[9px] font-semibold text-white drop-shadow-md">{t("preJoin.audio")}</span>
             </button>
 
             {/* Video Toggle */}
@@ -82,7 +84,7 @@ export function PreJoinScreen(props) {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
-              <span class="text-[9px] font-semibold text-white drop-shadow-md">Video</span>
+              <span class="text-[9px] font-semibold text-white drop-shadow-md">{t("preJoin.video")}</span>
             </button>
 
             {/* Background Button */}
@@ -103,14 +105,14 @@ export function PreJoinScreen(props) {
           {/* Background Panel */}
           <Show when={props.backgroundsOpen()}>
             <div class="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-md p-4 rounded-b-2xl">
-              <h3 class="text-sm font-semibold text-white mb-3">Background</h3>
+              <h3 class="text-sm font-semibold text-white mb-3">{t("preJoin.background")}</h3>
               <div class="grid grid-cols-3 gap-3">
                 <button
                   onClick={() => props.onSelectBackground({ enabled: false, kind: { type: "none" } })}
                   class="flex flex-col items-center"
                 >
                   <div class="aspect-video w-full rounded-lg bg-[#3a3a3a] flex items-center justify-center border-2 border-transparent hover:border-blue-500 transition">
-                    <span class="text-xs text-gray-300">None</span>
+                    <span class="text-xs text-gray-300">{t("preJoin.none")}</span>
                   </div>
                 </button>
                 <button
@@ -118,7 +120,7 @@ export function PreJoinScreen(props) {
                   class="flex flex-col items-center"
                 >
                   <div class="aspect-video w-full rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-2 border-transparent hover:border-blue-500 transition">
-                    <span class="text-xs text-white">Blur</span>
+                    <span class="text-xs text-white">{t("preJoin.blur")}</span>
                   </div>
                 </button>
                 <button
@@ -126,7 +128,7 @@ export function PreJoinScreen(props) {
                   class="flex flex-col items-center"
                 >
                   <div class="aspect-video w-full rounded-lg bg-blue-600 flex items-center justify-center border-2 border-transparent hover:border-blue-500 transition">
-                    <span class="text-xs text-white">Blue</span>
+                    <span class="text-xs text-white">{t("preJoin.blue")}</span>
                   </div>
                 </button>
               </div>
@@ -200,7 +202,7 @@ export function PreJoinScreen(props) {
                   </Show>
                 </div>
               </div>
-              <span class="text-xs sm:text-sm text-gray-300 group-hover:text-white transition">Always show preview</span>
+              <span class="text-xs sm:text-sm text-gray-300 group-hover:text-white transition">{t("preJoin.alwaysShowPreview")}</span>
             </label>
 
             {/* Join Button */}
@@ -209,7 +211,7 @@ export function PreJoinScreen(props) {
               disabled={props.isConnecting()}
               class="w-full py-2.5 sm:py-3 bg-[#0E71EB] hover:bg-[#0d65d4] disabled:bg-[#0E71EB]/50 text-white font-semibold text-xs sm:text-sm rounded-xl transition shadow-lg border-none outline-none"
             >
-              {props.isConnecting() ? 'Connecting...' : 'Start'}
+              {props.isConnecting() ? t("preJoin.connecting") : t("preJoin.start")}
             </button>
           </div>
         </div>

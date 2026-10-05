@@ -1,4 +1,5 @@
 import { Show } from "solid-js";
+import { useI18n } from "../i18n/I18nProvider";
 
 /**
  * Meeting action toolbar with 7 buttons:
@@ -6,6 +7,7 @@ import { Show } from "solid-js";
  * All state props are SolidJS signal accessors.
  */
 export function MeetingToolbar(props) {
+  const { t } = useI18n();
   return (
     <div class="max-w-lg mx-auto grid grid-cols-7 gap-x-0.5 justify-items-center items-start">
 
@@ -33,7 +35,7 @@ export function MeetingToolbar(props) {
         <span class={`text-[9px] sm:text-[10px] font-medium tracking-wide truncate w-full text-center ${
           props.isMuted() ? "text-red-400" : "text-gray-400"
         }`}>
-          {props.isMuted() ? "Unmute" : "Mute"}
+          {props.isMuted() ? t("toolbar.unmute") : t("toolbar.mute")}
         </span>
       </button>
 
@@ -60,7 +62,7 @@ export function MeetingToolbar(props) {
         <span class={`text-[9px] sm:text-[10px] font-medium tracking-wide truncate w-full text-center ${
           props.isCameraOff() ? "text-red-400" : "text-gray-400"
         }`}>
-          {props.isCameraOff() ? "Start Video" : "Stop Video"}
+          {props.isCameraOff() ? t("toolbar.startVideo") : t("toolbar.stopVideo")}
         </span>
       </button>
 
@@ -81,7 +83,7 @@ export function MeetingToolbar(props) {
         <span class={`text-[9px] sm:text-[10px] font-medium tracking-wide truncate w-full text-center ${
           props.isSharingScreen() ? "text-green-400" : "text-gray-400"
         }`}>
-          {props.isSharingScreen() ? "Stop Share" : "Share"}
+          {props.isSharingScreen() ? t("toolbar.stopShare") : t("toolbar.share")}
         </span>
       </button>
 
@@ -102,7 +104,7 @@ export function MeetingToolbar(props) {
         <span class={`text-[9px] sm:text-[10px] font-medium tracking-wide truncate w-full text-center ${
           props.isHandRaised() ? "text-yellow-400" : "text-gray-400"
         }`}>
-          {props.isHandRaised() ? "Lower" : "Raise"}
+          {props.isHandRaised() ? t("toolbar.lowerHand") : t("toolbar.raiseHand")}
         </span>
       </button>
 
@@ -129,7 +131,7 @@ export function MeetingToolbar(props) {
           </Show>
         </div>
         <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-gray-400 text-center truncate w-full">
-          Chat
+          {t("toolbar.chat")}
         </span>
       </button>
 
@@ -157,7 +159,7 @@ export function MeetingToolbar(props) {
         </div>
         <Show when={props.isRecording()} fallback={
           <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-gray-400 text-center truncate w-full">
-            Record
+            {t("toolbar.record")}
           </span>
         }>
           <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-red-400 text-center truncate w-full tabular-nums">
@@ -177,7 +179,7 @@ export function MeetingToolbar(props) {
           </svg>
         </div>
         <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-red-500 text-center truncate w-full">
-          Leave
+          {t("toolbar.leave")}
         </span>
       </button>
 

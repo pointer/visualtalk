@@ -55,6 +55,24 @@ fn get_config() -> Result<AppConfig, String> {
     })
 }
 
+/// Detect the OS system locale.
+///
+/// Reads LANG / LC_ALL / LANGUAGE environment variables (set by macOS and Linux)
+/// and returns the language tag (e.g. "en_US.UTF-8" → "en").
+/// Returns an empty string if no locale can be detected — the frontend falls
+/// back to `navigator.language` and then to "en".
+#[tauri::command]
+fn get_system_locale() -> String {
+    for var in &["LC_ALL", "LANG", "LANGUAGE"] {
+        if let Ok(val) = std::env::var(var) {
+            if !val.is_empty() && val != "C" && val != "POSIX" {
+                return val;
+            }
+        }
+    }
+    String::new()
+}
+
 #[tauri::command]
 fn get_meeting_session(room: String, state: State<'_, AppState>) -> Result<MeetingSession, String> {
     let data = state
@@ -849,6 +867,7 @@ pub fn run() {
             // Token Generation
             generate_livekit_token,
             get_config,
+            get_system_locale,
             // Backgrounds
             get_background,
             set_background,

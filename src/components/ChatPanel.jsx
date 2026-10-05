@@ -3,11 +3,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { RoomEvent } from "livekit-client";
 import * as chat from "./chat";
+import { useI18n } from "../i18n/I18nProvider";
 
 // Compile-time feature flag — tree-shaken out in community builds
 const E2EE_ENABLED = typeof __E2EE_ENABLED__ !== "undefined" && __E2EE_ENABLED__ === true;
 
 export function ChatPanel(props) {
+  const { t, locale } = useI18n();
   const [messages, setMessages] = createSignal([]);
   const [inputText, setInputText] = createSignal("");
   const [isUploading, setIsUploading] = createSignal(false);
@@ -286,7 +288,7 @@ export function ChatPanel(props) {
   };
 
   const formatTime = (ts) => {
-    return new Date(ts).toLocaleTimeString([], {
+    return new Date(ts).toLocaleTimeString(locale(), {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -304,7 +306,7 @@ export function ChatPanel(props) {
     <div class="flex flex-col w-80 h-full bg-[#1a1a1a] border-l border-[#2a2a2a] shrink-0 animate-in slide-in-from-right duration-200">
       {/* Header */}
       <div class="px-4 py-3 border-b border-[#2a2a2a] flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-white">Meeting Chat</h3>
+        <h3 class="text-sm font-semibold text-white">{t("chat.title")}</h3>
         <button
           onClick={props.onClose}
           class="text-gray-400 hover:text-white transition p-1 rounded hover:bg-[#2a2a2a]"
@@ -329,7 +331,7 @@ export function ChatPanel(props) {
           <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
-          <span class="text-[10px] text-amber-300 font-medium">Chat not encrypted</span>
+          <span class="text-[10px] text-amber-300 font-medium">{t("chat.notEncrypted")}</span>
         </div>
       </Show>
 
@@ -392,7 +394,7 @@ export function ChatPanel(props) {
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
-                        Open file
+                        {t("chat.openFile")}
                       </button>
                     </Show>
                   </div>
@@ -402,7 +404,7 @@ export function ChatPanel(props) {
           )}
         </For>
         {messages().length === 0 && (
-          <div class="text-center text-gray-500 text-sm mt-10">No messages yet</div>
+          <div class="text-center text-gray-500 text-sm mt-10">{t("chat.noMessages")}</div>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -414,7 +416,7 @@ export function ChatPanel(props) {
             onClick={handleFileSelect}
             disabled={isUploading()}
             class="shrink-0 p-2 text-gray-400 hover:text-blue-400 disabled:text-gray-600 transition rounded-lg hover:bg-[#2a2a2a]"
-            title="Send file"
+            title={t("chat.sendFile")}
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -422,7 +424,7 @@ export function ChatPanel(props) {
           </button>
           <input
             type="text"
-            placeholder="Type a message..."
+            placeholder={t("chat.placeholder")}
             value={inputText()}
             onInput={(e) => setInputText(e.currentTarget.value)}
             onKeyDown={handleKeyDown}
@@ -441,7 +443,7 @@ export function ChatPanel(props) {
         <Show when={isUploading()}>
           <div class="mt-2">
             <div class="flex items-center gap-2 text-[10px] text-gray-400">
-              <span>Uploading...</span>
+              <span>{t("chat.uploading")}</span>
               <span>{uploadProgress()}%</span>
             </div>
             <div class="w-full bg-gray-700 rounded-full h-1 mt-1">

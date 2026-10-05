@@ -1,8 +1,10 @@
+import { useI18n } from "../i18n/I18nProvider";
 import { createSignal, onMount, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { LicenseScreen } from "./LicenseScreen";
 
 export function SettingsTab(props) {
+  const { t, locale, changeLocale, availableLocales } = useI18n();
   const [activeSection, setActiveSection] = createSignal("audio-video");
   const [loading, setLoading] = createSignal(true);
   const [showLicenseModal, setShowLicenseModal] = createSignal(false);
@@ -91,10 +93,10 @@ export function SettingsTab(props) {
           preferred_speaker_id: selectedSpeaker(),
         },
       });
-      alert("Device preferences saved!");
+      alert(t("settings.devicePrefsSaved"));
     } catch (err) {
       console.error("Failed to save device preferences:", err);
-      alert("Failed to save device preferences");
+      alert(t("settings.devicePrefsFailed"));
     }
   };
 
@@ -102,10 +104,10 @@ export function SettingsTab(props) {
   const updateProfile = async () => {
     try {
       await invoke("update_user_profile", { profile: profile() });
-      alert("Profile updated successfully!");
+      alert(t("settings.profileUpdated"));
     } catch (err) {
       console.error("Failed to update profile:", err);
-      alert("Failed to update profile");
+      alert(t("settings.profileFailed"));
     }
   };
 
@@ -138,7 +140,7 @@ export function SettingsTab(props) {
           identity: identity(),
         },
       });
-      setStatus('✅ Settings saved securely!');
+      setStatus(`✅ ${t("settings.savedSecurely")}`);
 
       // Clear status message after 3 seconds
       setTimeout(() => setStatus(''), 3000);
@@ -437,12 +439,12 @@ export function SettingsTab(props) {
           {/* Livekit Settings */}
           <Show when={activeSection() === "livekit"}>
             <div class="w-full max-w-md bg-[#1c1c1c] rounded-2xl p-6 shadow-xl border border-[#2a2a2a]">
-              <h2 class="text-2xl font-bold mb-6 text-center">LiveKit Settings</h2>
+              <h2 class="text-2xl font-bold mb-6 text-center">{t("settings.livekitSettings")}</h2>
 
               <form onSubmit={handleSave} class="flex flex-col gap-4">
                 {/* Identity / Display Name */}
                 <div class="flex flex-col gap-1">
-                  <label class="text-sm text-gray-400">Your Identity / Name</label>
+                  <label class="text-sm text-gray-400">{t("settings.yourIdentity")}</label>
                   <input
                     type="text"
                     value={identity()}
@@ -455,7 +457,7 @@ export function SettingsTab(props) {
 
                 {/* LiveKit URL */}
                 <div class="flex flex-col gap-1">
-                  <label class="text-sm text-gray-400">LiveKit Server URL</label>
+                  <label class="text-sm text-gray-400">{t("settings.livekitUrl")}</label>
                   <input
                     type="url"
                     value={url()}
@@ -468,7 +470,7 @@ export function SettingsTab(props) {
 
                 {/* API Key */}
                 <div class="flex flex-col gap-1">
-                  <label class="text-sm text-gray-400">API Key</label>
+                  <label class="text-sm text-gray-400">{t("settings.apiKey")}</label>
                   <input
                     type="text"
                     value={apiKey()}
@@ -481,7 +483,7 @@ export function SettingsTab(props) {
 
                 {/* API Secret */}
                 <div class="flex flex-col gap-1">
-                  <label class="text-sm text-gray-400">API Secret</label>
+                  <label class="text-sm text-gray-400">{t("settings.apiSecret")}</label>
                   <input
                     type="password" // Masked for security
                     value={apiSecret()}
@@ -505,7 +507,7 @@ export function SettingsTab(props) {
                   disabled={loading()}
                   class="mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all active:scale-95"
                 >
-                  {loading() ? 'Saving...' : 'Save Configuration'}
+                  {loading() ? t("settings.saving") : t("settings.saveConfig")}
                 </button>
               </form>
             </div>
@@ -534,26 +536,44 @@ export function SettingsTab(props) {
                   </div>
 
                   <div class="pt-4 border-t border-gray-700">
-                    <p class="text-sm text-gray-400 mb-4">Keyboard Shortcuts</p>
+                    <p class="text-sm text-gray-400 mb-4">{t("settings.keyboardShortcuts")}</p>
                     <div class="space-y-2 text-sm">
                       <div class="flex justify-between">
-                        <span class="text-gray-300">Mute/Unmute</span>
+                        <span class="text-gray-300">{t("settings.shortcutMute")}</span>
                         <span class="text-gray-500 font-mono">Cmd+M</span>
                       </div>
                       <div class="flex justify-between">
-                        <span class="text-gray-300">Toggle Video</span>
+                        <span class="text-gray-300">{t("settings.shortcutVideo")}</span>
                         <span class="text-gray-500 font-mono">Cmd+V</span>
                       </div>
                       <div class="flex justify-between">
-                        <span class="text-gray-300">Share Screen</span>
+                        <span class="text-gray-300">{t("settings.shortcutShare")}</span>
                         <span class="text-gray-500 font-mono">Cmd+S</span>
                       </div>
                       <div class="flex justify-between">
-                        <span class="text-gray-300">End Meeting</span>
+                        <span class="text-gray-300">{t("settings.shortcutEnd")}</span>
                         <span class="text-gray-500 font-mono">Cmd+E</span>
                       </div>
                     </div>
                   </div>
+
+                  {/* Language Selector */}
+                  <div class="space-y-2">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t("settings.language")}</p>
+                    <select
+                      value={locale()}
+                      onChange={(e) => changeLocale(e.currentTarget.value)}
+                      class="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors cursor-pointer"
+                    >
+                      <For each={availableLocales}>
+                        {(loc) => (
+                          <option value={loc.code}>{loc.nativeName} ({loc.name})</option>
+                        )}
+                      </For>
+                    </select>
+                  </div>
+
+
 
                   {/* License Button */}
                   <div class="pt-4 border-t border-gray-700">
@@ -566,8 +586,8 @@ export function SettingsTab(props) {
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <div class="text-left">
-                          <p class="text-sm font-medium text-white">License Agreement</p>
-                          <p class="text-xs text-gray-500">View EULA and source license terms</p>
+                          <p class="text-sm font-medium text-white">{t("settings.licenseAgreement")}</p>
+                          <p class="text-xs text-gray-500">{t("settings.licenseDesc")}</p>
                         </div>
                       </div>
                       <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -584,7 +604,7 @@ export function SettingsTab(props) {
               <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
                 <div class="bg-[#1c1c1c] border border-[#2a2a2a] rounded-2xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden shadow-2xl">
                   <div class="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a]">
-                    <h2 class="text-lg font-semibold">VisualTalk License</h2>
+                    <h2 class="text-lg font-semibold">{t("settings.licenseModalTitle")}</h2>
                     <button
                       onClick={() => setShowLicenseModal(false)}
                       class="p-1.5 hover:bg-[#2a2a2a] rounded-lg transition-colors"

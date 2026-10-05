@@ -1,7 +1,9 @@
 import { createSignal, onMount, Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
+import { useI18n } from '../i18n/I18nProvider';
 
 export default function Settings() {
+    const { t } = useI18n();
     const [url, setUrl] = createSignal('');
     const [apiKey, setApiKey] = createSignal('');
     const [apiSecret, setApiSecret] = createSignal('');
@@ -38,7 +40,7 @@ export default function Settings() {
                     identity: identity(),
                 },
             });
-            setStatus('✅ Settings saved securely!');
+            setStatus(`✅ ${t("settings.savedSecurely")}`);
 
             // Clear status message after 3 seconds
             setTimeout(() => setStatus(''), 3000);
@@ -52,12 +54,12 @@ export default function Settings() {
     return (
         <div class="min-h-screen bg-[#0f0f0f] text-white p-6 pt-[3rem] sm:pt-6 flex flex-col items-center">
             <div class="w-full max-w-md bg-[#1c1c1c] rounded-2xl p-6 shadow-xl border border-[#2a2a2a]">
-                <h2 class="text-2xl font-bold mb-6 text-center">LiveKit Settings</h2>
+                <h2 class="text-2xl font-bold mb-6 text-center">{t("settings.livekitSettings")}</h2>
 
                 <form onSubmit={handleSave} class="flex flex-col gap-4">
                     {/* Identity / Display Name */}
                     <div class="flex flex-col gap-1">
-                        <label class="text-sm text-gray-400">Your Identity / Name</label>
+                        <label class="text-sm text-gray-400">{t("settings.yourIdentity")}</label>
                         <input
                             type="text"
                             value={identity()}
@@ -70,7 +72,7 @@ export default function Settings() {
 
                     {/* LiveKit URL */}
                     <div class="flex flex-col gap-1">
-                        <label class="text-sm text-gray-400">LiveKit Server URL</label>
+                        <label class="text-sm text-gray-400">{t("settings.livekitUrl")}</label>
                         <input
                             type="url"
                             value={url()}
@@ -83,7 +85,7 @@ export default function Settings() {
 
                     {/* API Key */}
                     <div class="flex flex-col gap-1">
-                        <label class="text-sm text-gray-400">API Key</label>
+                        <label class="text-sm text-gray-400">{t("settings.apiKey")}</label>
                         <input
                             type="text"
                             value={apiKey()}
@@ -96,7 +98,7 @@ export default function Settings() {
 
                     {/* API Secret */}
                     <div class="flex flex-col gap-1">
-                        <label class="text-sm text-gray-400">API Secret</label>
+                        <label class="text-sm text-gray-400">{t("settings.apiSecret")}</label>
                         <input
                             type="password" // Masked for security
                             value={apiSecret()}
@@ -120,7 +122,7 @@ export default function Settings() {
                         disabled={loading()}
                         class="mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all active:scale-95"
                     >
-                        {loading() ? 'Saving...' : 'Save Configuration'}
+                        {loading() ? t("settings.saving") : t("settings.saveConfig")}
                     </button>
                 </form>
             </div>

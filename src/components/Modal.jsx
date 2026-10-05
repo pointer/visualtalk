@@ -1,6 +1,9 @@
 import { createSignal, Show } from "solid-js";
+import { useI18n } from "../i18n/I18nProvider";
 
 export function Modal(props) {
+  const { t } = useI18n();
+
   return (
     <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div class="bg-[#1c1c1c] w-full max-w-md rounded-2xl border border-gray-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
@@ -23,13 +26,13 @@ export function Modal(props) {
             onClick={props.onClose}
             class="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition"
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             onClick={props.onConfirm}
             class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition shadow-md"
           >
-            {props.confirmText || "Confirm"}
+            {props.confirmText || t("common.confirm")}
           </button>
         </div>
       </div>

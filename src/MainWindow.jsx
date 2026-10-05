@@ -6,9 +6,11 @@ import { SettingsTab } from "./components/SettingsTab";
 import { NotesTab } from "./components/NotesTab";
 import { Modal } from "./components/Modal";
 import { useTauriEvents } from "./lib/useTauriEvents";
+import { useI18n } from "./i18n/I18nProvider";
 
 
 export function MainWindow(props) {
+  const { t, locale } = useI18n();
   const [activeTab, setActiveTab] = createSignal("home");
   const [showNewMeetingMenu, setShowNewMeetingMenu] = createSignal(false);
   const [showPmiSubMenu, setShowPmiSubMenu] = createSignal(false);
@@ -75,7 +77,7 @@ export function MainWindow(props) {
   });
 
   const getFormattedDate = (date) => {
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(locale(), {
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -83,7 +85,7 @@ export function MainWindow(props) {
   };
 
   const getFormattedTime = (date) => {
-    return date.toLocaleTimeString("en-US", {
+    return date.toLocaleTimeString(locale(), {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -181,7 +183,7 @@ export function MainWindow(props) {
       });
     } catch (err) {
       console.error("Failed to start instant meeting:", err);
-      alert("Could not start meeting. Are LiveKit keys configured?");
+      alert(t("mainWindow.startError"));
     }
   };
 
@@ -213,7 +215,7 @@ export function MainWindow(props) {
 
         setShowJoinModal(false);
       } catch (err) {
-        alert(`Invalid Invite Link: ${err}`);
+        alert(t("mainWindow.invalidLink", { error: err }));
       }
     } else {
       // Standard Room Code flow (e.g., user typed "general" or "room-7137")
@@ -237,27 +239,27 @@ export function MainWindow(props) {
 
     if (action === "Copy ID") {
       await navigator.clipboard.writeText(profile().pmi);
-      alert(`Copied PMI: ${profile().pmi}`);
+      alert(t("mainWindow.copiedPmi", { pmi: profile().pmi }));
     } else if (action === "Copy meeting link") {
       const link = `https://visualtalk.app/j/${activeRoom}`;
       await navigator.clipboard.writeText(link);
-      alert(`Copied meeting link: ${link}`);
+      alert(t("mainWindow.copiedLink", { link }));
     } else if (action === "Copy invitation") {
       try {
         const inviteText = await invoke("get_meeting_invite", { room: activeRoom });
         await navigator.clipboard.writeText(inviteText);
-        alert("Meeting invitation copied to clipboard!");
+        alert(t("mainWindow.invitationCopied"));
       } catch (err) {
         console.error("Failed to copy invite:", err);
       }
     } else if (action === "PMI settings") {
-      const newPmi = prompt("Enter new Personal Meeting ID:", profile().pmi);
+      const newPmi = prompt(t("mainWindow.enterPmi"), profile().pmi);
       if (newPmi && newPmi.trim()) {
         const updatedProfile = { ...profile(), pmi: newPmi.trim() };
         try {
           await invoke("update_user_profile", { profile: updatedProfile });
           setProfile(updatedProfile);
-          alert("PMI updated successfully!");
+          alert(t("mainWindow.pmiUpdated"));
         } catch (err) {
           console.error("Failed to update PMI:", err);
         }
@@ -291,7 +293,7 @@ export function MainWindow(props) {
       setShowScheduleModal(false);
     } catch (err) {
       console.error("Failed to schedule meeting:", err);
-      alert("Failed to schedule meeting.");
+      alert(t("mainWindow.scheduleFailed"));
     }
   };
 
@@ -342,7 +344,7 @@ export function MainWindow(props) {
 
     } catch (err) {
       console.error("Failed to start meeting:", err);
-      alert(`Could not start meeting: ${err}\n\nDid you configure your LiveKit API keys in Settings?`);
+      alert(t("mainWindow.startErrorDetailed", { error: err }));
     }
   };
 
@@ -353,37 +355,29 @@ export function MainWindow(props) {
         <div class="flex flex-col items-center space-y-5">
           <button
             onClick={() => setActiveTab("home")}
-            class={`flex flex-col items-center transition group focus:outline-none ${activeTab() === "home"
-              ? "text-blue-400"
-              : "text-gray-400 hover:text-white"
+            class={`flex items-center justify-center w-14 h-14 rounded-xl transition focus:outline-none border ${activeTab() === "home"
+              ? "border-blue-500 bg-blue-600/20 text-blue-400"
+              : "border-transparent text-gray-400 hover:text-white hover:bg-gray-800"
               }`}
           >
-            <div
-              class={`p-1.5 rounded-xl mb-0.5 transition ${activeTab() === "home"
-                ? "bg-blue-600/20 text-blue-400"
-                : "text-gray-400 group-hover:bg-gray-800"
-                }`}
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                />
-              </svg>
-            </div>
-            <span class="text-[9px] font-medium">Home</span>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+              />
+            </svg>
           </button>
 
           <button
             onClick={() => setActiveTab("meetings")}
-            class={`flex flex-col items-center transition group focus:outline-none ${activeTab() === "meetings"
+            class={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition group focus:outline-none border ${activeTab() === "meetings"
               ? "text-blue-400"
               : "text-gray-400 hover:text-white"
               }`}
@@ -408,12 +402,12 @@ export function MainWindow(props) {
                 />
               </svg>
             </div>
-            <span class="text-[9px] font-medium">Meetings</span>
+            <span class="text-[9px] font-medium">{t("sidebar.meetings")}</span>
           </button>
 
           <button
             onClick={() => setActiveTab("hub")}
-            class={`flex flex-col items-center transition group focus:outline-none ${activeTab() === "hub"
+            class={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition group focus:outline-none border ${activeTab() === "hub"
               ? "text-blue-400"
               : "text-gray-400 hover:text-white"
               }`}
@@ -563,7 +557,7 @@ export function MainWindow(props) {
                           </svg>
                         )}
                       </div>
-                      <span class="text-sm text-gray-200">Use my personal meeting ID (PMI)</span>
+                      <span class="text-sm text-gray-200">{t("mainWindow.usePmi")}</span>
                     </div>
                     <div
                       class={`relative px-4 py-2.5 transition cursor-pointer flex items-center justify-between ${showPmiSubMenu() ? 'bg-[#0E71EB] text-white' : 'hover:bg-[#2c2c2c] text-gray-200'}`}
@@ -596,7 +590,7 @@ export function MainWindow(props) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
                 </div>
-                <span class="text-[10px] sm:text-[11px] font-medium text-gray-300 text-center truncate w-full">Join</span>
+                <span class="text-[10px] sm:text-[11px] font-medium text-gray-300 text-center truncate w-full">{t("common.join")}</span>
               </button>
 
               {/* 3. Schedule */}
@@ -607,7 +601,7 @@ export function MainWindow(props) {
                 <div class="w-13 h-13 sm:w-16 sm:h-16 bg-[#0E71EB] rounded-[20px] sm:rounded-[22px] flex items-center justify-center mb-1.5 shadow-md group-hover:scale-105 group-hover:-translate-y-1.5 transition-transform duration-200 ease-out">
                   <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 </div>
-                <span class="text-[10px] sm:text-[11px] font-medium text-gray-300 text-center truncate w-full">Schedule</span>
+                <span class="text-[10px] sm:text-[11px] font-medium text-gray-300 text-center truncate w-full">{t("mainWindow.schedule")}</span>
               </button>
 
               {/* 4. My Notes */}
@@ -663,7 +657,7 @@ export function MainWindow(props) {
                       <path d="M65 67 Q100 40 135 67 Q100 60 65 67 Z" fill="#cbd5e1" />
                     </svg>
                   </div>
-                  <p class="text-xs text-gray-400 font-medium">No meetings scheduled.</p>
+                  <p class="text-xs text-gray-400 font-medium">{t("mainWindow.noMeetings")}</p>
                 </div>
               ) : (
                 <div class="flex flex-col space-y-2">
@@ -678,10 +672,10 @@ export function MainWindow(props) {
                           <button
                             onClick={async () => {
                               await navigator.clipboard.writeText(m.invite_link);
-                              alert("Invite link copied! Send this to participants.");
+                              alert(t("mainWindow.inviteCopied"));
                             }}
                             class="px-3 py-1 bg-[#2a2a2a] hover:bg-[#3a3a3a] border border-gray-700 text-xs font-semibold rounded-md transition text-gray-200"
-                            title="Copy Invite Link"
+                            title={t("mainWindow.copyInviteLink")}
                           >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                           </button>
@@ -689,7 +683,7 @@ export function MainWindow(props) {
                             onClick={() => startScheduledMeeting(m)}
                             class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-md transition text-white"
                           >
-                            Start
+                            {t("common.start")}
                           </button>
                           <button
                             onClick={(e) => handleDeleteMeeting(e, m.id)}
@@ -710,8 +704,8 @@ export function MainWindow(props) {
         {/* Modals */}
         <Show when={showJoinModal()}>
           <Modal
-            title="Join Meeting"
-            confirmText="Join"
+            title={t("mainWindow.joinMeeting")}
+            confirmText={t("common.join")}
             onClose={() => setShowJoinModal(false)}
             onConfirm={handleJoinConfirm}
           >
@@ -734,14 +728,14 @@ export function MainWindow(props) {
 
         <Show when={showScheduleModal()}>
           <Modal
-            title="Schedule Meeting"
-            confirmText="Schedule"
+            title={t("mainWindow.scheduleMeeting")}
+            confirmText={t("mainWindow.schedule")}
             onClose={() => setShowScheduleModal(false)}
             onConfirm={handleScheduleConfirm}
           >
             <div class="flex flex-col space-y-4">
               <div>
-                <label class="block text-xs font-medium text-gray-400 mb-1.5">Meeting Title</label>
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">{t("mainWindow.meetingTitle")}</label>
                 <input
                   type="text"
                   value={scheduleData().title}
@@ -750,7 +744,7 @@ export function MainWindow(props) {
                 />
               </div>
               <div>
-                <label class="block text-xs font-medium text-gray-400 mb-1.5">Room Code</label>
+                <label class="block text-xs font-medium text-gray-400 mb-1.5">{t("mainWindow.roomCode")}</label>
                 <input
                   type="text"
                   value={scheduleData().room}
@@ -760,7 +754,7 @@ export function MainWindow(props) {
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Date</label>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">{t("mainWindow.date")}</label>
                   <input
                     type="date"
                     value={scheduleData().date}
@@ -769,7 +763,7 @@ export function MainWindow(props) {
                   />
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-gray-400 mb-1.5">Time</label>
+                  <label class="block text-xs font-medium text-gray-400 mb-1.5">{t("mainWindow.time")}</label>
                   <input
                     type="time"
                     value={scheduleData().time}
@@ -790,7 +784,7 @@ export function MainWindow(props) {
             }`}
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-          <span class="text-[8px] font-medium">Home</span>
+          <span class="text-[8px] font-medium">{t("sidebar.home")}</span>
         </button>
         <button
           onClick={() => setActiveTab("meetings")}
@@ -798,7 +792,7 @@ export function MainWindow(props) {
             }`}
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-          <span class="text-[8px] font-medium">Meetings</span>
+          <span class="text-[8px] font-medium">{t("sidebar.meetings")}</span>
         </button>
         <button
           onClick={() => setActiveTab("settings")}
@@ -806,7 +800,7 @@ export function MainWindow(props) {
             }`}
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /></svg>
-          <span class="text-[8px] font-medium">Settings</span>
+          <span class="text-[8px] font-medium">{t("sidebar.settings")}</span>
         </button>
       </div>
 

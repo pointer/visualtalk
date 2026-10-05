@@ -1,8 +1,10 @@
 import { createSignal, Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
-import { writeText } from '@tauri-apps/plugin-clipboard-manager'; // Requires tauri-plugin-clipboard-manager
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
+import { useI18n } from '../i18n/I18nProvider';
 
 export default function ScheduleModal({ onClose }) {
+    const { t } = useI18n();
     const [title, setTitle] = createSignal('Team Sync');
     const [loading, setLoading] = createSignal(false);
     const [inviteData, setInviteData] = createSignal(null);
@@ -42,7 +44,7 @@ export default function ScheduleModal({ onClose }) {
                 {/* Header */}
                 <div class="flex justify-between items-center p-5 border-b border-[#2a2a2a]">
                     <h2 class="text-xl font-bold text-white">
-                        {inviteData() ? 'Meeting Created!' : 'Schedule Meeting'}
+                        {inviteData() ? t("schedule.meetingCreated") : t("schedule.title")}
                     </h2>
                     <button onClick={onClose} class="text-gray-400 hover:text-white transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -56,17 +58,17 @@ export default function ScheduleModal({ onClose }) {
                         // === SUCCESS STATE: Show the Invite Link ===
                         <div class="flex flex-col gap-4 animate-in fade-in zoom-in duration-300">
                             <div class="bg-[#0f0f0f] p-4 rounded-xl border border-[#2a2a2a]">
-                                <p class="text-sm text-gray-400 mb-1">Meeting Title</p>
+                                <p class="text-sm text-gray-400 mb-1">{t("schedule.meetingTitle")}</p>
                                 <p class="text-white font-semibold text-lg">{inviteData().title}</p>
                             </div>
 
                             <div class="bg-[#0f0f0f] p-4 rounded-xl border border-[#2a2a2a]">
-                                <p class="text-sm text-gray-400 mb-1">Room Code</p>
+                                <p class="text-sm text-gray-400 mb-1">{t("schedule.roomCode")}</p>
                                 <p class="text-white font-mono text-lg">{inviteData().room}</p>
                             </div>
 
                             <div class="flex flex-col gap-2 mt-2">
-                                <label class="text-sm text-gray-400">Share this Invite Link:</label>
+                                <label class="text-sm text-gray-400">{t("schedule.shareLink")}</label>
                                 <div class="flex gap-2">
                                     <input
                                         type="text"
@@ -78,16 +80,16 @@ export default function ScheduleModal({ onClose }) {
                                         onClick={handleCopyLink}
                                         class={`px-4 rounded-lg font-semibold transition-all active:scale-95 ${copied() ? 'bg-green-600 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                                     >
-                                        {copied() ? 'Copied!' : 'Copy'}
+                                        {copied() ? t("common.copied") : t("common.copy")}
                                     </button>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-1">Anyone with this link can join within the next 24 hours.</p>
+                                <p class="text-xs text-gray-500 mt-1">{t("schedule.linkNote")}</p>
                             </div>
                         </div>
                     }>
                         {/* === FORM STATE: Collect Title === */}
                         <div class="flex flex-col gap-2">
-                            <label class="text-sm text-gray-400">Meeting Title</label>
+                            <label class="text-sm text-gray-400">{t("schedule.meetingTitle")}</label>
                             <input
                                 type="text"
                                 value={title()}
@@ -108,20 +110,20 @@ export default function ScheduleModal({ onClose }) {
                 <div class="p-5 border-t border-[#2a2a2a] flex justify-end gap-3 bg-[#151515]">
                     <Show when={!inviteData()}>
                         <button onClick={onClose} class="px-5 py-2.5 rounded-xl text-gray-300 hover:bg-[#2a2a2a] transition-colors font-medium">
-                            Cancel
+                            {t("common.cancel")}
                         </button>
                         <button
                             onClick={handleSchedule}
                             disabled={loading() || !title().trim()}
                             class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold transition-all active:scale-95"
                         >
-                            {loading() ? 'Generating...' : 'Schedule'}
+                            {loading() ? t("schedule.generating") : t("schedule.schedule")}
                         </button>
                     </Show>
 
                     <Show when={inviteData()}>
                         <button onClick={onClose} class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all active:scale-95">
-                            Done
+                            {t("common.done")}
                         </button>
                     </Show>
                 </div>

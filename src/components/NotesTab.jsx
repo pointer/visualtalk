@@ -1,7 +1,9 @@
 import { createSignal, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { useI18n } from "../i18n/I18nProvider";
 
 export function NotesTab(props) {
+  const { t } = useI18n();
   const [notes, setNotes] = createSignal("");
   const [isSaving, setIsSaving] = createSignal(false);
 
@@ -23,7 +25,7 @@ export function NotesTab(props) {
       }
     } catch (err) {
       console.error("Failed to save notes:", err);
-      alert("Failed to save notes.");
+      alert(t("notes.saveFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -33,8 +35,8 @@ export function NotesTab(props) {
     <div class="flex flex-col h-full p-6 max-w-4xl mx-auto w-full">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <h2 class="text-2xl font-semibold text-white">My Notes</h2>
-          <p class="text-sm text-gray-400">Personal meeting notes and reminders</p>
+          <h2 class="text-2xl font-semibold text-white">{t("notes.title")}</h2>
+          <p class="text-sm text-gray-400">{t("notes.description")}</p>
         </div>
         <button
           onClick={handleSave}
@@ -45,14 +47,14 @@ export function NotesTab(props) {
               : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg"
           }`}
         >
-          {isSaving() ? "Saving..." : "Save Notes"}
+          {isSaving() ? t("notes.saving") : t("notes.save")}
         </button>
       </div>
       <textarea
         value={notes()}
         onInput={(e) => setNotes(e.currentTarget.value)}
         class="flex-1 w-full p-4 rounded-xl bg-[#1c1c1c] border border-gray-800 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-600/50 resize-none font-mono text-sm leading-relaxed"
-        placeholder="Start typing your notes here..."
+        placeholder={t("notes.placeholder")}
       />
     </div>
   );
