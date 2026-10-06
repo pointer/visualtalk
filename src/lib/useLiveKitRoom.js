@@ -2,6 +2,7 @@ import { createSignal } from "solid-js";
 import { Room, RoomEvent, Track } from "livekit-client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
+import { describeMediaError } from "../components/Permissions";
 
 /**
  * Composable for LiveKit Room lifecycle, participants, and meeting actions.
@@ -24,6 +25,9 @@ export function useLiveKitRoom() {
   const [isSharingScreen, setIsSharingScreen] = createSignal(false);
   const [isHandRaised, setIsHandRaised] = createSignal(false);
   const [raisedHands, setRaisedHands] = createSignal([]);
+
+  // Visible error for join/connection failures (rendered as a banner in MeetingView).
+  const [connectionError, setConnectionError] = createSignal("");
 
   // Track current room name so leaveCall can emit the meeting-ended event.
   const [currentRoom, setCurrentRoom] = createSignal(null);
@@ -65,7 +69,8 @@ export function useLiveKitRoom() {
   };
 
   // ---- Connect to LiveKit meeting ----
-  const connectToMeeting = async ({ identity, roomName, micId, camId }) => {
+  const connectToMeeting = async ({ identity, roomName, micId, camId, token: providedToken, url: providedUrl }) => {
+    setConnectionError("");
     // Store room name for the meeting-ended event on leave.
     setCurrentRoom(roomName);
     // Stop preview stream
@@ -73,31 +78,51 @@ export function useLiveKitRoom() {
     if (pStream) pStream.getTracks().forEach((t) => t.stop());
     setPreviewStream(null);
 
-    // Get config from Rust backend
-    const conf = await invoke("get_config");
-    const LIVEKIT_URL = conf.livekit_url;
-    const API_KEY = conf.api_key;
+    // Reserve the local tile immediately. The video track itself is attached
+    // when LiveKit publishes it (LocalTrackPublished). Opening the camera a
+    // second time here (raw getUserMedia + LiveKit's own capture) starves the
+    // first consumer on macOS WebKit and renders a black local tile, so the
+    // published LiveKit track is the single source of truth for the tile.
+    setLocalStream(null);
+    setParticipants([{ id: "local", name: "You (Local)", isLocal: true, videoTrack: null }]);
 
-    // Create local media stream
+    // Resolve LiveKit server URL + token:
+    //   1) get_config + generate_livekit_token (dev: values come from .env)
+    //   2) get_meeting_session                 (packaged builds: Rust defaults)
+    //   3) token/url passed down from the main window via query params
+    let LIVEKIT_URL = providedUrl || null;
+    let token = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: camId ? { deviceId: { exact: camId } } : true,
-        audio: micId ? { deviceId: { exact: micId } } : true,
+      const conf = await invoke("get_config");
+      LIVEKIT_URL = LIVEKIT_URL || conf.livekit_url;
+      token = await invoke("generate_livekit_token", {
+        apiKey: conf.api_key,
+        identity: identity,
+        room: roomName,
+        validForSeconds: 86400,
       });
-      setLocalStream(stream);
-      setParticipants([{ id: "local", name: "You (Local)", isLocal: true, stream }]);
     } catch (err) {
-      console.error("Error starting local stream:", err);
-      setIsCameraOff(true);
+      console.warn("[connectToMeeting] get_config/generate_livekit_token failed, falling back:", err);
+      try {
+        const session = await invoke("get_meeting_session", { room: roomName });
+        LIVEKIT_URL = LIVEKIT_URL || session.livekit_url;
+        token = session.token;
+      } catch (err2) {
+        if (providedToken) {
+          token = providedToken; // last resort: token minted by the main window
+        } else {
+          const msg = `Could not obtain a LiveKit token: ${err2 && err2.message ? err2.message : err2}`;
+          console.error("[connectToMeeting]", msg);
+          setConnectionError(msg);
+          throw new Error(msg);
+        }
+      }
     }
-
-    // Generate LiveKit token via Rust
-    const token = await invoke("generate_livekit_token", {
-      apiKey: API_KEY,
-      identity: identity,
-      room: roomName,
-      validForSeconds: 86400,
-    });
+    if (!LIVEKIT_URL) {
+      const msg = "No LiveKit server URL configured (set it in Settings → LiveKit).";
+      setConnectionError(msg);
+      throw new Error(msg);
+    }
 
     // Create Room and wire event handlers
     const newRoom = new Room();
@@ -105,26 +130,28 @@ export function useLiveKitRoom() {
 
     // ---- Remote tracks subscribed ----
     newRoom.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+      const isScreen = publication.source === Track.Source.ScreenShare;
+      const id = isScreen ? `${participant.identity}-screen` : participant.identity;
+      const name = isScreen
+        ? `${participant.name || participant.identity}'s Screen`
+        : participant.name || participant.identity;
+
       if (track.kind === Track.Kind.Video) {
-        const isScreen = publication.source === Track.Source.ScreenShare;
-        setParticipants((prev) => [
-          ...prev,
-          {
-            id: isScreen ? `${participant.identity}-screen` : participant.identity,
-            name: isScreen
-              ? `${participant.name || participant.identity}'s Screen`
-              : participant.name || participant.identity,
-            isLocal: false,
-            isScreen,
-            videoTrack: track,
-          },
-        ]);
+        // UPSERT: ParticipantConnected may have already added this identity —
+        // pushing again would render a duplicate black tile.
+        setParticipants((prev) => {
+          const entry = { id, name, isLocal: false, isScreen, videoTrack: track };
+          return prev.some((p) => p.id === id)
+            ? prev.map((p) => (p.id === id ? { ...p, ...entry } : p))
+            : [...prev, entry];
+        });
       } else if (track.kind === Track.Kind.Audio) {
-        setParticipants((prev) =>
-          prev.map((p) =>
-            p.id === participant.identity ? { ...p, audioTrack: track } : p
-          )
-        );
+        setParticipants((prev) => {
+          if (prev.some((p) => p.id === id)) {
+            return prev.map((p) => (p.id === id ? { ...p, audioTrack: track } : p));
+          }
+          return [...prev, { id, name, isLocal: false, audioTrack: track }];
+        });
       }
     });
 
@@ -174,32 +201,57 @@ export function useLiveKitRoom() {
       setRaisedHands((prev) => prev.filter((id) => id !== participant.identity));
     });
 
-    // ---- Local screen share published ----
-    newRoom.on(RoomEvent.LocalTrackPublished, (track) => {
-      if (track.kind === Track.Kind.Video && track.source === Track.Source.ScreenShare) {
+    // ---- Local track published (camera or screen share) ----
+    // NOTE: LiveKit passes (publication, participant) — the media track lives
+    // on publication.track, not on the second argument.
+    newRoom.on(RoomEvent.LocalTrackPublished, (publication) => {
+      if (publication.kind !== Track.Kind.Video) return;
+      if (publication.source === Track.Source.ScreenShare) {
         setIsSharingScreen(true);
+        setParticipants((prev) => [
+          ...prev.filter((p) => p.id !== "local-screen"),
+          {
+            id: "local-screen",
+            name: "Your Screen",
+            isLocal: true,
+            isScreen: true,
+            videoTrack: publication.track,
+          },
+        ]);
+      } else if (publication.source === Track.Source.Camera) {
+        setIsCameraOff(false);
         setParticipants((prev) => {
-          const filtered = prev.filter((p) => p.id !== "local-screen");
-          return [
-            ...filtered,
-            {
-              id: "local-screen",
-              name: "Your Screen",
-              isLocal: true,
-              isScreen: true,
-              videoTrack: track,
-            },
-          ];
+          const entry = {
+            id: "local",
+            name: "You (Local)",
+            isLocal: true,
+            videoTrack: publication.track,
+          };
+          return prev.some((p) => p.id === "local")
+            ? prev.map((p) => (p.id === "local" ? { ...p, ...entry } : p))
+            : [...prev, entry];
         });
       }
     });
 
-    // ---- Local screen share unpublished ----
-    newRoom.on(RoomEvent.LocalTrackUnpublished, (track) => {
-      if (track.kind === Track.Kind.Video && track.source === Track.Source.ScreenShare) {
+    // ---- Local track unpublished ----
+    newRoom.on(RoomEvent.LocalTrackUnpublished, (publication) => {
+      if (publication.kind === Track.Kind.Video && publication.source === Track.Source.ScreenShare) {
         setIsSharingScreen(false);
         setParticipants((prev) => prev.filter((p) => p.id !== "local-screen"));
+      } else if (publication.source === Track.Source.Camera) {
+        setParticipants((prev) =>
+          prev.map((p) => (p.id === "local" ? { ...p, videoTrack: null } : p))
+        );
       }
+    });
+
+    // ---- Subscription failures must be visible, not a silent black tile ----
+    newRoom.on(RoomEvent.TrackSubscriptionFailed, (trackSid, participant, reason) => {
+      const who = participant && (participant.name || participant.identity) ? participant.name || participant.identity : "A participant";
+      const msg = `Could not subscribe to ${who}'s media track (${trackSid}): ${reason || "unknown reason"}`;
+      console.error("[connectToMeeting]", msg);
+      setConnectionError(msg);
     });
 
     // ---- Raise hand: listen for remote hand raise/lower ----
@@ -217,10 +269,47 @@ export function useLiveKitRoom() {
       }
     });
 
+    // ---- Connection lost (kick / network drop) must be visible ----
+    newRoom.on(RoomEvent.Disconnected, (reason) => {
+      setConnectionError(
+        `Disconnected from the meeting${reason ? ` (${reason})` : ""}. ` +
+        "If this happened right after another device joined, both may share the same " +
+        "identity — LiveKit kicks the older connection."
+      );
+    });
+
     // ---- Connect ----
-    await newRoom.connect(LIVEKIT_URL, token);
-    await newRoom.localParticipant.setCameraEnabled(!isCameraOff());
-    await newRoom.localParticipant.setMicrophoneEnabled(!isMuted());
+    try {
+      await newRoom.connect(LIVEKIT_URL, token);
+    } catch (err) {
+      const msg = `Failed to connect to the LiveKit server (${LIVEKIT_URL}): ${err && err.message ? err.message : err}`;
+      console.error("[connectToMeeting]", msg);
+      setConnectionError(msg);
+      throw err;
+    }
+
+    // Publish local tracks individually — a camera failure must not abort audio.
+    // Honor the devices selected in Settings/pre-join first: point LiveKit's
+    // capture at them before publishing (single capture, correct device).
+    try {
+      if (camId) await newRoom.switchActiveDevice("videoinput", camId, true);
+      if (micId) await newRoom.switchActiveDevice("audioinput", micId, true);
+    } catch (err) {
+      console.warn("switchActiveDevice failed, falling back to default devices:", err);
+    }
+    try {
+      await newRoom.localParticipant.setCameraEnabled(!isCameraOff());
+    } catch (err) {
+      console.error("setCameraEnabled failed:", err);
+      setIsCameraOff(true);
+      setConnectionError(`Your video could not be published: ${describeMediaError(err)}`);
+    }
+    try {
+      await newRoom.localParticipant.setMicrophoneEnabled(!isMuted());
+    } catch (err) {
+      console.error("setMicrophoneEnabled failed:", err);
+      setIsMuted(true);
+    }
 
     return newRoom;
   };
@@ -267,32 +356,20 @@ export function useLiveKitRoom() {
   };
 
   // ---- In-meeting: Toggle camera ----
+  // The LocalTrackPublished/LocalTrackUnpublished handlers keep the local tile
+  // in sync, so no extra getUserMedia capture is needed here (a second capture
+  // of the same camera starves the published one on macOS WebKit).
   const toggleCamera = async () => {
-    if (isCameraOff()) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        setLocalStream(stream);
-        setParticipants((prev) => [
-          ...prev.filter((p) => p.id !== "local"),
-          { id: "local", name: "You (Local)", isLocal: true, stream },
-        ]);
-        if (lkRoom()) await lkRoom().localParticipant.setCameraEnabled(true);
-        setIsCameraOff(false);
-      } catch (err) {
-        console.error("Failed to restart camera:", err);
-      }
-    } else {
-      const stream = localStream();
-      if (stream) {
-        stream.getTracks().forEach((t) => t.stop());
-        setLocalStream(null);
-      }
-      setParticipants((prev) => prev.filter((p) => p.id !== "local"));
-      if (lkRoom()) await lkRoom().localParticipant.setCameraEnabled(false);
-      setIsCameraOff(true);
+    if (!lkRoom()) return;
+    const enable = isCameraOff();
+    try {
+      await lkRoom().localParticipant.setCameraEnabled(enable);
+      setIsCameraOff(!enable);
+    } catch (err) {
+      console.error("Failed to toggle camera:", err);
+      setConnectionError(
+        `Your video could not be ${enable ? "restored" : "stopped"}: ${describeMediaError(err)}`
+      );
     }
   };
 
@@ -340,6 +417,9 @@ export function useLiveKitRoom() {
     isSharingScreen,
     isHandRaised,
     raisedHands,
+    connectionError,
+    setConnectionError,
+    clearConnectionError: () => setConnectionError(""),
     // Actions
     startPreview,
     connectToMeeting,

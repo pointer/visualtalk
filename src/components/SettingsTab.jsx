@@ -1,6 +1,7 @@
 import { useI18n } from "../i18n/I18nProvider";
-import { createSignal, onMount, For, Show } from "solid-js";
+import { createSignal, onMount, onCleanup, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { requestMediaPermissions } from "./Permissions";
 import { LicenseScreen } from "./LicenseScreen";
 
 export function SettingsTab(props) {
@@ -13,6 +14,7 @@ export function SettingsTab(props) {
   const [audioInputs, setAudioInputs] = createSignal([]);
   const [videoInputs, setVideoInputs] = createSignal([]);
   const [audioOutputs, setAudioOutputs] = createSignal([]);
+  const [deviceError, setDeviceError] = createSignal("");
 
   const [selectedMic, setSelectedMic] = createSignal("");
   const [selectedCamera, setSelectedCamera] = createSignal("");
@@ -42,6 +44,78 @@ export function SettingsTab(props) {
     mute_on_join: false,
   });
 
+  // Enumerate media devices through the webview (the only source WKWebView
+  // exposes) and sync them into the Rust DeviceManager via `set_devices`, so
+  // the rest of the app can use them. The Rust side cannot enumerate hardware
+  // on its own — without this call the lists below stay empty forever.
+  let deviceChangeListener = null;
+  const loadDevicesFromBrowser = async () => {
+    try {
+      const status = await requestMediaPermissions();
+      if (!status.camera && !status.microphone) {
+        setDeviceError(
+          status.message || "Camera and microphone permission is required to list devices."
+        );
+      } else {
+        setDeviceError("");
+      }
+
+      const all = await navigator.mediaDevices.enumerateDevices();
+      const toRust = (d) => ({
+        id: d.deviceId,
+        label: d.label || `${d.kind} (${(d.deviceId || "").slice(0, 6)})`,
+        kind: d.kind,
+        group_id: d.groupId || null,
+      });
+      const mics = all.filter((d) => d.kind === "audioinput").map(toRust);
+      const cameras = all.filter((d) => d.kind === "videoinput").map(toRust);
+      const speakers = all.filter((d) => d.kind === "audiooutput").map(toRust);
+
+      setAudioInputs(mics);
+      setVideoInputs(cameras);
+      setAudioOutputs(speakers);
+
+      // Keep the Rust DeviceManager in sync (preferred devices etc.).
+      try {
+        await invoke("set_devices", { devices: [...mics, ...cameras, ...speakers] });
+      } catch (err) {
+        console.warn("Rust device sync failed:", err);
+      }
+
+      // Preselect the saved preferred device, else the first one.
+      try {
+        const [pm, pc, ps] = await Promise.all([
+          invoke("get_preferred_mic"),
+          invoke("get_preferred_camera"),
+          invoke("get_preferred_speaker"),
+        ]);
+        setSelectedMic(pm && pm.id ? pm.id : mics.length > 0 ? mics[0].id : "");
+        setSelectedCamera(pc && pc.id ? pc.id : cameras.length > 0 ? cameras[0].id : "");
+        setSelectedSpeaker(ps && ps.id ? ps.id : speakers.length > 0 ? speakers[0].id : "");
+      } catch {
+        if (mics.length > 0) setSelectedMic(mics[0].id);
+        if (cameras.length > 0) setSelectedCamera(cameras[0].id);
+        if (speakers.length > 0) setSelectedSpeaker(speakers[0].id);
+      }
+
+      // Refresh automatically when devices are plugged/unplugged.
+      if (!deviceChangeListener && navigator.mediaDevices?.addEventListener) {
+        deviceChangeListener = () => loadDevicesFromBrowser();
+        navigator.mediaDevices.addEventListener("devicechange", deviceChangeListener);
+      }
+    } catch (err) {
+      console.error("Failed to enumerate devices:", err);
+      setDeviceError(`Failed to enumerate devices: ${err && err.message ? err.message : err}`);
+    }
+  };
+
+  onCleanup(() => {
+    if (deviceChangeListener && navigator.mediaDevices?.removeEventListener) {
+      navigator.mediaDevices.removeEventListener("devicechange", deviceChangeListener);
+      deviceChangeListener = null;
+    }
+  });
+
   // Load all settings on mount
   onMount(async () => {
     try {
@@ -55,19 +129,8 @@ export function SettingsTab(props) {
         setIdentity(settings.identity);
       }
 
-      // Load devices
-      const mics = await invoke("get_audio_inputs");
-      const cameras = await invoke("get_video_inputs");
-      const speakers = await invoke("get_audio_outputs");
-
-      setAudioInputs(mics);
-      setVideoInputs(cameras);
-      setAudioOutputs(speakers);
-
-      // Set defaults from first devices
-      if (mics.length > 0) setSelectedMic(mics[0].id);
-      if (cameras.length > 0) setSelectedCamera(cameras[0].id);
-      if (speakers.length > 0) setSelectedSpeaker(speakers[0].id);
+      // Load devices via the browser API + sync into Rust.
+      await loadDevicesFromBrowser();
 
       // Load profile and settings
       const prof = await invoke("get_user_profile");
@@ -191,6 +254,18 @@ export function SettingsTab(props) {
             <div class="space-y-6">
               <div>
                 <h3 class="text-lg font-semibold mb-4">Audio & Video</h3>
+
+                <Show when={deviceError()}>
+                  <div class="mb-4 bg-red-950/60 border border-red-800/60 text-red-200 text-xs rounded-lg px-3 py-2.5 flex items-start justify-between gap-2">
+                    <span class="flex-1 leading-5">{deviceError()}</span>
+                    <button
+                      onClick={() => loadDevicesFromBrowser()}
+                      class="shrink-0 underline hover:text-white"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </Show>
 
                 {/* Microphone Selection */}
                 <div class="bg-[#1a1a1a] rounded-lg p-4 mb-4">

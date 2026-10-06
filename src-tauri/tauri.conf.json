@@ -19,7 +19,16 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self' tauri://localhost https://tauri.localhost; media-src 'self' blob: mediastream: https://tauri.localhost;"
+      "csp": {
+        "default-src": "'self' tauri://localhost https://tauri.localhost asset: http://asset.localhost",
+        "connect-src": "'self' ipc: http://ipc.localhost wss: ws: https:",
+        "media-src": "'self' blob: mediastream:",
+        "img-src": "'self' data: blob: asset: http://asset.localhost",
+        "style-src": "'self' 'unsafe-inline'",
+        "script-src": "'self'",
+        "worker-src": "'self' blob:",
+        "font-src": "'self' data:"
+      }
     }
   },
   "bundle": {
@@ -38,7 +47,7 @@
     },
     "iOS": {
       "infoPlist": "./Info.plist",
-      "developmentTeam": "AHMED KATEB GHEMARI"
+      "developmentTeam": "DYH963CSCN"
     },
     "android": {
       "minSdkVersion": 26,

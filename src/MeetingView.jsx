@@ -26,6 +26,7 @@ export function MeetingView(props) {
   const [chatOpen, setChatOpen] = createSignal(false);
   const [alwaysShowPreview, setAlwaysShowPreview] = createSignal(true);
   const [e2eeActive, setE2eeActive] = createSignal(false);
+  const [permissionError, setPermissionError] = createSignal("");
 
   // ---- Composables ----
   const media = useMediaDevices();
@@ -40,16 +41,22 @@ export function MeetingView(props) {
   onMount(async () => {
     const status = await requestMediaPermissions();
     if (!status.camera || !status.microphone) {
-      console.error("Permissions required");
-      return;
+      // Show the reason instead of leaving the user staring at a black preview.
+      console.error("Media permission problem:", status);
+      setPermissionError(
+        status.message ||
+          `Missing permission: ${!status.camera ? "camera " : ""}${!status.microphone ? "microphone" : ""}`
+      );
     }
-    await room.startPreview(media.selectedMic(), media.selectedCam());
+    // Enumerate first so the preview uses real selected device ids.
     await media.loadDevices();
+    await room.startPreview(media.selectedMic(), media.selectedCam());
     bg.loadSavedBackground(previewVideoEl);
     rec.checkFfmpeg();
   });
 
   onCleanup(() => {
+    media.stopWatching();
     room.stopAllStreams();
     if (rec.isRecording()) rec.stopRecording();
     if (room.lkRoom()) room.lkRoom().disconnect();
@@ -71,9 +78,20 @@ export function MeetingView(props) {
         roomName,
         micId: media.selectedMic(),
         camId: media.selectedCam(),
+        token,
+        url,
       });
+      // Join succeeded — clear stale permission warnings.
+      setPermissionError("");
     } catch (err) {
       console.error("Failed to join meeting:", err);
+      // connectToMeeting sets room.connectionError() for known failure modes;
+      // this catches anything that slipped through.
+      if (!room.connectionError()) {
+        room.setConnectionError(
+          `Failed to join the meeting: ${err && err.message ? err.message : err}`
+        );
+      }
     } finally {
       setIsConnecting(false);
     }
@@ -190,6 +208,25 @@ export function MeetingView(props) {
           onCancel={() => setShowLeaveDialog(false)}
           onConfirm={confirmLeave}
         />
+      </Show>
+
+      {/* Permission / Connection Error Banner */}
+      <Show when={permissionError() || room.connectionError() || media.deviceError()}>
+        <div class="fixed top-3 left-1/2 -translate-x-1/2 z-[60] w-[92%] max-w-2xl bg-red-950/95 text-red-100 text-xs sm:text-sm px-4 py-2.5 rounded-lg shadow-xl border border-red-700/60 flex items-start gap-2">
+          <span class="shrink-0 leading-5">⚠️</span>
+          <div class="flex-1 leading-5">
+            {room.connectionError() || permissionError() || media.deviceError()}
+          </div>
+          <button
+            onClick={() => {
+              setPermissionError("");
+              room.clearConnectionError();
+            }}
+            class="shrink-0 text-red-300 hover:text-white text-base leading-none px-1"
+          >
+            ✕
+          </button>
+        </div>
       </Show>
 
       {/* Recording Error Toast */}

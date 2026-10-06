@@ -1,5 +1,6 @@
-import { For, Show, createEffect } from "solid-js";
+import { For, Show, createEffect, onCleanup } from "solid-js";
 import { useI18n } from "../i18n/I18nProvider";
+import { IS_WKWEBVIEW_MAC, startCanvasVideo } from "../lib/canvasVideoFallback";
 
 /**
  * Pre-join screen with video preview, device selection, and join button.
@@ -8,6 +9,8 @@ import { useI18n } from "../i18n/I18nProvider";
 export function PreJoinScreen(props) {
   const { t } = useI18n();
   let videoRef = null;
+  let canvasRef = null;
+  let stopCanvas = null;
 
   // Attach preview stream to video element whenever it changes
   createEffect(() => {
@@ -15,7 +18,20 @@ export function PreJoinScreen(props) {
     if (videoRef && stream) {
       videoRef.srcObject = stream;
       videoRef.play().catch(() => {});
+      // WKWebView macOS: mirror frames to canvas (native video layer may
+      // never composite on screen).
+      if (IS_WKWEBVIEW_MAC && canvasRef) {
+        if (stopCanvas) stopCanvas();
+        stopCanvas = startCanvasVideo(videoRef, canvasRef, {
+          mirror: false,
+          contain: false,
+        });
+      }
     }
+  });
+
+  onCleanup(() => {
+    if (stopCanvas) stopCanvas();
   });
 
   return (
@@ -37,17 +53,32 @@ export function PreJoinScreen(props) {
               </div>
             </div>
           }>
-            <video
-              autoplay
-              playsinline
-              muted
-              ref={(el) => {
-                videoRef = el;
-                if (props.onVideoRef) props.onVideoRef(el);
-              }}
-              style="transform: scaleX(1); -webkit-transform: scaleX(1);"
-              class="w-full h-full object-cover"
-            />
+            <>
+              <video
+                autoplay
+                playsinline
+                muted
+                ref={(el) => {
+                  videoRef = el;
+                  if (props.onVideoRef) props.onVideoRef(el);
+                }}
+                style="transform: scaleX(1); -webkit-transform: scaleX(1);"
+                class={
+                  IS_WKWEBVIEW_MAC
+                    ? "absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+                    : "w-full h-full object-cover"
+                }
+              />
+              {/* Canvas mirror for WKWebView macOS (video layer compositing bug) */}
+              <Show when={IS_WKWEBVIEW_MAC}>
+                <canvas
+                  ref={(el) => {
+                    canvasRef = el;
+                  }}
+                  class="absolute inset-0 w-full h-full pointer-events-none"
+                />
+              </Show>
+            </>
           </Show>
 
           {/* Floating control panel */}

@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
 import tailwindcss from "@tailwindcss/vite"; // Add this
 
-const host = process.env.TAURI_DEV_HOST;
+// const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
@@ -21,14 +21,15 @@ export default defineConfig(async () => ({
   server: {
     port: 1420,
     strictPort: true,
-    host: host ||  "0.0.0.0",   // 👈 Allow access from other devices
-    hmr: host
-      ? {
-          protocol: "ws",
-          host,
-          port: 1420,
-        }
-      : undefined,
+    host: "0.0.0.0",
+    // host: host ||  "0.0.0.0",   // 👈 Allow access from other devices
+    // hmr: host
+    //   ? {
+    //       protocol: "ws",
+    //       host,
+    //       port: 1420,
+    //     }
+    //   : undefined,
     watch: {
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],

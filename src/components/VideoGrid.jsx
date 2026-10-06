@@ -1,37 +1,169 @@
 import { For, createEffect, createSignal, onCleanup, Show, createMemo } from "solid-js";
+import { IS_WKWEBVIEW_MAC, startCanvasVideo } from "../lib/canvasVideoFallback";
+
+/**
+ * Start playback with WKWebView/Safari autoplay fallbacks.
+ * If unmuted playback is refused (NotAllowedError), retry muted and report
+ * "muted-autoplay" so the tile can offer a tap-to-unmute chip (a user gesture
+ * satisfies the autoplay policy). Any other failure is reported via onIssue
+ * so the tile shows a diagnostic instead of a silent black box.
+ */
+function ensurePlaying(el, { mutedFallback, onIssue, onOk }) {
+  if (!el) return;
+  const fail = (err) => {
+    const name = err && err.name ? err.name : String(err);
+    // AbortError = a newer play() call superseded this one; playback proceeds.
+    if (name === "AbortError") return;
+    if (name === "NotAllowedError" && mutedFallback && !el.muted) {
+      el.muted = true;
+      onIssue("muted-autoplay");
+      el.play().then(onOk, () => onIssue("autoplay-blocked"));
+    } else if (name === "NotAllowedError") {
+      onIssue("autoplay-blocked");
+    } else {
+      onIssue(`play-failed:${name}`);
+    }
+  };
+  try {
+    const p = el.play();
+    if (p && typeof p.then === "function") p.then(onOk, fail);
+    else onOk();
+  } catch (err) {
+    fail(err);
+  }
+}
 
 function VideoTile(props) {
   const [el, setEl] = createSignal(null);
+  const [playIssue, setPlayIssue] = createSignal("");
+  const [needUnmute, setNeedUnmute] = createSignal(false);
+  const [frameIssue, setFrameIssue] = createSignal("");
+  const [canvasEl, setCanvasEl] = createSignal(null);
+
+  const markOk = () => {
+    setPlayIssue("");
+    setFrameIssue("");
+  };
 
   createEffect(() => {
     const currentEl = el();
     if (!currentEl) return;
+    const participant = props.participant;
 
-    if (props.participant.stream) {
+    setPlayIssue("");
+    setFrameIssue("");
+    setNeedUnmute(false);
+    currentEl.autoplay = true;
+
+    const onIssue = (issue) => {
+      setPlayIssue(issue);
+      if (issue === "muted-autoplay") setNeedUnmute(true);
+    };
+
+    let sourceTrack = null;
+
+    if (participant.stream) {
       // Direct local MediaStream
-      currentEl.srcObject = props.participant.stream;
-      currentEl.play().catch((err) => console.warn("Local video play failed:", err));
-    } else if (props.participant.videoTrack) {
-      const track = props.participant.videoTrack.track || props.participant.videoTrack;
+      currentEl.muted = !!participant.isLocal;
+      currentEl.srcObject = participant.stream;
+      sourceTrack = participant.stream.getVideoTracks()[0] || null;
+      ensurePlaying(currentEl, { mutedFallback: false, onIssue, onOk: markOk });
+    } else if (participant.videoTrack) {
+      const track = participant.videoTrack.track || participant.videoTrack;
       if (track && typeof track.attach === "function") {
         track.attach(currentEl);
+        sourceTrack = track.mediaStreamTrack || null;
+        // Local previews must stay muted (echo); remote tiles keep audio.
+        if (participant.isLocal) currentEl.muted = true;
+        ensurePlaying(currentEl, {
+          mutedFallback: !participant.isLocal,
+          onIssue,
+          onOk: markOk,
+        });
       } else if (track && track.mediaStreamTrack) {
+        sourceTrack = track.mediaStreamTrack;
         currentEl.srcObject = new MediaStream([track.mediaStreamTrack]);
-        currentEl.play().catch((err) => console.warn("Remote video play failed:", err));
+        if (participant.isLocal) currentEl.muted = true;
+        ensurePlaying(currentEl, {
+          mutedFallback: !participant.isLocal,
+          onIssue,
+          onOk: markOk,
+        });
       }
     } else {
       currentEl.srcObject = null;
     }
 
+    // WKWebView on macOS may decode frames fine but never composite the
+    // native <video> layer on screen (black tile). Mirror the frames into
+    // the canvas overlay, which uses the regular paint path.
+    let stopCanvas = null;
+    if (IS_WKWEBVIEW_MAC) {
+      stopCanvas = startCanvasVideo(currentEl, canvasEl(), {
+        mirror: isMirror(),
+        contain: isScreen(),
+      });
+    }
+
+    // ---- Diagnostics: never leave a silent black tile ----
+    const onEnded = () => setFrameIssue("track ended");
+    const onPlaying = () => markOk();
+    if (sourceTrack) sourceTrack.addEventListener("ended", onEnded);
+    currentEl.addEventListener("playing", onPlaying);
+
+    const timer = setTimeout(() => {
+      if (!currentEl.isConnected) return;
+      // Nothing expected yet (participant without a video track).
+      if (!participant.stream && !participant.videoTrack) return;
+      if (!currentEl.paused && currentEl.readyState >= 2 && currentEl.videoWidth > 0) return;
+      if (sourceTrack && sourceTrack.readyState === "ended") {
+        setFrameIssue("track ended");
+      } else if (currentEl.paused) {
+        if (!playIssue()) setPlayIssue("paused");
+      } else if (currentEl.videoWidth === 0) {
+        setFrameIssue("no video frames");
+      } else {
+        setFrameIssue("stalled");
+      }
+    }, 3000);
+
     onCleanup(() => {
-      if (props.participant.videoTrack) {
-        const track = props.participant.videoTrack.track || props.participant.videoTrack;
-        if (track && typeof track.detach === "function" && currentEl) {
+      clearTimeout(timer);
+      if (stopCanvas) stopCanvas();
+      if (sourceTrack) sourceTrack.removeEventListener("ended", onEnded);
+      currentEl.removeEventListener("playing", onPlaying);
+      if (participant.videoTrack) {
+        const track = participant.videoTrack.track || participant.videoTrack;
+        if (track && typeof track.detach === "function") {
           track.detach(currentEl);
         }
       }
     });
   });
+
+  const retryPlay = () => {
+    const currentEl = el();
+    if (!currentEl) return;
+    ensurePlaying(currentEl, {
+      mutedFallback: !props.participant.isLocal,
+      onIssue: (issue) => {
+        setPlayIssue(issue);
+        if (issue === "muted-autoplay") setNeedUnmute(true);
+      },
+      onOk: () => {
+        markOk();
+        setNeedUnmute(false);
+      },
+    });
+  };
+
+  const unmute = () => {
+    const currentEl = el();
+    if (!currentEl) return;
+    currentEl.muted = false;
+    currentEl.play().catch(() => {});
+    setNeedUnmute(false);
+  };
 
   const isMirror = () => props.participant.isLocal && !props.participant.isScreen;
   const isScreen = () => props.participant.isScreen;
@@ -51,13 +183,48 @@ function VideoTile(props) {
           "-webkit-transform": isMirror() ? "scaleX(-1)" : "none",
           transform: isMirror() ? "scaleX(-1)" : "none",
         }}
-        class={`w-full h-full ${isScreen() ? "object-contain bg-black" : "object-cover"
-          }`}
+        class={
+          IS_WKWEBVIEW_MAC
+            ? "absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+            : `w-full h-full ${isScreen() ? "object-contain bg-black" : "object-cover"}`
+        }
       />
+      {/* Canvas mirror for WKWebView macOS (native video layer never composites) */}
+      <Show when={IS_WKWEBVIEW_MAC}>
+        <canvas
+          ref={setCanvasEl}
+          class="absolute inset-0 w-full h-full pointer-events-none"
+        />
+      </Show>
       {/* Hand raise indicator */}
       <Show when={props.raisedHands && props.raisedHands.includes(props.participant.name)}>
         <div class="absolute top-2 right-2 bg-yellow-500/90 backdrop-blur-md w-8 h-8 rounded-full flex items-center justify-center shadow-lg animate-bounce text-base">
           ✋
+        </div>
+      </Show>
+      {/* Playback blocked overlay — click is a user gesture, which satisfies
+          WKWebView/Safari autoplay policy. */}
+      <Show when={playIssue() === "autoplay-blocked" || playIssue() === "paused"}>
+        <button
+          onClick={retryPlay}
+          class="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-black/60 text-slate-100 text-xs sm:text-sm border-none cursor-pointer"
+        >
+          <span class="text-lg">▶</span> Tap to enable video
+        </button>
+      </Show>
+      {/* Autoplay forced us to mute — offer sound back via a gesture. */}
+      <Show when={needUnmute()}>
+        <button
+          onClick={unmute}
+          class="absolute bottom-2 right-2 z-10 bg-slate-900/85 backdrop-blur-md px-2.5 py-1 rounded-md text-[11px] text-slate-100 flex items-center gap-1.5 shadow border border-slate-700 cursor-pointer"
+        >
+          🔇 Muted by autoplay — tap for sound
+        </button>
+      </Show>
+      {/* Frame-level diagnostic badge (track ended / no frames / stalled). */}
+      <Show when={frameIssue()}>
+        <div class="absolute top-2 left-2 z-10 bg-red-950/90 border border-red-700/60 text-red-100 px-2 py-0.5 rounded-md text-[10px]">
+          ⚠ {frameIssue()}
         </div>
       </Show>
       <div class="absolute bottom-2 left-2 bg-slate-900/85 backdrop-blur-md px-2.5 py-0.5 rounded-md text-[11px] text-slate-200 flex items-center gap-1.5 shadow">
