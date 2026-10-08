@@ -94,7 +94,14 @@ export function MeetingView(props) {
           console.error("[recording] flush on window close failed:", err);
         }
         // destroy() does not re-emit close-requested, so this cannot loop.
-        await getCurrentWindow().destroy();
+        // Requires core:window:allow-destroy in src-tauri/capabilities;
+        // Tauri's onCloseRequested wrapper also falls back to destroy() for
+        // any close we do not prevent, so the permission is mandatory here.
+        try {
+          await getCurrentWindow().destroy();
+        } catch (err) {
+          console.error("[meeting] window destroy denied/failed:", err);
+        }
       });
     } catch (err) {
       // Non-Tauri context (plain browser dev): nothing to intercept.
