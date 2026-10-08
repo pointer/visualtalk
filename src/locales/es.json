@@ -49,6 +49,8 @@
 
   "meeting.title": "Reunión VisualTalk",
   "meeting.joinedAs": "Conectado como:",
+  "meeting.audioBlocked": "El navegador bloquea el sonido.",
+  "meeting.enableAudio": "Haz clic para activar el audio",
 
   "toolbar.mute": "Silenciar",
   "toolbar.unmute": "Activar sonido",
@@ -76,6 +78,20 @@
   "leaveConfirm.title": "¿Salir de la reunión?",
   "leaveConfirm.message": "¿Está seguro de que desea salir de esta reunión?",
   "leaveConfirm.leave": "Salir de la reunión",
+
+  "recording.banner": "Esta reunión está siendo grabada",
+  "recording.startedBy": "Iniciada por {name}",
+  "recording.startedByYou": "Tú iniciaste esta grabación",
+  "recording.saved": "Grabación guardada en",
+  "recording.stopped": "Grabación detenida.",
+  "recording.notPreserved": "No se pudo conservar la grabación. No se escribió nada en el disco: comprueba que ffmpeg esté instalado y que la carpeta permita escritura.",
+
+  "recordConfirm.title": "¿Iniciar la grabación?",
+  "recordConfirm.message": "La grabación captura el audio, el vídeo y las pantallas compartidas de todos los participantes de esta reunión.",
+  "recordConfirm.pointNotify": "Todos los participantes verán de inmediato un aviso de «reunión grabada».",
+  "recordConfirm.pointLateJoiners": "Quien se una más tarde será informado en cuanto entre.",
+  "recordConfirm.pointSaved": "La grabación se guarda solo en este dispositivo.",
+  "recordConfirm.start": "Iniciar grabación",
 
   "chat.title": "Chat",
   "chat.messages": "Mensajes",

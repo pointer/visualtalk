@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { SettingsTab } from "./components/SettingsTab";
 import { NotesTab } from "./components/NotesTab";
 import { Modal } from "./components/Modal";
+import { TimeInput24h } from "./components/TimeInput24h";
 import { useTauriEvents } from "./lib/useTauriEvents";
 import { useI18n } from "./i18n/I18nProvider";
 
@@ -85,11 +86,22 @@ export function MainWindow(props) {
   };
 
   const getFormattedTime = (date) => {
+    // hourCycle "h23" guarantees a true 24h clock (00–23). Unlike
+    // hour12: false, it can never resolve to the h24 cycle where
+    // midnight renders as "24:00".
     return date.toLocaleTimeString(locale(), {
       hour: "2-digit",
       minute: "2-digit",
-      hour12: false,
+      hourCycle: "h23",
     });
+  };
+
+  // "Jun 10 • 14:00" — local, always 24h, from the stored UTC ISO start_time.
+  const formatMeetingWhen = (meeting) => {
+    const d = new Date(meeting.start_time);
+    if (Number.isNaN(d.getTime())) return "";
+    const day = d.toLocaleDateString(locale(), { month: "short", day: "numeric" });
+    return `${day} • ${getFormattedTime(d)}`;
   };
 
   const [currentTime, setCurrentTime] = createSignal(new Date());
@@ -282,7 +294,12 @@ export function MainWindow(props) {
     if (!title.trim() || !room.trim()) return;
 
     try {
-      const startISO = new Date(`${date}T${time}`).toISOString();
+      const startDate = new Date(`${date}T${time}`);
+      if (!date || !time || Number.isNaN(startDate.getTime())) {
+        alert(t("mainWindow.scheduleFailed"));
+        return;
+      }
+      const startISO = startDate.toISOString();
       const newMeeting = await invoke("schedule_meeting", {
         title: title.trim(),
         roomId: room.trim(),
@@ -666,7 +683,7 @@ export function MainWindow(props) {
                       <div class="flex items-center justify-between p-3 rounded-lg bg-[#242424] hover:bg-[#2a2a2a] transition">
                         <div class="flex flex-col">
                           <span class="text-sm font-medium text-white">{m.title}</span>
-                          <span class="text-xs text-gray-400">Room: #{m.room_id} • {m.duration_minutes} mins</span>
+                          <span class="text-xs text-gray-400">{formatMeetingWhen(m) ? `${formatMeetingWhen(m)} • ` : ""}Room: #{m.room_id} • {m.duration_minutes} mins</span>
                         </div>
                         <div class="flex items-center space-x-2">
                           <button
@@ -764,11 +781,9 @@ export function MainWindow(props) {
                 </div>
                 <div>
                   <label class="block text-xs font-medium text-gray-400 mb-1.5">{t("mainWindow.time")}</label>
-                  <input
-                    type="time"
+                  <TimeInput24h
                     value={scheduleData().time}
-                    onInput={(e) => setScheduleData({ ...scheduleData(), time: e.currentTarget.value })}
-                    class="w-full px-3 py-2 rounded-lg bg-[#111111] border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-600/50"
+                    onChange={(v) => setScheduleData({ ...scheduleData(), time: v })}
                   />
                 </div>
               </div>

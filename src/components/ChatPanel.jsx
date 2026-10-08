@@ -288,9 +288,11 @@ export function ChatPanel(props) {
   };
 
   const formatTime = (ts) => {
+    // hourCycle "h23" → always 24h (00–23), independent of the OS locale.
     return new Date(ts).toLocaleTimeString(locale(), {
       hour: "2-digit",
       minute: "2-digit",
+      hourCycle: "h23",
     });
   };
 

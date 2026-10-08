@@ -49,6 +49,8 @@
 
   "meeting.title": "VisualTalk Meeting",
   "meeting.joinedAs": "Joined as:",
+  "meeting.audioBlocked": "Sound is blocked by the browser.",
+  "meeting.enableAudio": "Click to enable audio",
 
   "toolbar.mute": "Mute",
   "toolbar.unmute": "Unmute",
@@ -76,6 +78,20 @@
   "leaveConfirm.title": "Leave meeting?",
   "leaveConfirm.message": "Are you sure you want to leave this meeting?",
   "leaveConfirm.leave": "Leave meeting",
+
+  "recording.banner": "This meeting is being recorded",
+  "recording.startedBy": "Started by {name}",
+  "recording.startedByYou": "You started this recording",
+  "recording.saved": "Recording saved to",
+  "recording.stopped": "Recording stopped.",
+  "recording.notPreserved": "The recording could not be preserved. Nothing was written to disk — check that ffmpeg is installed and that the folder is writable.",
+
+  "recordConfirm.title": "Start recording?",
+  "recordConfirm.message": "Recording captures the audio, video and shared screens of everyone in this meeting.",
+  "recordConfirm.pointNotify": "All participants will immediately see a \"being recorded\" notice.",
+  "recordConfirm.pointLateJoiners": "Anyone who joins later is told as soon as they arrive.",
+  "recordConfirm.pointSaved": "The recording is stored on this device only.",
+  "recordConfirm.start": "Start recording",
 
   "chat.title": "Chat",
   "chat.messages": "Messages",

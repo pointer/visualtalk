@@ -99,14 +99,15 @@ fn open_meeting_window(
     width: Option<f64>,
     height: Option<f64>,
 ) -> Result<String, String> {
-    println!(
-        "Rust received room: {}, token present: {}",
-        room,
-        token.is_some()
-    );
+    // println!(
+    //     "Rust received room: {}, token present: {}",
+    //     room,
+    //     token.is_some()
+    // );
 
     // Pass the new arguments down to the spawn function
-    let result = window::spawn_meeting_window(&app, room.clone(), token, url, identity, width, height);
+    let result =
+        window::spawn_meeting_window(&app, room.clone(), token, url, identity, width, height);
 
     // [CONCERN: We emit MeetingStarted only if the window was created
     //  successfully.  If spawn fails, no event is emitted — correct
@@ -229,7 +230,12 @@ fn schedule_meeting(
     //  [...prev, newMeeting])` and this event will both add it.
     //  Must ensure the JS handler checks for duplicates or is
     //  idempotent.]
-    emit_event(&app, VtEvent::MeetingScheduled { meeting: meeting.clone() });
+    emit_event(
+        &app,
+        VtEvent::MeetingScheduled {
+            meeting: meeting.clone(),
+        },
+    );
     Ok(meeting)
 }
 
