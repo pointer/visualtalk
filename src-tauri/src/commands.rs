@@ -1,9 +1,12 @@
 use crate::token;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tauri_plugin_store::StoreExt; // Assuming your token module is imported at the root
                                   // use tauri_plugin_opener::StoreExt;
+use chrono::{Local, NaiveDate, NaiveTime, TimeZone, Utc};
+use icalendar::{Calendar, Component, Event, EventLike, Property};
+use std::fs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LiveKitSettings {
@@ -16,12 +19,22 @@ pub struct LiveKitSettings {
 pub(crate) const STORE_FILE: &str = "settings.json";
 pub(crate) const SETTINGS_KEY: &str = "livekit_config";
 
-// The payload we will send back to SolidJS
+// The payload we will send back to SolidJS.
+// `meeting_invite_link` is generated server-side, so requests may omit it.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct MeetingInvite {
-    pub room: String,
-    pub title: String,
-    pub invite_link: String,
+pub struct ICalendarEvent {
+    pub ics_id: String,
+    pub ics_organizer: String,
+    pub ics_attendees: Vec<String>,
+    pub ics_room: String,
+    pub ics_title: String,
+    pub ics_summary: String,
+    pub ics_description: String,
+    pub ics_start_date: String,
+    pub ics_start_time: String,
+    pub ics_duration_minutes: u32,
+    #[serde(default)]
+    pub ics_invite_link: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,7 +43,14 @@ pub struct ParsedInvite {
     pub room: String,
     pub token: String,
 }
-
+// The payload we will send back to SolidJS
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MeetingInvite {
+    pub room: String,
+    pub title: String,
+    #[serde(default)]
+    pub invite_link: String,
+}
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HostMeetingData {
     pub url: String,
@@ -38,17 +58,28 @@ pub struct HostMeetingData {
 }
 
 #[tauri::command]
-pub async fn create_meeting_invite(app: AppHandle, title: String) -> Result<MeetingInvite, String> {
+pub async fn create_meeting_invite(
+    app: AppHandle,
+    meeting: MeetingInvite,
+) -> Result<MeetingInvite, String> {
     // 1. Load Host Settings (API Keys & URL)
+    println!("Title: {}", meeting.title);
+
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
     let value = store
         .get(SETTINGS_KEY)
         .ok_or("LiveKit settings not found. Please configure API keys in Settings first.")?;
     let settings: LiveKitSettings = serde_json::from_value(value).map_err(|e| e.to_string())?;
 
-    // 2. Generate a random Room Code (e.g., room-7137)
-    let random_id = rand::random::<u16>() % 10000;
-    let room = format!("room-{}", random_id);
+    // 2. Use the requested Room Code if provided, else generate a random one
+    //    (e.g., room-7137)
+    let room = if meeting.room.trim().is_empty() {
+        let random_id = rand::random::<u16>() % 10000;
+        format!("room-{}", random_id)
+    } else {
+        meeting.room.trim().to_string()
+    };
+    let title = meeting.title;
 
     // 3. Generate the Guest Token using YOUR existing module!
     // Identity is "guest", validity is 86400 seconds (24 hours)
@@ -104,7 +135,10 @@ pub async fn load_settings(app: AppHandle) -> Result<Option<LiveKitSettings>, St
 }
 
 // Helper function to generate the magic link (DRY - Don't Repeat Yourself)
-pub(crate) fn generate_magic_link(settings: &LiveKitSettings, room: &str) -> Result<String, String> {
+pub(crate) fn generate_magic_link(
+    settings: &LiveKitSettings,
+    room: &str,
+) -> Result<String, String> {
     // Generate 24h guest token
     let guest_token = token::generate_token(
         &settings.api_key,
@@ -212,4 +246,59 @@ pub fn parse_invite_link(invite_link: String) -> Result<ParsedInvite, String> {
         .clone();
 
     Ok(ParsedInvite { url, room, token })
+}
+
+#[tauri::command]
+pub async fn create_icalendar_event(
+    app: AppHandle,
+    ics: ICalendarEvent,
+) -> Result<String, String> {
+    use chrono::Duration;
+
+    let start_date = NaiveDate::parse_from_str(&ics.ics_start_date, "%Y-%m-%d")
+        .map_err(|e| format!("Invalid start date: {}", e))?;
+    let start_time = NaiveTime::parse_from_str(&ics.ics_start_time, "%H:%M")
+        .map_err(|e| format!("Invalid start time: {}", e))?;
+    let start = start_date.and_time(start_time);
+
+    // Compute end from start + duration
+    let end = start + Duration::minutes(ics.ics_duration_minutes as i64);
+
+    let mut event = Event::new();
+    event
+        .summary(&ics.ics_summary)
+        .description(&ics.ics_description)
+        .starts(start)
+        .ends(end);
+
+    event.append_property(Property::new("UID", ics.ics_id.as_str()));
+
+    if !ics.ics_room.is_empty() {
+        event.append_property(Property::new("LOCATION", ics.ics_room.as_str()));
+    }
+
+    if !ics.ics_organizer.is_empty() {
+        let organizer = format!("mailto:{}", ics.ics_organizer);
+        event.append_property(Property::new("ORGANIZER", organizer.as_str()));
+    }
+
+    if !ics.ics_invite_link.is_empty() {
+        event.append_property(Property::new("URL", ics.ics_invite_link.as_str()));
+    }
+
+    let calendar = Calendar::new().push(event).done();
+
+    // Write to the app config directory so the file persists across sessions
+    let config_dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("Cannot resolve config dir: {}", e))?;
+    let _ = std::fs::create_dir_all(&config_dir);
+
+    let file_name = format!("{}.ics", ics.ics_id);
+    let ics_path = config_dir.join(&file_name);
+    fs::write(&ics_path, calendar.to_string())
+        .map_err(|e| format!("Failed to write .ics file: {}", e))?;
+
+    Ok(ics_path.to_string_lossy().to_string())
 }

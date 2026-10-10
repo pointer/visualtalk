@@ -1,8 +1,8 @@
 [package]
 name = "visualtalk"
-version = "0.1.10"
-description = "A Tauri App"
-authors = ["you"]
+version = "0.2.10"
+description = "Video-conferencing Tauri App"
+authors = ["katebg@yahoo.com"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -34,13 +34,14 @@ rand = "0.10.3"
 urlencoding = "2.1"
 tauri-plugin-store = "2.5.0"
 url = "2.5.8"
-tauri-plugin-dialog = "2.8.0"
-reqwest = { version = "0.12", features = ["json"] }
+tauri-plugin-dialog = "2.8.1"
+reqwest = { version = "0.13.5", features = ["json"] }
 tokio = { version = "1", features = ["process", "io-util"] }
 # E2EE crypto stack (ECDH P-256 + AES-256-GCM) — only in Pro Edition
 # HKDF implemented manually via hmac + sha2 to avoid digest version conflicts
-p256 = { version = "0.13", features = ["ecdh"], optional = true }
-aes-gcm = { version = "0.10", optional = true }
+p256 = { version = "0.14.0", features = ["ecdh"], optional = true }
+aes-gcm = { version = "0.11.1", optional = true }
+icalendar = "0.17"
 
 [features]
 default = []

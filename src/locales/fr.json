@@ -9,12 +9,10 @@
   "common.done": "Terminé",
   "common.back": "Retour",
   "common.continue": "Continuer",
-
   "sidebar.home": "Accueil",
   "sidebar.meetings": "Réunions",
   "sidebar.settings": "Paramètres",
   "sidebar.notes": "Notes",
-
   "mainWindow.newMeeting": "Nouvelle réunion",
   "mainWindow.usePmi": "Utiliser mon identifiant de réunion personnel (PMI)",
   "mainWindow.copyMeetingLink": "Copier le lien de la réunion",
@@ -46,12 +44,10 @@
   "mainWindow.pmiUpdated": "PMI mis à jour avec succès !",
   "mainWindow.scheduleFailed": "Échec de la planification de la réunion.",
   "mainWindow.startErrorDetailed": "Impossible de démarrer la réunion : {error}",
-
   "meeting.title": "Réunion VisualTalk",
   "meeting.joinedAs": "Connecté en tant que :",
   "meeting.audioBlocked": "Le son est bloqué par le navigateur.",
   "meeting.enableAudio": "Cliquez pour activer le son",
-
   "toolbar.mute": "Muet",
   "toolbar.unmute": "Activer le son",
   "toolbar.startVideo": "Démarrer la vidéo",
@@ -63,7 +59,6 @@
   "toolbar.chat": "Discussion",
   "toolbar.record": "Enregistrer",
   "toolbar.leave": "Quitter",
-
   "preJoin.cameraOff": "La caméra est désactivée",
   "preJoin.audio": "Audio",
   "preJoin.video": "Vidéo",
@@ -74,25 +69,21 @@
   "preJoin.alwaysShowPreview": "Toujours afficher l'aperçu",
   "preJoin.start": "Démarrer",
   "preJoin.connecting": "Connexion...",
-
   "leaveConfirm.title": "Quitter la réunion ?",
   "leaveConfirm.message": "Êtes-vous sûr de vouloir quitter cette réunion ?",
   "leaveConfirm.leave": "Quitter la réunion",
-
   "recording.banner": "Cette réunion est enregistrée",
   "recording.startedBy": "Lancé par {name}",
   "recording.startedByYou": "Vous avez lancé cet enregistrement",
   "recording.saved": "Enregistrement sauvegardé dans",
   "recording.stopped": "Enregistrement arrêté.",
   "recording.notPreserved": "L'enregistrement n'a pas pu être conservé. Rien n'a été écrit sur le disque — vérifiez que ffmpeg est installé et que le dossier est accessible en écriture.",
-
   "recordConfirm.title": "Démarrer l'enregistrement ?",
   "recordConfirm.message": "L'enregistrement capture l'audio, la vidéo et les écrans partagés de tous les participants à cette réunion.",
   "recordConfirm.pointNotify": "Tous les participants verront immédiatement un avis « réunion enregistrée ».",
   "recordConfirm.pointLateJoiners": "Toute personne rejoignant plus tard en est informée dès son arrivée.",
   "recordConfirm.pointSaved": "L'enregistrement est conservé uniquement sur cet appareil.",
   "recordConfirm.start": "Démarrer l'enregistrement",
-
   "chat.title": "Discussion",
   "chat.messages": "Messages",
   "chat.noMessages": "Aucun message pour le moment",
@@ -101,7 +92,6 @@
   "chat.openFile": "Ouvrir le fichier",
   "chat.uploading": "Téléchargement...",
   "chat.notEncrypted": "Discussion non chiffrée",
-
   "settings.audioVideo": "Audio et vidéo",
   "settings.profile": "Profil",
   "settings.livekit": "LiveKit",
@@ -145,7 +135,6 @@
   "settings.licenseAgreement": "Contrat de licence",
   "settings.licenseDesc": "Voir le CLUF et les conditions de licence",
   "settings.licenseModalTitle": "Licence VisualTalk",
-
   "schedule.meetingCreated": "Réunion créée !",
   "schedule.title": "Planifier une réunion",
   "schedule.meetingTitle": "Titre de la réunion",
@@ -154,7 +143,12 @@
   "schedule.linkNote": "Toute personne disposant de ce lien peut rejoindre la réunion dans les 24 heures.",
   "schedule.generating": "Génération...",
   "schedule.schedule": "Planifier",
-
+  "schedule.description": "Description",
+  "schedule.summary": "Summary",
+  "schedule.startDate": "Start date",
+  "schedule.startTime": "Start time",
+  "schedule.duration": "Durée (minutes)",
+  "schedule.downloadIcs": "Télécharger .ics",
   "joinMeeting.title": "Rejoindre la réunion",
   "joinMeeting.pasteInvite": "Coller le lien d'invitation",
   "joinMeeting.validating": "Validation...",
@@ -162,7 +156,6 @@
   "joinMeeting.displayName": "Votre nom d'affichage",
   "joinMeeting.enterName": "Veuillez entrer votre nom pour rejoindre.",
   "joinMeeting.joinNow": "Rejoindre maintenant",
-
   "notes.title": "Mes notes",
   "notes.description": "Notes et rappels personnels de réunion",
   "notes.save": "Enregistrer les notes",

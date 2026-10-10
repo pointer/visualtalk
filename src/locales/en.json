@@ -9,12 +9,10 @@
   "common.done": "Done",
   "common.back": "Back",
   "common.continue": "Continue",
-
   "sidebar.home": "Home",
   "sidebar.meetings": "Meetings",
   "sidebar.settings": "Settings",
   "sidebar.notes": "Notes",
-
   "mainWindow.newMeeting": "New Meeting",
   "mainWindow.usePmi": "Use my personal meeting ID (PMI)",
   "mainWindow.copyMeetingLink": "Copy meeting link",
@@ -46,12 +44,10 @@
   "mainWindow.pmiUpdated": "PMI updated successfully!",
   "mainWindow.scheduleFailed": "Failed to schedule meeting.",
   "mainWindow.startErrorDetailed": "Could not start meeting: {error}",
-
   "meeting.title": "VisualTalk Meeting",
   "meeting.joinedAs": "Joined as:",
   "meeting.audioBlocked": "Sound is blocked by the browser.",
   "meeting.enableAudio": "Click to enable audio",
-
   "toolbar.mute": "Mute",
   "toolbar.unmute": "Unmute",
   "toolbar.startVideo": "Start Video",
@@ -63,7 +59,6 @@
   "toolbar.chat": "Chat",
   "toolbar.record": "Record",
   "toolbar.leave": "Leave",
-
   "preJoin.cameraOff": "Camera is off",
   "preJoin.audio": "Audio",
   "preJoin.video": "Video",
@@ -74,25 +69,21 @@
   "preJoin.alwaysShowPreview": "Always show preview",
   "preJoin.start": "Start",
   "preJoin.connecting": "Connecting...",
-
   "leaveConfirm.title": "Leave meeting?",
   "leaveConfirm.message": "Are you sure you want to leave this meeting?",
   "leaveConfirm.leave": "Leave meeting",
-
   "recording.banner": "This meeting is being recorded",
   "recording.startedBy": "Started by {name}",
   "recording.startedByYou": "You started this recording",
   "recording.saved": "Recording saved to",
   "recording.stopped": "Recording stopped.",
   "recording.notPreserved": "The recording could not be preserved. Nothing was written to disk — check that ffmpeg is installed and that the folder is writable.",
-
   "recordConfirm.title": "Start recording?",
   "recordConfirm.message": "Recording captures the audio, video and shared screens of everyone in this meeting.",
   "recordConfirm.pointNotify": "All participants will immediately see a \"being recorded\" notice.",
   "recordConfirm.pointLateJoiners": "Anyone who joins later is told as soon as they arrive.",
   "recordConfirm.pointSaved": "The recording is stored on this device only.",
   "recordConfirm.start": "Start recording",
-
   "chat.title": "Chat",
   "chat.messages": "Messages",
   "chat.noMessages": "No messages yet",
@@ -101,7 +92,6 @@
   "chat.openFile": "Open file",
   "chat.uploading": "Uploading...",
   "chat.notEncrypted": "Chat not encrypted",
-
   "settings.audioVideo": "Audio & Video",
   "settings.profile": "Profile",
   "settings.livekit": "LiveKit",
@@ -145,7 +135,6 @@
   "settings.licenseAgreement": "License Agreement",
   "settings.licenseDesc": "View EULA and source license terms",
   "settings.licenseModalTitle": "VisualTalk License",
-
   "schedule.meetingCreated": "Meeting Created!",
   "schedule.title": "Schedule Meeting",
   "schedule.meetingTitle": "Meeting Title",
@@ -154,7 +143,12 @@
   "schedule.linkNote": "Anyone with this link can join within the next 24 hours.",
   "schedule.generating": "Generating...",
   "schedule.schedule": "Schedule",
-
+  "schedule.description": "Description",
+  "schedule.summary": "Summary",
+  "schedule.startDate": "Start date",
+  "schedule.startTime": "Start time",
+  "schedule.duration": "Duration (minutes)",
+  "schedule.downloadIcs": "Download .ics",
   "joinMeeting.title": "Join Meeting",
   "joinMeeting.pasteInvite": "Paste Invite Link",
   "joinMeeting.validating": "Validating...",
@@ -162,7 +156,6 @@
   "joinMeeting.displayName": "Your Display Name",
   "joinMeeting.enterName": "Please enter your name to join.",
   "joinMeeting.joinNow": "Join Now",
-
   "notes.title": "My Notes",
   "notes.description": "Personal meeting notes and reminders",
   "notes.save": "Save Notes",

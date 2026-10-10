@@ -9,12 +9,10 @@
   "common.done": "Listo",
   "common.back": "Atrás",
   "common.continue": "Continuar",
-
   "sidebar.home": "Inicio",
   "sidebar.meetings": "Reuniones",
   "sidebar.settings": "Ajustes",
   "sidebar.notes": "Notas",
-
   "mainWindow.newMeeting": "Nueva reunión",
   "mainWindow.usePmi": "Usar mi ID de reunión personal (PMI)",
   "mainWindow.copyMeetingLink": "Copiar enlace de la reunión",
@@ -46,12 +44,10 @@
   "mainWindow.pmiUpdated": "¡PMI actualizado con éxito!",
   "mainWindow.scheduleFailed": "Error al programar la reunión.",
   "mainWindow.startErrorDetailed": "No se pudo iniciar la reunión: {error}",
-
   "meeting.title": "Reunión VisualTalk",
   "meeting.joinedAs": "Conectado como:",
   "meeting.audioBlocked": "El navegador bloquea el sonido.",
   "meeting.enableAudio": "Haz clic para activar el audio",
-
   "toolbar.mute": "Silenciar",
   "toolbar.unmute": "Activar sonido",
   "toolbar.startVideo": "Iniciar video",
@@ -63,7 +59,6 @@
   "toolbar.chat": "Chat",
   "toolbar.record": "Grabar",
   "toolbar.leave": "Salir",
-
   "preJoin.cameraOff": "La cámara está apagada",
   "preJoin.audio": "Audio",
   "preJoin.video": "Video",
@@ -74,25 +69,21 @@
   "preJoin.alwaysShowPreview": "Mostrar siempre la vista previa",
   "preJoin.start": "Iniciar",
   "preJoin.connecting": "Conectando...",
-
   "leaveConfirm.title": "¿Salir de la reunión?",
   "leaveConfirm.message": "¿Está seguro de que desea salir de esta reunión?",
   "leaveConfirm.leave": "Salir de la reunión",
-
   "recording.banner": "Esta reunión está siendo grabada",
   "recording.startedBy": "Iniciada por {name}",
   "recording.startedByYou": "Tú iniciaste esta grabación",
   "recording.saved": "Grabación guardada en",
   "recording.stopped": "Grabación detenida.",
   "recording.notPreserved": "No se pudo conservar la grabación. No se escribió nada en el disco: comprueba que ffmpeg esté instalado y que la carpeta permita escritura.",
-
   "recordConfirm.title": "¿Iniciar la grabación?",
   "recordConfirm.message": "La grabación captura el audio, el vídeo y las pantallas compartidas de todos los participantes de esta reunión.",
   "recordConfirm.pointNotify": "Todos los participantes verán de inmediato un aviso de «reunión grabada».",
   "recordConfirm.pointLateJoiners": "Quien se una más tarde será informado en cuanto entre.",
   "recordConfirm.pointSaved": "La grabación se guarda solo en este dispositivo.",
   "recordConfirm.start": "Iniciar grabación",
-
   "chat.title": "Chat",
   "chat.messages": "Mensajes",
   "chat.noMessages": "Aún no hay mensajes",
@@ -101,7 +92,6 @@
   "chat.openFile": "Abrir archivo",
   "chat.uploading": "Subiendo...",
   "chat.notEncrypted": "Chat no cifrado",
-
   "settings.audioVideo": "Audio y video",
   "settings.profile": "Perfil",
   "settings.livekit": "LiveKit",
@@ -145,7 +135,6 @@
   "settings.licenseAgreement": "Acuerdo de licencia",
   "settings.licenseDesc": "Ver EULA y términos de licencia",
   "settings.licenseModalTitle": "Licencia de VisualTalk",
-
   "schedule.meetingCreated": "¡Reunión creada!",
   "schedule.title": "Programar reunión",
   "schedule.meetingTitle": "Título de la reunión",
@@ -154,7 +143,12 @@
   "schedule.linkNote": "Cualquier persona con este enlace puede unirse en las próximas 24 horas.",
   "schedule.generating": "Generando...",
   "schedule.schedule": "Programar",
-
+  "schedule.description": "Description",
+  "schedule.summary": "Summary",
+  "schedule.startDate": "Start date",
+  "schedule.startTime": "Start time",
+  "schedule.duration": "Duración (minutos)",
+  "schedule.downloadIcs": "Descargar .ics",
   "joinMeeting.title": "Unirse a la reunión",
   "joinMeeting.pasteInvite": "Pegar enlace de invitación",
   "joinMeeting.validating": "Validando...",
@@ -162,7 +156,6 @@
   "joinMeeting.displayName": "Su nombre para mostrar",
   "joinMeeting.enterName": "Por favor ingrese su nombre para unirse.",
   "joinMeeting.joinNow": "Unirse ahora",
-
   "notes.title": "Mis notas",
   "notes.description": "Notas y recordatorios personales de reuniones",
   "notes.save": "Guardar notas",

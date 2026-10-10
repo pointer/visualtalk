@@ -99,12 +99,6 @@ fn open_meeting_window(
     width: Option<f64>,
     height: Option<f64>,
 ) -> Result<String, String> {
-    // println!(
-    //     "Rust received room: {}, token present: {}",
-    //     room,
-    //     token.is_some()
-    // );
-
     // Pass the new arguments down to the spawn function
     let result =
         window::spawn_meeting_window(&app, room.clone(), token, url, identity, width, height);
@@ -820,6 +814,7 @@ pub fn run() {
             notify_meeting_ended,
             parse_invite_link,
             create_meeting_invite,
+            create_icalendar_event,
             // User Management
             get_user_profile,
             update_user_profile,
