@@ -1,7 +1,7 @@
-import { createSignal, Show } from 'solid-js';
+import { createSignal, onMount, Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { openPath } from '@tauri-apps/plugin-opener';
+import { openPath, openUrl } from '@tauri-apps/plugin-opener';
 import { useI18n } from '../i18n/I18nProvider';
 import { FloatingField } from './FloatingField';
 
@@ -13,6 +13,17 @@ export default function Schedule({ onClose }) {
     const [inviteData, setInviteData] = createSignal(null);
     const [copied, setCopied] = createSignal(false);
     const [icsPath, setIcsPath] = createSignal(null);
+    const [userEmail, setUserEmail] = createSignal("");
+
+    // Fetch the user's profile email so we can set it as ORGANIZER in the .ics
+    onMount(async () => {
+        try {
+            const profile = await invoke("get_user_profile");
+            if (profile.email) setUserEmail(profile.email);
+        } catch (err) {
+            console.warn("Could not load user profile for organizer email:", err);
+        }
+    });
 
     const now = new Date();
 
@@ -29,6 +40,7 @@ export default function Schedule({ onClose }) {
         meeting_summary: "",
         meeting_description: "",
         meeting_room: "",
+        meeting_attendees: "",
         meeting_startdate: local_date,
         meeting_starttime: local_time,
         meeting_duration: 30,
@@ -83,11 +95,15 @@ export default function Schedule({ onClose }) {
             // succeeds even if this fails).
             try {
                 const icsId = `${result.room}-${Date.now()}`;
+                const attendees = scheduleData().meeting_attendees
+                    .split(",")
+                    .map((e) => e.trim())
+                    .filter(Boolean);
                 const path = await invoke('create_icalendar_event', {
                     ics: {
                         ics_id: icsId,
-                        ics_organizer: "",
-                        ics_attendees: [],
+                        ics_organizer: userEmail(),
+                        ics_attendees: attendees,
                         ics_room: result.room,
                         ics_title: result.title,
                         ics_summary: scheduleData().meeting_summary || result.title,
@@ -137,8 +153,34 @@ export default function Schedule({ onClose }) {
         }
     };
 
+    const handleSendEmail = async () => {
+        const invite = inviteData();
+        if (!invite) return;
+        const attendees = scheduleData().meeting_attendees
+            .split(",")
+            .map((e) => e.trim())
+            .filter(Boolean);
+        const subject = encodeURIComponent(invite.title);
+        const body = encodeURIComponent(
+            `${invite.title}\n\n` +
+            `${t("schedule.shareLink")} ${invite.invite_link}\n\n` +
+            `Room: ${invite.room}\n` +
+            `Date: ${invite.meeting_date} at ${invite.meeting_time}\n`
+        );
+        const mailtoUrl = attendees.length > 0
+            ? `mailto:?bcc=${attendees.join(",")}&subject=${subject}&body=${body}`
+            : `mailto:?subject=${subject}&body=${body}`;
+        try {
+            await openUrl(mailtoUrl);
+        } catch (err) {
+            console.error("Failed to open email client:", err);
+        }
+    };
+
     return (
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        // z-[100] (same as Modal.jsx) so the dialog + footer stay above the
+        // mobile bottom tab bar (z-50), which otherwise covers the buttons.
+        <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
             <div
                 role="dialog"
                 aria-modal="true"
@@ -200,6 +242,15 @@ export default function Schedule({ onClose }) {
                         />
 
                         <FloatingField
+                            id="meeting-attendees"
+                            label={t("schedule.attendees")}
+                            placeholder={t("schedule.attendeesPlaceholder")}
+                            fieldClass="md:col-span-2"
+                            value={scheduleData().meeting_attendees}
+                            onInput={(value) => updateScheduleField("meeting_attendees", value)}
+                        />
+
+                        <FloatingField
                             id="meeting-startdate"
                             type="date"
                             label={t("schedule.startDate")}
@@ -257,6 +308,16 @@ export default function Schedule({ onClose }) {
                                     {t("schedule.downloadIcs")}
                                 </button>
                             </Show>
+
+                            {/* Send via Email */}
+                            <button
+                                type="button"
+                                onClick={handleSendEmail}
+                                class="mt-3 ml-2 flex items-center gap-2 rounded-md border border-[#404040] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#292929] focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                            >
+                                <span aria-hidden="true">📧</span>
+                                {t("schedule.sendEmail")}
+                            </button>
                         </div>
                     </Show>
                 </div>

@@ -189,6 +189,19 @@ export function SettingsTab(props) {
     setSettings({ ...settings(), [key]: !settings()[key] });
   };
 
+  // Refs for the section nav buttons, used to keep the active tab visible
+  // inside the horizontally scrollable strip on small screens.
+  const sectionNavRefs = {};
+  const selectSection = (id) => {
+    setActiveSection(id);
+    if (window.innerWidth < 768) {
+      const el = sectionNavRefs[id];
+      if (el && el.scrollIntoView) {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -215,15 +228,15 @@ export function SettingsTab(props) {
   };
 
   return (
-    <div class="w-full h-full bg-[#111111] text-white overflow-hidden flex">
-      {/* Sidebar Navigation */}
-      <aside class="w-56 border-r border-gray-800/40 bg-[#1a1a1a] overflow-y-auto shrink-0">
-        <div class="p-4">
-          <h2 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">
+    <div class="w-full h-full bg-[#111111] text-white overflow-hidden flex flex-col md:flex-row">
+      {/* Sidebar Navigation: vertical sidebar on desktop, horizontal tab strip on mobile */}
+      <aside class="shrink-0 w-full md:w-56 border-b md:border-b-0 md:border-r border-gray-800/40 bg-[#1a1a1a] md:overflow-y-auto">
+        <div class="p-2 md:p-4">
+          <h2 class="hidden md:block text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">
             Settings
           </h2>
 
-          <nav class="space-y-1">
+          <nav class="flex md:flex-col gap-1 overflow-x-auto no-scrollbar">
             {[
               { id: "audio-video", label: "Audio & Video", icon: "🎤" },
               { id: "meeting", label: "Meeting", icon: "📹" },
@@ -232,9 +245,10 @@ export function SettingsTab(props) {
               { id: "about", label: "About", icon: "ℹ️" },
             ].map((section) => (
               <button
-                onClick={() => setActiveSection(section.id)}
-                class={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition ${activeSection() === section.id
-                  ? "bg-blue-600/20 text-blue-400 border-l-2 border-blue-600"
+                ref={(el) => (sectionNavRefs[section.id] = el)}
+                onClick={() => selectSection(section.id)}
+                class={`shrink-0 whitespace-nowrap flex items-center gap-2 md:gap-3 px-3 py-2 md:w-full md:px-4 md:py-3 rounded-lg text-sm font-medium transition ${activeSection() === section.id
+                  ? "bg-blue-600/20 text-blue-400 md:border-l-2 md:border-blue-600"
                   : "text-gray-400 hover:text-white hover:bg-gray-800/40"
                   }`}
               >
@@ -248,12 +262,12 @@ export function SettingsTab(props) {
 
       {/* Main Settings Content */}
       <main class="flex-1 overflow-y-auto">
-        <div class="max-w-3xl mx-auto p-6 space-y-6">
+        <div class="max-w-3xl mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
           {/* Audio & Video Settings */}
           <Show when={activeSection() === "audio-video"}>
             <div class="space-y-6">
               <div>
-                <h3 class="text-lg font-semibold mb-4">Audio & Video</h3>
+                <h3 class="text-lg font-semibold mb-3 md:mb-4">Audio & Video</h3>
 
                 <Show when={deviceError()}>
                   <div class="mb-4 bg-red-950/60 border border-red-800/60 text-red-200 text-xs rounded-lg px-3 py-2.5 flex items-start justify-between gap-2">
@@ -335,18 +349,18 @@ export function SettingsTab(props) {
           <Show when={activeSection() === "meeting"}>
             <div class="space-y-6">
               <div>
-                <h3 class="text-lg font-semibold mb-4">Meeting Preferences</h3>
+                <h3 class="text-lg font-semibold mb-3 md:mb-4">Meeting Preferences</h3>
 
                 <div class="space-y-3">
                   {/* Start with Video */}
-                  <div class="bg-[#1a1a1a] rounded-lg p-4 flex items-center justify-between">
-                    <div>
+                  <div class="bg-[#1a1a1a] rounded-lg p-4 flex items-center justify-between gap-4">
+                    <div class="min-w-0 flex-1">
                       <p class="font-medium">Start with video</p>
                       <p class="text-sm text-gray-400">Enable camera when joining meetings</p>
                     </div>
                     <button
                       onClick={() => toggleSetting("start_with_video")}
-                      class={`relative w-12 h-7 rounded-full transition ${settings().start_with_video
+                      class={`relative shrink-0 w-12 h-7 rounded-full transition ${settings().start_with_video
                         ? "bg-blue-600"
                         : "bg-gray-700"
                         }`}
@@ -359,14 +373,14 @@ export function SettingsTab(props) {
                   </div>
 
                   {/* Use PMI */}
-                  <div class="bg-[#1a1a1a] rounded-lg p-4 flex items-center justify-between">
-                    <div>
+                  <div class="bg-[#1a1a1a] rounded-lg p-4 flex items-center justify-between gap-4">
+                    <div class="min-w-0 flex-1">
                       <p class="font-medium">Use Personal Meeting ID</p>
                       <p class="text-sm text-gray-400">Always use your PMI for meetings</p>
                     </div>
                     <button
                       onClick={() => toggleSetting("use_pmi")}
-                      class={`relative w-12 h-7 rounded-full transition ${settings().use_pmi
+                      class={`relative shrink-0 w-12 h-7 rounded-full transition ${settings().use_pmi
                         ? "bg-blue-600"
                         : "bg-gray-700"
                         }`}
@@ -379,14 +393,14 @@ export function SettingsTab(props) {
                   </div>
 
                   {/* Mute on Join */}
-                  <div class="bg-[#1a1a1a] rounded-lg p-4 flex items-center justify-between">
-                    <div>
+                  <div class="bg-[#1a1a1a] rounded-lg p-4 flex items-center justify-between gap-4">
+                    <div class="min-w-0 flex-1">
                       <p class="font-medium">Mute on join</p>
                       <p class="text-sm text-gray-400">Start meetings with microphone muted</p>
                     </div>
                     <button
                       onClick={() => toggleSetting("mute_on_join")}
-                      class={`relative w-12 h-7 rounded-full transition ${settings().mute_on_join
+                      class={`relative shrink-0 w-12 h-7 rounded-full transition ${settings().mute_on_join
                         ? "bg-blue-600"
                         : "bg-gray-700"
                         }`}
@@ -399,14 +413,14 @@ export function SettingsTab(props) {
                   </div>
 
                   {/* Always Show Preview */}
-                  <div class="bg-[#1a1a1a] rounded-lg p-4 flex items-center justify-between">
-                    <div>
+                  <div class="bg-[#1a1a1a] rounded-lg p-4 flex items-center justify-between gap-4">
+                    <div class="min-w-0 flex-1">
                       <p class="font-medium">Show preview before joining</p>
                       <p class="text-sm text-gray-400">Display camera preview before meeting starts</p>
                     </div>
                     <button
                       onClick={() => toggleSetting("always_show_preview")}
-                      class={`relative w-12 h-7 rounded-full transition ${settings().always_show_preview
+                      class={`relative shrink-0 w-12 h-7 rounded-full transition ${settings().always_show_preview
                         ? "bg-blue-600"
                         : "bg-gray-700"
                         }`}
@@ -433,7 +447,7 @@ export function SettingsTab(props) {
           <Show when={activeSection() === "profile"}>
             <div class="space-y-6">
               <div>
-                <h3 class="text-lg font-semibold mb-4">Profile Settings</h3>
+                <h3 class="text-lg font-semibold mb-3 md:mb-4">Profile Settings</h3>
 
                 <div class="space-y-4">
                   {/* Display Name */}
@@ -513,7 +527,7 @@ export function SettingsTab(props) {
 
           {/* Livekit Settings */}
           <Show when={activeSection() === "livekit"}>
-            <div class="w-full max-w-md bg-[#1c1c1c] rounded-2xl p-6 shadow-xl border border-[#2a2a2a]">
+            <div class="w-full max-w-md bg-[#1c1c1c] rounded-2xl p-4 sm:p-6 shadow-xl border border-[#2a2a2a]">
               <h2 class="text-2xl font-bold mb-6 text-center">{t("settings.livekitSettings")}</h2>
 
               <form onSubmit={handleSave} class="flex flex-col gap-4">
@@ -592,7 +606,7 @@ export function SettingsTab(props) {
           <Show when={activeSection() === "about"}>
             <div class="space-y-6">
               <div>
-                <h3 class="text-lg font-semibold mb-4">About VisualTalk</h3>
+                <h3 class="text-lg font-semibold mb-3 md:mb-4">About VisualTalk</h3>
 
                 <div class="bg-[#1a1a1a] rounded-lg p-6 space-y-4">
                   <div>
@@ -676,7 +690,7 @@ export function SettingsTab(props) {
 
             {/* License Modal */}
             <Show when={showLicenseModal()}>
-              <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+              <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
                 <div class="bg-[#1c1c1c] border border-[#2a2a2a] rounded-2xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden shadow-2xl">
                   <div class="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a]">
                     <h2 class="text-lg font-semibold">{t("settings.licenseModalTitle")}</h2>

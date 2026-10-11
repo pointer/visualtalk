@@ -53,7 +53,9 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
     };
 
     return (
-        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        // z-[100] (same as Modal.jsx) so the dialog + footer stay above the
+        // mobile bottom tab bar (z-50), which otherwise covers the buttons.
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-[#1c1c1c] w-full max-w-md rounded-2xl border border-[#2a2a2a] shadow-2xl overflow-hidden flex flex-col">
 
                 {/* Header */}

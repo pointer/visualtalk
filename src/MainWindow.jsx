@@ -134,7 +134,7 @@ export function MainWindow(props) {
       </aside>
 
       {/* Main Content */}
-      <main class="flex-1 flex flex-col overflow-y-auto bg-[#111111] pb-16 md:pb-0">
+      <main class="flex-1 flex flex-col overflow-y-auto bg-[#111111] pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <Show
           when={activeTab() === "settings"}
           fallback={
@@ -160,7 +160,7 @@ export function MainWindow(props) {
       </main>
 
       {/* ===== BOTTOM TAB BAR (mobile) ===== */}
-      <div class="md:hidden fixed bottom-0 left-0 right-0 bg-[#1c1c1c] border-t border-gray-800/40 flex justify-around items-center py-2 z-50">
+      <div class="md:hidden fixed bottom-0 left-0 right-0 bg-[#1c1c1c] border-t border-gray-800/40 flex justify-around items-center py-2 pb-[env(safe-area-inset-bottom)] z-50">
         <button
           onClick={() => setActiveTab("home")}
           class={`flex flex-col items-center p-2 rounded-lg transition ${activeTab() === "home" ? "text-blue-400" : "text-gray-400"

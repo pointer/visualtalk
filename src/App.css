@@ -215,3 +215,14 @@ video {
   /* Fixed height for just the buttons */
   padding: 0 20px;
 }
+
+/* Hide the scrollbar of horizontally scrollable strips (e.g. the mobile
+   settings section tab bar) while keeping them scrollable by touch/drag. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

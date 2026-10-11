@@ -282,6 +282,21 @@ pub async fn create_icalendar_event(
         event.append_property(Property::new("ORGANIZER", organizer.as_str()));
     }
 
+    // Add ATTENDEE properties so calendar apps (macOS Calendar, Outlook, etc.)
+    // offer to email invitations to each guest when the .ics is opened.
+    for attendee_email in &ics.ics_attendees {
+        let email = attendee_email.trim();
+        if !email.is_empty() {
+            let mut attendee_prop = Property::new("ATTENDEE", format!("mailto:{}", email));
+            attendee_prop
+                .add_parameter("CN", email)
+                .add_parameter("RSVP", "TRUE")
+                .add_parameter("PARTSTAT", "NEEDS-ACTION")
+                .add_parameter("ROLE", "REQ-PARTICIPANT");
+            event.append_property(attendee_prop);
+        }
+    }
+
     if !ics.ics_invite_link.is_empty() {
         event.append_property(Property::new("URL", ics.ics_invite_link.as_str()));
     }
