@@ -15,6 +15,50 @@ export function useLiveKitRoom() {
   const [localStream, setLocalStream] = createSignal(null);
   const [previewStream, setPreviewStream] = createSignal(null);
 
+  // ---- Coalesced participant writes (join-burst debounce) ----
+  // A single joiner fires ParticipantConnected + TrackSubscribed(video) +
+  // TrackSubscribed(audio) within milliseconds, and a join burst multiplies
+  // that across every tile in VideoGrid. Instead of re-rendering the grid per
+  // event, LiveKit handlers queue their updaters here; the queue is flushed as
+  // ONE signal write per 100ms window. Updaters must be pure `(prev) => next`
+  // functions (all existing call sites already are).
+  const PARTICIPANT_COALESCE_MS = 100;
+  let participantQueue = [];
+  let participantFlushTimer = null;
+
+  const clearParticipantTimer = () => {
+    if (participantFlushTimer !== null) {
+      clearTimeout(participantFlushTimer);
+      participantFlushTimer = null;
+    }
+  };
+
+  /** Queue an updater; applied together with the current burst on flush. */
+  const updateParticipants = (updater) => {
+    participantQueue.push(updater);
+    if (participantFlushTimer !== null) return;
+    participantFlushTimer = setTimeout(() => {
+      participantFlushTimer = null;
+      flushParticipants();
+    }, PARTICIPANT_COALESCE_MS);
+  };
+
+  /** Apply everything queued in a single write (no-op when empty). */
+  const flushParticipants = () => {
+    clearParticipantTimer();
+    if (participantQueue.length === 0) return;
+    const queue = participantQueue;
+    participantQueue = [];
+    setParticipants((prev) => queue.reduce((acc, fn) => fn(acc), prev));
+  };
+
+  /** Hard reset (room connect/leave): drop queued updaters, write `next`. */
+  const resetParticipants = (next) => {
+    clearParticipantTimer();
+    participantQueue = [];
+    setParticipants(next);
+  };
+
   // ---- Preview toggle signals ----
   const [previewAudioEnabled, setPreviewAudioEnabled] = createSignal(true);
   const [previewVideoEnabled, setPreviewVideoEnabled] = createSignal(true);
@@ -299,7 +343,7 @@ export function useLiveKitRoom() {
     // first consumer on macOS WebKit and renders a black local tile, so the
     // published LiveKit track is the single source of truth for the tile.
     setLocalStream(null);
-    setParticipants([{ id: "local", name: "You (Local)", isLocal: true, videoTrack: null }]);
+    resetParticipants([{ id: "local", name: "You (Local)", isLocal: true, videoTrack: null }]);
 
     // Resolve LiveKit server URL + token:
     //   1) get_config + generate_livekit_token (dev: values come from .env)
@@ -354,7 +398,7 @@ export function useLiveKitRoom() {
       if (track.kind === Track.Kind.Video) {
         // UPSERT: ParticipantConnected may have already added this identity —
         // pushing again would render a duplicate black tile.
-        setParticipants((prev) => {
+        updateParticipants((prev) => {
           const entry = { id, name, isLocal: false, isScreen, videoTrack: track };
           return prev.some((p) => p.id === id)
             ? prev.map((p) => (p.id === id ? { ...p, ...entry } : p))
@@ -364,7 +408,7 @@ export function useLiveKitRoom() {
         // CRITICAL: without this attach() call the remote voice is never routed
         // to an <audio> element and the meeting stays silent.
         attachRemoteAudio(track, participant);
-        setParticipants((prev) => {
+        updateParticipants((prev) => {
           if (prev.some((p) => p.id === id)) {
             return prev.map((p) => (p.id === id ? { ...p, audioTrack: track } : p));
           }
@@ -382,13 +426,13 @@ export function useLiveKitRoom() {
       if (track.kind === Track.Kind.Audio) detachRemoteAudio(track);
 
       if (publication.source === Track.Source.ScreenShare) {
-        setParticipants((prev) =>
+        updateParticipants((prev) =>
           prev.filter((p) => p.id !== `${participant.identity}-screen`)
         );
       } else {
         // Only clear the kind that actually unsubscribed — clearing both made a
         // participant's video vanish whenever their mic track was republished.
-        setParticipants((prev) =>
+        updateParticipants((prev) =>
           prev.map((p) =>
             p.id === participant.identity
               ? {
@@ -404,7 +448,7 @@ export function useLiveKitRoom() {
 
     // ---- Participant connected ----
     newRoom.on(RoomEvent.ParticipantConnected, (participant) => {
-      setParticipants((prev) => {
+      updateParticipants((prev) => {
         if (prev.find((p) => p.id === participant.identity)) return prev;
         return [
           ...prev,
@@ -426,7 +470,7 @@ export function useLiveKitRoom() {
     newRoom.on(RoomEvent.ParticipantDisconnected, (participant) => {
       // Their <audio> elements must go, otherwise a stale voice keeps playing.
       detachParticipantAudio(participant.identity);
-      setParticipants((prev) =>
+      updateParticipants((prev) =>
         prev.filter(
           (p) =>
             p.id !== participant.identity &&
@@ -446,7 +490,7 @@ export function useLiveKitRoom() {
       if (publication.kind !== Track.Kind.Video) return;
       if (publication.source === Track.Source.ScreenShare) {
         setIsSharingScreen(true);
-        setParticipants((prev) => [
+        updateParticipants((prev) => [
           ...prev.filter((p) => p.id !== "local-screen"),
           {
             id: "local-screen",
@@ -458,7 +502,7 @@ export function useLiveKitRoom() {
         ]);
       } else if (publication.source === Track.Source.Camera) {
         setIsCameraOff(false);
-        setParticipants((prev) => {
+        updateParticipants((prev) => {
           const entry = {
             id: "local",
             name: "You (Local)",
@@ -476,9 +520,9 @@ export function useLiveKitRoom() {
     newRoom.on(RoomEvent.LocalTrackUnpublished, (publication) => {
       if (publication.kind === Track.Kind.Video && publication.source === Track.Source.ScreenShare) {
         setIsSharingScreen(false);
-        setParticipants((prev) => prev.filter((p) => p.id !== "local-screen"));
+        updateParticipants((prev) => prev.filter((p) => p.id !== "local-screen"));
       } else if (publication.source === Track.Source.Camera) {
-        setParticipants((prev) =>
+        updateParticipants((prev) =>
           prev.map((p) => (p.id === "local" ? { ...p, videoTrack: null } : p))
         );
       }
@@ -655,6 +699,10 @@ export function useLiveKitRoom() {
   const leaveCall = async () => {
     if (lkRoom()) lkRoom().disconnect().catch(() => {});
     detachAllAudio();
+    // Apply (then drop) any still-queued participant updates deterministically —
+    // the window closes right after this call, so a pending flush timer would
+    // never fire and must not leave the queue dangling.
+    flushParticipants();
     // Clear recording notices deterministically — the Disconnected handler may
     // never run because the window closes right after this call.
     remoteRecordings.clear();
@@ -666,10 +714,10 @@ export function useLiveKitRoom() {
     if (pStream) pStream.getTracks().forEach((t) => t.stop());
 
     // Notify the main window that this meeting has ended, so it can
-    // update its state without polling.
-    // [CONCERN: If the invoke fails (e.g. IPC already torn down), the
-    //  main window never gets the event.  The fallback is the
-    //  tauri://window-destroyed listener mentioned in lib.rs.]
+    // update its state without polling.  If this invoke fails (IPC already
+    // torn down) or the window is force-quit/crashes before it runs, the
+    // native `Destroyed` hook registered in Rust (`window.rs`) emits the
+    // `meeting-ended` event instead — exactly one of the two paths fires.
     const room = currentRoom();
     if (room) {
       try {

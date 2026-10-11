@@ -19,6 +19,35 @@
 
 ---
 
+## 🌍 Why VisualTalk — The Positioning
+
+Video conferencing is dominated by clients that each ship an entire Chromium +
+Node runtime (Electron), run all business logic — including credential
+handling — in JavaScript, and route every byte through a vendor's cloud.
+VisualTalk is a deliberate bet against all three assumptions:
+
+- **Native performance, not a bundled browser.** Tauri v2 uses the OS webview
+  plus a Rust core, so the client starts in milliseconds, uses a fraction of
+  the RAM, and ships as a few megabytes instead of a 200 MB installer.
+  Incumbents can't easily follow: their plugin ecosystems are Chromium sunk
+  costs.
+- **A thin UI over a fat Rust core.** JWT signing, session authority, window
+  lifecycle, and persistence live in memory-safe Rust (`token.rs`,
+  `session.rs`, `window.rs`, `settings.rs`) — secrets never touch the webview's
+  JS heap, and the same core drives desktop, iOS, and Android.
+- **Privacy as the product.** The Pro Edition adds auditable End-to-End
+  Encryption built on the open, inspectable Community Edition source. The
+  edition split sells trust, not feature checkboxes.
+- **Sovereign communications.** Built on LiveKit SFU, an organization can run
+  its entire real-time stack on its own infrastructure — no third-party cloud
+  in the media path by default.
+
+In one sentence: **a world-class real-time comms client doesn't need Chromium,
+doesn't need to trust a vendor's cloud, and doesn't need to run its security
+logic in JavaScript.**
+
+---
+
 ## 🏗 Architecture & Tech Stack
 
 ```

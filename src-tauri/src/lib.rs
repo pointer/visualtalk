@@ -291,9 +291,10 @@ fn add_participant(
 
     // [CONCERN: During a meeting join burst, 10-20 participants may be
     //  added in quick succession.  Each emit triggers JSON serialization
-    //  of the full Participant struct and a JS-side re-render.  If the
-    //  video grid re-renders are expensive, debounce participant-changed
-    //  events on the JS side (e.g. coalesce within a 100ms window).]
+    //  of the full Participant struct.  The LiveKit-driven video grid
+    //  already coalesces its participant writes within a 100ms window on
+    //  the JS side (`updateParticipants` in useLiveKitRoom.js); if this
+    //  Rust-side roster ever grows a JS consumer, debounce it the same way.]
     if added {
         emit_event(
             &app,
@@ -774,13 +775,22 @@ fn generate_livekit_token(
 /// is ending, *before* the window closes.  Emits `MeetingEnded` so the main
 /// window can update its state without polling.
 ///
-/// [CONCERN: The meeting window may crash or be force-quit before this
-///  command runs.  The main window would then never receive the `MeetingEnded`
-///  event.  Consider also listening for the Tauri `tauri://window-destroyed`
-///  event with label == "meeting" as a fallback in the frontend.]
+/// Force-quits and crashes are covered too: `window::spawn_meeting_window`
+/// registers a native `Destroyed` hook that emits `MeetingEnded` whenever this
+/// command never ran.  The ended-labels registry in `window.rs` guarantees the
+/// event is emitted exactly once per meeting window.
+///
+/// The `window` parameter is injected by Tauri (the *calling* window), so the
+/// JS side keeps invoking this with just `{ room }`.
 #[tauri::command]
-fn notify_meeting_ended(app: AppHandle, room: String) -> Result<(), String> {
-    emit_event(&app, VtEvent::MeetingEnded { room });
+fn notify_meeting_ended(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    room: String,
+) -> Result<(), String> {
+    if window::mark_meeting_ended(&window.label()) {
+        emit_event(&app, VtEvent::MeetingEnded { room });
+    }
     Ok(())
 }
 

@@ -1,4 +1,46 @@
-use tauri::{AppHandle, WebviewUrl, WebviewWindowBuilder};
+use std::collections::HashSet;
+use std::sync::{Mutex, OnceLock};
+
+use tauri::{AppHandle, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+
+use crate::events::{emit as emit_event, VtEvent};
+
+/// Window labels that already reported "meeting ended" through one of the two
+/// paths below.  Guarantees `MeetingEnded` is emitted **exactly once** per
+/// meeting window:
+///
+/// 1. Clean leave: the window's JS runs `notify_meeting_ended` *before* it
+///    closes → `mark_meeting_ended()` inserts the label and the command emits.
+/// 2. Force-quit / crash: the JS never runs, but the native `Destroyed`
+///    window event always fires → `take_meeting_ended_on_destroy()` finds no
+///    label and the hook emits instead.
+fn ended_labels() -> &'static Mutex<HashSet<String>> {
+    static ENDED: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    ENDED.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+/// Called by `notify_meeting_ended` (lib.rs).  Returns `true` when this is the
+/// first end-report for the label, i.e. when the caller should emit
+/// `MeetingEnded`.
+pub fn mark_meeting_ended(label: &str) -> bool {
+    match ended_labels().lock() {
+        // A poisoned mutex must not cost us the event — treat it as "first".
+        Err(_) => true,
+        Ok(mut labels) => labels.insert(label.to_string()),
+    }
+}
+
+/// Called from the `Destroyed` window hook.  Returns `true` when the window's
+/// JS never reported the end (force-quit / crash), i.e. when the hook itself
+/// must emit `MeetingEnded`.  Also drops the label so the registry never grows
+/// unbounded.
+fn take_meeting_ended_on_destroy(label: &str) -> bool {
+    match ended_labels().lock() {
+        // No dedupe possible — better a duplicate event than a lost one.
+        Err(_) => true,
+        Ok(mut labels) => !labels.remove(label),
+    }
+}
 
 pub fn spawn_meeting_window(
     app: &AppHandle,
@@ -28,6 +70,15 @@ pub fn spawn_meeting_window(
 
     println!("Opening meeting window with URL: {}", target_path);
 
+    // Fallback for force-quit / crashed meeting windows: the JS-side
+    // `notify_meeting_ended` never runs in those cases, so without this hook
+    // the main window would never learn the meeting ended.  `Destroyed` fires
+    // for *every* close path (clean leave, ✕ button, crash); the ended-labels
+    // registry dedupes it against the JS command.
+    let app_for_event = app.clone();
+    let label_for_event = label.clone();
+    let room_for_event = room.clone();
+
     let mut builder = WebviewWindowBuilder::new(app, &label, WebviewUrl::App(target_path.into()))
         .title(window_title)
         .resizable(true);
@@ -43,9 +94,22 @@ pub fn spawn_meeting_window(
     }
 
     // ⭐ BUILD THE WINDOW
-    let _window = builder
+    let window = builder
         .build()
         .map_err(|e| format!("Failed to create meeting window: {}", e))?;
+
+    window.on_window_event(move |event| {
+        if let WindowEvent::Destroyed = event {
+            if take_meeting_ended_on_destroy(&label_for_event) {
+                emit_event(
+                    &app_for_event,
+                    VtEvent::MeetingEnded {
+                        room: room_for_event.clone(),
+                    },
+                );
+            }
+        }
+    });
 
     Ok(label)
 }
