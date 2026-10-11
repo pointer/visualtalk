@@ -16,9 +16,20 @@ export function ChatPanel(props) {
   const [uploadProgress, setUploadProgress] = createSignal(0);
   const [activeTransfers, setActiveTransfers] = createSignal({});
   const [e2eeActive, setE2eeActive] = createSignal(false);
+  const [aiSettings, setAiSettings] = createSignal(null);
+  const [aiThinking, setAiThinking] = createSignal(false);
 
   let messagesEndRef = null;
   let storedPublicKeyB64 = null; // Stored for re-broadcasting on new participants
+  let aiConsentGiven = false; // One-time consent for cloud AI while E2EE is active
+
+  onMount(async () => {
+    try {
+      setAiSettings(await invoke("get_ai_settings"));
+    } catch (err) {
+      console.warn("AI settings unavailable:", err);
+    }
+  });
 
   createEffect(() => {
     messages();
@@ -189,9 +200,117 @@ export function ChatPanel(props) {
     const text = inputText().trim();
     if (!text || !props.room) return;
 
+    // ── AI assistant path: "@ai <question>" (local only, never broadcast) ──
+    const aiMatch = text.match(/^@ai\s+([\s\S]+)/i);
+    if (aiMatch && aiSettings()?.enabled) {
+      setInputText("");
+      askAi(aiMatch[1].trim());
+      return;
+    }
+
     const msg = await chat.sendChatMessage(props.room, text, props.displayName, e2eeActive());
     setMessages((prev) => [...prev, { ...msg, kind: "chat", isLocal: true }]);
     setInputText("");
+  };
+
+  /** True when the AI endpoint is remote (not localhost). */
+  const isRemoteAiEndpoint = () => {
+    const url = (aiSettings()?.base_url || "").toLowerCase();
+    return !/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(url);
+  };
+
+  /** Build the last ~20 conversation turns as LLM context. */
+  const buildAiHistory = () =>
+    messages()
+      .filter((m) => m.kind === "chat" || m.kind === "ai" || m.kind === "ai-request")
+      .slice(-20)
+      .map((m) => ({
+        role: m.kind === "ai" ? "assistant" : "user",
+        content:
+          m.kind === "chat" && !m.isLocal && m.senderName
+            ? `${m.senderName}: ${m.text}`
+            : m.text,
+      }));
+
+  const askAi = async (question) => {
+    // E2EE guardrail: cloud AI leaves the encrypted perimeter — ask once.
+    if (e2eeActive() && isRemoteAiEndpoint() && !aiConsentGiven) {
+      const host = (() => {
+        try {
+          return new URL(aiSettings().base_url).host;
+        } catch {
+          return aiSettings()?.base_url;
+        }
+      })();
+      if (!window.confirm(t("chat.ai.consent", { host }))) return;
+      aiConsentGiven = true;
+    }
+
+    const requestId = `ai-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setMessages((prev) => [
+      ...prev,
+      {
+        kind: "ai-request",
+        id: requestId,
+        senderName: props.displayName || "You",
+        text: question,
+        timestamp: Date.now(),
+        isLocal: true,
+      },
+    ]);
+    setAiThinking(true);
+
+    try {
+      const reply = await invoke("ask_ai", {
+        prompt: question,
+        history: buildAiHistory().slice(0, -1), // exclude the question we just added
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          kind: "ai",
+          id: `${requestId}-reply`,
+          requestId,
+          senderName: t("chat.ai.assistantName"),
+          text: reply,
+          timestamp: Date.now(),
+          shared: false,
+        },
+      ]);
+    } catch (err) {
+      console.error("AI request failed:", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          kind: "ai-error",
+          id: `${requestId}-error`,
+          senderName: t("chat.ai.assistantName"),
+          text: String(err),
+          question,
+          timestamp: Date.now(),
+        },
+      ]);
+    } finally {
+      setAiThinking(false);
+    }
+  };
+
+  /** Broadcast an AI reply to all participants through the normal chat path. */
+  const shareAiMessage = async (msg) => {
+    if (!props.room || msg.shared) return;
+    try {
+      await chat.sendChatMessage(
+        props.room,
+        `🤖 ${msg.text}`,
+        t("chat.ai.assistantName"),
+        e2eeActive()
+      );
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, shared: true } : m))
+      );
+    } catch (err) {
+      console.error("Failed to share AI reply:", err);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -336,6 +455,14 @@ export function ChatPanel(props) {
           <span class="text-[10px] text-amber-300 font-medium">{t("chat.notEncrypted")}</span>
         </div>
       </Show>
+      <Show when={aiSettings()?.enabled}>
+        <div class="px-4 py-1.5 bg-purple-900/20 border-b border-purple-800/30 flex items-center gap-1.5">
+          <svg class="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          </svg>
+          <span class="text-[10px] text-purple-300 font-medium">{t("chat.ai.hint")}</span>
+        </div>
+      </Show>
 
       {/* Messages */}
       <div class="flex-1 overflow-y-auto px-3 py-2 space-y-3">
@@ -344,20 +471,69 @@ export function ChatPanel(props) {
             <div class={`flex flex-col ${msg.isLocal ? "items-end" : "items-start"}`}>
               <div
                 class={`max-w-[92%] rounded-xl px-3 py-2 ${
-                  msg.isLocal ? "bg-blue-600/90" : "bg-[#2a2a2a]"
+                  msg.isLocal
+                    ? "bg-blue-600/90"
+                    : msg.kind === "ai" || msg.kind === "ai-error"
+                    ? "bg-purple-900/30 border border-purple-700/40"
+                    : "bg-[#2a2a2a]"
                 }`}
               >
                 <div class="flex items-center gap-2 mb-1">
-                  <span class="text-[10px] font-medium text-gray-300">
+                  <Show when={msg.kind === "ai" || msg.kind === "ai-error"}>
+                    <svg class="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                    </svg>
+                  </Show>
+                  <span class={`text-[10px] font-medium ${msg.kind === "ai" || msg.kind === "ai-error" ? "text-purple-300" : "text-gray-300"}`}>
                     {msg.senderName}
                   </span>
                   <span class="text-[9px] text-gray-500">{formatTime(msg.timestamp)}</span>
                 </div>
 
-                <Show when={msg.kind === "chat"}>
+                <Show when={msg.kind === "chat" || msg.kind === "ai-request"}>
                   <p class="text-sm text-white whitespace-pre-wrap break-words">
                     {msg.text}
                   </p>
+                </Show>
+
+                <Show when={msg.kind === "ai"}>
+                  <p class="text-sm text-white whitespace-pre-wrap break-words">
+                    {msg.text}
+                  </p>
+                  <Show when={!msg.shared}>
+                    <button
+                      onClick={() => shareAiMessage(msg)}
+                      class="mt-1.5 text-[10px] text-purple-400 hover:text-purple-300 transition flex items-center gap-1"
+                    >
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                      {t("chat.ai.share")}
+                    </button>
+                  </Show>
+                  <Show when={msg.shared}>
+                    <span class="mt-1.5 text-[10px] text-gray-500 flex items-center gap-1">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {t("chat.ai.shared")}
+                    </span>
+                  </Show>
+                </Show>
+
+                <Show when={msg.kind === "ai-error"}>
+                  <p class="text-sm text-red-300 whitespace-pre-wrap break-words">
+                    {msg.text}
+                  </p>
+                  <button
+                    onClick={() => askAi(msg.question)}
+                    class="mt-1.5 text-[10px] text-purple-400 hover:text-purple-300 transition flex items-center gap-1"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    {t("chat.ai.retry")}
+                  </button>
                 </Show>
 
                 <Show
@@ -405,6 +581,23 @@ export function ChatPanel(props) {
             </div>
           )}
         </For>
+        <Show when={aiThinking()}>
+          <div class="flex flex-col items-start">
+            <div class="max-w-[92%] rounded-xl px-3 py-2 bg-purple-900/30 border border-purple-700/40">
+              <div class="flex items-center gap-2">
+                <svg class="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                <span class="text-[10px] font-medium text-purple-300">{t("chat.ai.assistantName")}</span>
+                <span class="flex items-center gap-1 ml-1">
+                  <span class="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 0ms" />
+                  <span class="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 150ms" />
+                  <span class="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 300ms" />
+                </span>
+              </div>
+            </div>
+          </div>
+        </Show>
         {messages().length === 0 && (
           <div class="text-center text-gray-500 text-sm mt-10">{t("chat.noMessages")}</div>
         )}

@@ -3,6 +3,7 @@ use tauri_plugin_store::StoreExt;
 
 mod backgrounds;
 mod chat;
+mod ai;
 mod commands;
 mod device;
 mod e2ee;
@@ -914,6 +915,11 @@ pub fn run() {
             recording::ffmpeg_transcode,
             recording::ffmpeg_stream_to_rtmp,
             recording::delete_recording,
+            // AI Assistant (OpenAI-compatible endpoint)
+            ai::ask_ai,
+            ai::get_ai_settings,
+            ai::update_ai_settings,
+            ai::test_ai_connection,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

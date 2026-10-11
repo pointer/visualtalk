@@ -44,6 +44,18 @@ export function SettingsTab(props) {
     mute_on_join: false,
   });
 
+  // AI Assistant settings
+  const [aiCfg, setAiCfg] = createSignal({
+    enabled: false,
+    base_url: "http://localhost:11434/v1",
+    api_key: "",
+    model: "llama3.2",
+    system_prompt: "",
+  });
+  const [aiStatus, setAiStatus] = createSignal("");
+  const [aiSaving, setAiSaving] = createSignal(false);
+  const [aiTesting, setAiTesting] = createSignal(false);
+
   // Enumerate media devices through the webview (the only source WKWebView
   // exposes) and sync them into the Rust DeviceManager via `set_devices`, so
   // the rest of the app can use them. The Rust side cannot enumerate hardware
@@ -139,6 +151,9 @@ export function SettingsTab(props) {
       const sett = await invoke("get_user_settings");
       setSettings(sett);
 
+      const ai = await invoke("get_ai_settings").catch(() => null);
+      if (ai) setAiCfg(ai);
+
     } catch (err) {
       console.error("Failed to load settings:", err);
     } finally {
@@ -187,6 +202,36 @@ export function SettingsTab(props) {
 
   const toggleSetting = (key) => {
     setSettings({ ...settings(), [key]: !settings()[key] });
+  };
+
+  // ── AI Assistant ──
+  const saveAiSettings = async () => {
+    setAiSaving(true);
+    setAiStatus("");
+    try {
+      await invoke("update_ai_settings", { settings: aiCfg() });
+      setAiStatus(`✅ ${t("settings.savedSecurely")}`);
+      setTimeout(() => setAiStatus(""), 3000);
+    } catch (err) {
+      setAiStatus(`❌ Error: ${err}`);
+    } finally {
+      setAiSaving(false);
+    }
+  };
+
+  const testAiConnection = async () => {
+    setAiTesting(true);
+    setAiStatus("");
+    try {
+      // Persist current form values first so the test uses what's on screen.
+      await invoke("update_ai_settings", { settings: aiCfg() });
+      const result = await invoke("test_ai_connection");
+      setAiStatus(`✅ ${result}`);
+    } catch (err) {
+      setAiStatus(`❌ Error: ${err}`);
+    } finally {
+      setAiTesting(false);
+    }
   };
 
   // Refs for the section nav buttons, used to keep the active tab visible
@@ -242,6 +287,7 @@ export function SettingsTab(props) {
               { id: "meeting", label: "Meeting", icon: "📹" },
               { id: "profile", label: "Profile", icon: "👤" },
               { id: "livekit", label: "LiveKit", icon: "⏚" },
+              { id: "ai", label: "AI Assistant", icon: "✨" },
               { id: "about", label: "About", icon: "ℹ️" },
             ].map((section) => (
               <button
@@ -599,6 +645,105 @@ export function SettingsTab(props) {
                   {loading() ? t("settings.saving") : t("settings.saveConfig")}
                 </button>
               </form>
+            </div>
+          </Show>
+
+          {/* AI Assistant */}
+          <Show when={activeSection() === "ai"}>
+            <div class="space-y-6">
+              <div>
+                <h3 class="text-lg font-semibold mb-3 md:mb-4">{t("settings.ai.title")}</h3>
+                <p class="text-sm text-gray-400 mb-4">{t("settings.ai.description")}</p>
+
+                <div class="bg-[#1a1a1a] rounded-lg p-6 space-y-4">
+                  {/* Enable toggle */}
+                  <label class="flex items-center justify-between cursor-pointer">
+                    <span class="text-sm text-gray-300">{t("settings.ai.enable")}</span>
+                    <input
+                      type="checkbox"
+                      checked={aiCfg().enabled}
+                      onChange={(e) => setAiCfg({ ...aiCfg(), enabled: e.currentTarget.checked })}
+                      class="w-5 h-5 accent-blue-600"
+                    />
+                  </label>
+
+                  {/* Base URL */}
+                  <div class="flex flex-col gap-1">
+                    <label class="text-sm text-gray-400">{t("settings.ai.baseUrl")}</label>
+                    <input
+                      type="url"
+                      value={aiCfg().base_url}
+                      onInput={(e) => setAiCfg({ ...aiCfg(), base_url: e.currentTarget.value })}
+                      class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+                      placeholder="http://localhost:11434/v1"
+                    />
+                  </div>
+
+                  {/* API key */}
+                  <div class="flex flex-col gap-1">
+                    <label class="text-sm text-gray-400">{t("settings.ai.apiKey")}</label>
+                    <input
+                      type="password"
+                      value={aiCfg().api_key}
+                      onInput={(e) => setAiCfg({ ...aiCfg(), api_key: e.currentTarget.value })}
+                      class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+                      placeholder="••••••••••••"
+                    />
+                    <span class="text-xs text-gray-500">{t("settings.ai.apiKeyHint")}</span>
+                  </div>
+
+                  {/* Model */}
+                  <div class="flex flex-col gap-1">
+                    <label class="text-sm text-gray-400">{t("settings.ai.model")}</label>
+                    <input
+                      type="text"
+                      value={aiCfg().model}
+                      onInput={(e) => setAiCfg({ ...aiCfg(), model: e.currentTarget.value })}
+                      class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+                      placeholder="llama3.2 / gpt-4o-mini / ..."
+                    />
+                  </div>
+
+                  {/* System prompt */}
+                  <div class="flex flex-col gap-1">
+                    <label class="text-sm text-gray-400">{t("settings.ai.systemPrompt")}</label>
+                    <textarea
+                      rows={3}
+                      value={aiCfg().system_prompt}
+                      onInput={(e) => setAiCfg({ ...aiCfg(), system_prompt: e.currentTarget.value })}
+                      class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors text-sm resize-y"
+                      placeholder={t("settings.ai.systemPromptPlaceholder")}
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <Show when={aiStatus()}>
+                    <div class={`text-sm text-center mt-2 ${aiStatus().startsWith("❌") ? "text-red-400" : "text-green-400"}`}>
+                      {aiStatus()}
+                    </div>
+                  </Show>
+
+                  {/* Actions */}
+                  <div class="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={saveAiSettings}
+                      disabled={aiSaving()}
+                      class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all active:scale-95"
+                    >
+                      {aiSaving() ? t("settings.saving") : t("settings.saveConfig")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={testAiConnection}
+                      disabled={aiTesting()}
+                      class="flex-1 bg-[#2a2a2a] hover:bg-[#333333] disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all active:scale-95"
+                    >
+                      {aiTesting() ? t("settings.ai.testing") : t("settings.ai.test")}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </Show>
 

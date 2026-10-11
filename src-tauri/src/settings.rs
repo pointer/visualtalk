@@ -1,3 +1,4 @@
+use crate::ai::AiSettings;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -56,6 +57,9 @@ pub struct AppData {
     pub profile: UserProfile,
     pub settings: UserSettings,
     pub notes: String,
+    /// AI assistant config — `#[serde(default)]` keeps old settings.json files loadable.
+    #[serde(default)]
+    pub ai: AiSettings,
 }
 
 impl AppData {
