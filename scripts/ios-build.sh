@@ -46,6 +46,11 @@ esac
 
 "$REPO_ROOT/scripts/ensure-ios-toolchain.sh"
 
+# `tauri ios init` seeds AppIcon.appiconset with Tauri's placeholder icons and
+# never reads src-tauri/icons/ — make sure the real icons are in place before
+# xcodebuild compiles the asset catalog.
+"$REPO_ROOT/scripts/sync-ios-icons.sh"
+
 # Keep debuginfo ON (so swift-rs builds Swift in Debug configuration) while still
 # optimizing the Rust code. Do NOT set CARGO_PROFILE_DEV_DEBUG=0 — that turns DEBUG
 # off, Swift is built in release again, and the link fails.

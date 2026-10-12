@@ -23,6 +23,10 @@
 #      phase runs with cwd = src-tauri/gen/apple, which has no package.json, so
 #      a bare `pnpm tauri ...` falls back to pnpm recursive-exec and dies with
 #      ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL ('Command "tauri" not found').
+#   5. AppIcon.appiconset must carry the real app icons. Init renders the asset
+#      catalog from CLI-embedded templates (Tauri placeholder icons), never
+#      reads src-tauri/icons/, and skips existing files — so the catalog keeps
+#      the placeholder forever. Handled by scripts/sync-ios-icons.sh below.
 #
 # Usage:
 #   ./scripts/fix-ios-project.sh                # patch + regenerate .xcodeproj
@@ -270,6 +274,16 @@ else
   if [ "$CHECK_ONLY" -eq 1 ]; then
     exit 0
   fi
+fi
+
+# ---------------------------------------------------------------------------
+# Fix 5: sync the real app icons into the asset catalog (tauri ios init seeds
+# it with Tauri's placeholder icons and never reads src-tauri/icons/).
+# ---------------------------------------------------------------------------
+if [ "$CHECK_ONLY" -eq 1 ]; then
+  "$REPO_ROOT/scripts/sync-ios-icons.sh" --check
+else
+  "$REPO_ROOT/scripts/sync-ios-icons.sh"
 fi
 
 # ---------------------------------------------------------------------------
