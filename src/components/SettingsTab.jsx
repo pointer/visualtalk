@@ -849,7 +849,7 @@ export function SettingsTab(props) {
                     </button>
                   </div>
                   <div class="p-6 overflow-y-auto max-h-[calc(80vh-4rem)]">
-                    <LicenseScreen version="1.0.0" />
+                    <LicenseScreen version="3.3.33" />
                   </div>
                 </div>
               </div>

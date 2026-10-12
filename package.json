@@ -1,6 +1,6 @@
 {
   "name": "visualtalk",
-  "version": "0.1.36",
+  "version": "3.3.33",
   "description": "Video conferencing application",
   "type": "module",
   "scripts": {
@@ -54,7 +54,7 @@
   "dependencies": {
     "@tauri-apps/api": "^2.12.0",
     "@tauri-apps/plugin-clipboard-manager": "^2.4.1",
-    "@tauri-apps/plugin-opener": "^2.6.0",
+    "@tauri-apps/plugin-opener": "^2.7.1",
     "@tauri-apps/plugin-store": "^2.5.0",
     "livekit-client": "^2.22.3",
     "solid-icons": "^1.2.0",

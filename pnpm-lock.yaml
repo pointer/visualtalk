@@ -15,8 +15,8 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1
       '@tauri-apps/plugin-opener':
-        specifier: ^2.6.0
-        version: 2.6.0
+        specifier: ^2.7.1
+        version: 2.7.1
       '@tauri-apps/plugin-store':
         specifier: ^2.5.0
         version: 2.5.0
@@ -438,8 +438,8 @@ packages:
   '@tauri-apps/plugin-clipboard-manager@2.4.1':
     resolution: {integrity: sha512-5Q9hWWnsE7UF1xABWHpRwqGiyORrP9o/rJift/7V8woP/kSVF21W+bP9G7ch8Qd7pneDWUMk6hkfpLpjcC/4Ag==}
 
-  '@tauri-apps/plugin-opener@2.6.0':
-    resolution: {integrity: sha512-KIl9qkBGyAUrbzfCtdk+NRPTXUOwpMyUKsKN57H6/qA0q8auVywXpfUyWClqX6I/iH8PHmqAUa/KK9YZPWVQew==}
+  '@tauri-apps/plugin-opener@2.7.1':
+    resolution: {integrity: sha512-XkXdt30rontti9TII/gBBxFRXWfj8DiprFW7RgBFRBj1OhdfjBNVcFqSEWkkZ4hXafHnuEnB7F1sFsmu6uyywQ==}
 
   '@tauri-apps/plugin-store@2.5.0':
     resolution: {integrity: sha512-+ykjiQwMJCSk/U2enHA8peKBWgDKgrP7JfZnGwQpqzwA0nVtKTc0LCyxWr2whOrcQoQqtUdr9NVdDZpfKpT1Xw==}
@@ -1229,7 +1229,7 @@ snapshots:
     dependencies:
       '@tauri-apps/api': 2.12.0
 
-  '@tauri-apps/plugin-opener@2.6.0':
+  '@tauri-apps/plugin-opener@2.7.1':
     dependencies:
       '@tauri-apps/api': 2.12.0
 
