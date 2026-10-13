@@ -1,0 +1,37 @@
+#!/bin/sh
+# Secret scanning for staged changes, powered by gitleaks.
+# Enable with:  git config core.hooksPath scripts/git-hooks
+# See SECURITY.md for the credential policy.
+#
+# Exits non-zero (blocking the commit) when a secret is detected.
+# Bypass in a genuine emergency with:  git commit --no-verify
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks not installed — skipping secret scan." >&2
+  echo "pre-commit: install it with:  brew install gitleaks" >&2
+  exit 0
+fi
+
+echo "pre-commit: scanning staged changes for secrets (gitleaks)…"
+
+cd "$REPO_ROOT" || exit 1
+
+# gitleaks >= 8.24 replaced "protect" with "git --pre-commit".
+if gitleaks git --help >/dev/null 2>&1; then
+  gitleaks git --pre-commit --staged --no-banner --redact
+else
+  gitleaks protect --staged --no-banner --redact
+fi
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo "" >&2
+  echo "pre-commit: commit BLOCKED — a potential secret is staged." >&2
+  echo "pre-commit: remove it, or store it outside the repo (Settings → LiveKit)." >&2
+  echo "pre-commit: if this is a false positive, allowlist it via .gitleaks.toml." >&2
+  exit $status
+fi
+
+exit 0
