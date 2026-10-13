@@ -24,8 +24,8 @@ access them.
 
 2. WHO IS RESPONSIBLE
 
-Miradata SASU, a simplified joint-stock company with a single
-shareholder (société par actions simplifiée unipersonnelle)
+Miradata, a simplified joint-stock company with a single
+shareholder (société par actions simplifiée)
 incorporated under the laws of France, with a share capital of
 EUR 1,000.00, registered with the Trade and Companies Register (RCS)
 of Bobigny under number 849 735 311, whose registered office is at
@@ -264,12 +264,13 @@ current it is.
 
 15. CONTACT
 
-Miradata
-12 rue Jacques Catric
-93260 Les Lilas
+Miradata \
+12 rue Jacques Catric \
+93260 Les Lilas \
 France
 
-RCS Bobigny 849 735 311 — VAT FR64849735311
+RCS Bobigny 849 735 311 \
+VAT FR64849735311 \
 Email: kghemari@yahoo.com
 
 
