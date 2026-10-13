@@ -264,7 +264,7 @@ current it is.
 
 15. CONTACT
 
-Miradata SASU
+Miradata
 12 rue Jacques Catric
 93260 Les Lilas
 France
