@@ -1,13 +1,19 @@
 VISUALTALK COMMUNITY EDITION — END USER LICENSE AGREEMENT
 
-Last Updated: October 4, 2026
+Last Updated: October 13, 2026
 
 IMPORTANT — READ CAREFULLY: This End User License Agreement ("EULA") is a
-legal agreement between you ("User") and the VisualTalk developers
-("Licensor") for the VisualTalk Community Edition software application
-("Software"). By installing, copying, or otherwise using this Software,
-you agree to be bound by the terms of this EULA. If you do not agree,
-do not install or use the Software.
+legal agreement between you ("User") and Miradata SASU, a simplified
+joint-stock company with a single shareholder (société par actions
+simplifiée unipersonnelle) incorporated under the laws of France, with a
+share capital of EUR 1,000.00, registered with the Trade and Companies
+Register (RCS) of Bobigny under number 849 735 311, whose registered
+office is at 12 rue Jacques Catric, 93260 Les Lilas, France, VAT
+identification number FR64849735311 ("Licensor"), for the VisualTalk
+Community Edition software application ("Software"). By installing,
+copying, or otherwise using this Software, you agree to be bound by the
+terms of this EULA. If you do not agree, do not install or use the
+Software.
 
 
 1. LICENSE GRANT
@@ -81,6 +87,16 @@ those specific components.
   c) The Licensor does not operate or control the LiveKit server
      you connect to. You are responsible for ensuring your server
      configuration meets your privacy requirements.
+  d) The Software ships with no default server and no embedded
+     credentials. You must configure your own LiveKit server, and
+     the Software will not route your communication through any
+     server operated by the Licensor.
+  e) The Software contains no analytics, telemetry, crash-reporting,
+     advertising or tracking code, and requires no user account.
+     The data you enter is stored locally on your device and is not
+     transmitted to the Licensor. Full details are in the Privacy
+     Policy (PRIVACY.md, also available in the application under
+     License Information → Privacy).
 
 
 8. DISCLAIMER OF WARRANTIES
@@ -113,16 +129,28 @@ all copies.
 
 To use VisualTalk for commercial purposes, you must obtain a
 commercial license or purchase the VisualTalk Pro Edition through
-the Apple App Store, Google Play Store, or Microsoft Store.
+the Apple App Store or the Google Play Store.
 
-Contact for commercial licensing: <insert-contact-email>
+Contact for commercial licensing: <kghemari@yahoo.com>
 
 
-12. GOVERNING LAW
+12. GOVERNING LAW AND JURISDICTION
 
-This EULA shall be governed by and construed in accordance with
-the laws of the jurisdiction in which the Licensor is established,
-without regard to conflict of law principles.
+  a) This EULA, and any dispute or claim arising out of or in
+     connection with it or the Software, shall be governed by and
+     construed in accordance with the laws of France, without
+     regard to its conflict-of-law rules.
+  b) The United Nations Convention on Contracts for the
+     International Sale of Goods (CISG) does not apply to this
+     EULA.
+  c) Subject to paragraph (d), the courts of Bobigny, France shall
+     have exclusive jurisdiction over any such dispute or claim.
+  d) Where you are a consumer, nothing in this Section limits the
+     protection afforded to you by the mandatory provisions of the
+     law of the country in which you are habitually resident, nor
+     any right you may have to bring or defend proceedings in the
+     courts of that country. Paragraphs (a) and (c) apply only to
+     the extent permitted by those mandatory provisions.
 
 
 13. ENTIRE AGREEMENT

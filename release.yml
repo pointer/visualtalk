@@ -11,9 +11,62 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------
+  # License compliance gate: THIRD_PARTY_NOTICES.md and the in-app
+  # notices module must be current, and no dependency may carry a
+  # forbidden license. Must pass before any artifact is built.
+  # ---------------------------------------------------------------
+  license-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Populates ~/.cargo/registry/src so the generator can read the real
+      # license files instead of falling back to SPDX pointers.
+      - name: Fetch crate sources
+        run: cargo fetch --manifest-path src-tauri/Cargo.toml
+
+      - name: Verify third-party notices are current and license-clean
+        run: |
+          python3 scripts/generate-notices.py --check
+          echo "✓ notices up to date; no forbidden licenses"
+
+      - name: Upload regenerated notices (on drift)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: third-party-notices-drift
+          path: |
+            THIRD_PARTY_NOTICES.md
+            src/lib/thirdPartyNotices.js
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------
   # Desktop: macOS (Intel + Apple Silicon), Windows, Linux
   # ---------------------------------------------------------------
   desktop:
+    needs: license-audit
     strategy:
       fail-fast: false
       matrix:
@@ -96,6 +149,7 @@ jobs:
   # Android: builds on Linux, no native Mac/Windows needed
   # ---------------------------------------------------------------
   android:
+    needs: license-audit
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -173,6 +227,7 @@ jobs:
   # iOS: must run on a macOS runner
   # ---------------------------------------------------------------
   ios:
+    needs: license-audit
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4

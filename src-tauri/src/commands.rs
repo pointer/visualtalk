@@ -16,7 +16,13 @@ pub struct LiveKitSettings {
     pub identity: String, // The user's display name/ID
 }
 
-pub(crate) const STORE_FILE: &str = "settings.json";
+/// Store file holding the user's own LiveKit server configuration.
+///
+/// This must **not** be `settings.json`: that file is owned by `AppData`
+/// (`settings.rs`), which rewrites it wholesale with `fs::write`. Sharing one
+/// file between the two writers silently wiped the saved server whenever a
+/// note or profile field was saved.
+pub(crate) const STORE_FILE: &str = "livekit.json";
 pub(crate) const SETTINGS_KEY: &str = "livekit_config";
 
 // The payload we will send back to SolidJS.

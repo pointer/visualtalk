@@ -64,3 +64,25 @@ tauri.conf.json
 package.json
 vite.config.js
 .gitignore
+
+# ── Compliance / legal files must ALWAYS be tracked ───────────────────────────
+# The blanket *.md / *.txt / *.lock rules above would silently drop these.
+# Keep the negations below in sync with anything added for store submission or
+# license compliance (verified with: git check-ignore -v <path>).
+!README.md
+!THIRD_PARTY_NOTICES.md
+!CONTRIBUTING.md
+!SECURITY.md
+!PRIVACY.md
+!CODE_OF_CONDUCT.md
+!CHANGELOG.md
+!LICENSE
+!NOTICE
+!NOTICE.txt
+!docs/**/*.md
+!src-tauri/Cargo.lock
+!pnpm-lock.yaml
+
+# ── Python tooling (scripts/generate-notices.py) ────────────────────────────────
+__pycache__/
+*.pyc

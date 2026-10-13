@@ -1,15 +1,19 @@
 VISUALTALK PRO EDITION — END USER LICENSE AGREEMENT
 
-Last Updated: October 4, 2026
+Last Updated: October 13, 2026
 
 IMPORTANT — READ CAREFULLY: This End User License Agreement ("EULA") is a
-legal agreement between you ("User") and the VisualTalk developers
-("Licensor") for the VisualTalk Pro Edition software application
-("Software"), which includes End-to-End Encryption (E2EE) capabilities.
-By installing, copying, purchasing, or otherwise using this Software,
-you agree to be bound by the terms of this EULA. If you do not agree,
-do not install or use the Software.
-
+legal agreement between you ("User") and Miradata SASU, a simplified
+joint-stock company with a single shareholder (société par actions
+simplifiée unipersonnelle) incorporated under the laws of France, with a
+share capital of EUR 1,000.00, registered with the Trade and Companies
+Register (RCS) of Bobigny under number 849 735 311, whose registered
+office is at 12 rue Jacques Catric, 93260 Les Lilas, France, VAT
+identification number FR64849735311 ("Licensor"), for the VisualTalk Pro
+Edition software application ("Software"), which includes End-to-End
+Encryption (E2EE) capabilities. By installing, copying, purchasing, or
+otherwise using this Software, you agree to be bound by the terms of this
+EULA. If you do not agree, do not install or use the Software.
 
 1. LICENSE GRANT
 
@@ -26,7 +30,6 @@ This license covers both personal and commercial use, including:
   d) Paid consulting, coaching, and professional services;
   e) All uses permitted under the Community Edition EULA.
 
-
 2. EDITION & E2EE
 
 The Pro Edition includes all features of the Community Edition plus
@@ -36,10 +39,10 @@ participants can read messages and files — the server operator
 cannot access the content.
 
 E2EE uses the following cryptographic stack:
-  - Key Exchange: ECDH P-256
-  - Key Derivation: HKDF-SHA-256
-  - Symmetric Encryption: AES-256-GCM
 
+- Key Exchange: ECDH P-256
+- Key Derivation: HKDF-SHA-256
+- Symmetric Encryption: AES-256-GCM
 
 3. PERMITTED USE
 
@@ -47,14 +50,19 @@ You may use the Software for any lawful purpose, including all
 personal, educational, non-profit, and commercial activities,
 subject to the restrictions in Section 4.
 
-
 4. PROHIBITED USE
 
 You may NOT:
 
   a) Redistribute, sublicense, rent, lease, or sell the Software
      or its E2EE capabilities as a standalone service;
-  b) Reverse engineer, decompile, or disassemble the Software;
+  b) Reverse engineer, decompile, or disassemble the Software,
+     except and only to the extent that such restriction is
+     prohibited by applicable law or is necessary to permit you to
+     modify third-party components that are licensed under the GNU
+     Lesser General Public License (LGPL) for the purpose of
+     re-linking the Software with a modified version of those
+     components, as described in Section 7;
   c) Use the Software to violate any applicable law or regulation;
   d) Use the Software to transmit illegal, harmful, or abusive
      content;
@@ -64,13 +72,11 @@ You may NOT:
   g) Use the Software as a managed service or hosting platform
      for third parties without a separate hosting license.
 
-
 5. INTELLECTUAL PROPERTY
 
 The Software is licensed, not sold. All rights, title, and interest
 in and to the Software, including the E2EE cryptographic
 implementation, remain with the Licensor.
-
 
 6. DATA AND PRIVACY
 
@@ -85,9 +91,67 @@ implementation, remain with the Licensor.
      (not E2EE in this edition).
   d) The Licensor does not operate or control the LiveKit server
      you connect to.
+  e) The Software ships with no default server and no embedded
+     credentials. You must configure your own LiveKit server, and
+     the Software will not route your communication through any
+     server operated by the Licensor.
+  f) The Software contains no analytics, telemetry, crash-reporting,
+     advertising or tracking code, and requires no user account.
+     The data you enter is stored locally on your device and is not
+     transmitted to the Licensor. Full details are in the Privacy
+     Policy (PRIVACY.md, also available in the application under
+     License Information → Privacy).
 
+7. OPEN-SOURCE COMPONENTS
 
-7. NO WARRANTY
+The Software incorporates third-party open-source components, which
+are licensed to you under their own terms and not under this EULA.
+A complete list of those components, their licenses, and the full
+text of each license is provided in THIRD_PARTY_NOTICES.md, which is
+distributed with the Software and is also viewable within the
+Software under Settings > License Information > "Open Source".
+
+  a) Nothing in this EULA limits or modifies your rights, or
+     imposes additional obligations on you, with respect to those
+     third-party components under their respective licenses.
+  b) Where a third-party component is licensed under a copyleft
+     license — including the GNU Lesser General Public License,
+     version 2.1 or later — you retain every right granted by that
+     license. This expressly includes your right to obtain the
+     source code of that component, to modify it, and to re-link
+     the Software with your modified version, notwithstanding
+     Section 4(b).
+  c) Certain components are licensed under file-scoped terms such
+     as the Mozilla Public License 2.0. The specific source files
+     to which those terms apply, and the offer of corresponding
+     source, are identified in THIRD_PARTY_NOTICES.md.
+  d) The open-source components remain the property of their
+     respective copyright holders. Sections 7 and 8 of this EULA,
+     together with THIRD_PARTY_NOTICES.md, survive termination.
+
+8. EXPORT COMPLIANCE
+
+The Software contains cryptographic functionality and is subject to
+export control laws and regulations, including those of the United
+States and of your country of residence, location, or use.
+
+  a) You may not export, re-export, or transfer the Software, or
+     any part of it, in violation of any applicable export control
+     or sanctions law or regulation — including to any person or
+     entity listed on a denied-party, restricted-party, or
+     sanctions list, or to any country or region subject to a
+     comprehensive embargo.
+  b) You represent and warrant that you are not located in, under
+     the control of, or a national or resident of any such
+     prohibited country, region, or party.
+  c) The cryptographic functionality is limited to the protection
+     of confidential meeting content. The encryption algorithms,
+     key lengths, and the Licensor's export-control classification
+     for the Software are stated in THIRD_PARTY_NOTICES.md.
+  d) You remain solely responsible for complying with the export
+     control and import requirements of your own jurisdiction.
+
+9. NO WARRANTY
 
 THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND.
 THE LICENSOR DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
@@ -100,8 +164,17 @@ SPECIFICALLY, THE LICENSOR MAKES NO WARRANTY THAT:
   b) The Software will operate without errors or interruptions;
   c) The Software will be compatible with all systems.
 
+Notwithstanding the foregoing, nothing in this Section excludes or
+limits the French statutory warranty of conformity (garantie légale
+de conformité, Articles L.217-3 et seq. of the French Consumer
+Code) or the warranty against hidden defects (garantie des vices
+cachés, Articles 1641 to 1649 of the French Civil Code), nor any
+other right that cannot be excluded or limited under applicable
+mandatory law. Where the Software is supplied to a consumer, this
+Section applies only to the extent permitted by the mandatory law
+of the consumer's country of habitual residence.
 
-8. LIMITATION OF LIABILITY
+10. LIMITATION OF LIABILITY
 
 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW:
 
@@ -113,50 +186,108 @@ TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW:
      EXCEED THE AMOUNT YOU PAID FOR THE SOFTWARE IN THE
      TWELVE (12) MONTHS PRECEDING THE CLAIM.
 
+Notwithstanding the foregoing, nothing in this Section excludes or
+limits the Licensor's liability for (i) willful misconduct or gross
+negligence (dol ou faute lourde), (ii) fraud or fraudulent
+misrepresentation, (iii) death or personal injury caused by its
+fault, or (iv) any liability that cannot be excluded or limited
+under applicable mandatory law, including the statutory warranties
+referred to in Section 9. Where the Software is supplied to a
+consumer, paragraphs (a) and (b) apply only to the extent permitted
+by the mandatory law of the consumer's country of habitual
+residence.
 
-9. TERMINATION
+11. TERMINATION
 
 This EULA is effective until terminated. The Licensor may
 terminate this EULA if you fail to comply with any term.
 Upon termination, you must cease all use of the Software,
 including E2EE capabilities, and destroy all copies.
 
+12. REFUND POLICY AND APP STORE TERMS
 
-10. REFUND POLICY
+The Software is distributed through the Apple App Store and the
+Google Play Store. Where you acquire the Software through one of
+those platforms:
 
-Refunds are governed by the platform through which you purchased
-the Software (Apple App Store, Google Play Store, or Microsoft
-Store). Contact the respective platform for refund requests.
+  a) Merchant of record. The platform is the merchant of record for
+     your purchase. Your contract of sale is with the platform and
+     not with the Licensor; the Licensor grants you the license to
+     the Software under this EULA. Refunds, cancellations, billing,
+     subscriptions and payment disputes are governed by the
+     platform's terms and are handled by the platform. Contact the
+     platform, and not the Licensor, for refund requests.
+  b) No platform maintenance obligation. The Licensor, and not the
+     platform, is solely responsible for the Software and its
+     content. The platform has no obligation to furnish any
+     maintenance or support services in respect of the Software.
+  c) Warranty claims. Any claim that the Software fails to conform
+     to an applicable warranty, and any consumer-protection or
+     similar claim arising from the Software itself, is to be
+     addressed to the Licensor in accordance with Sections 9 and 10
+     rather than to the platform, except to the extent that
+     applicable law places the obligation on the platform as seller
+     of record.
+  d) Intellectual property claims. The platform has no obligation
+     or liability in respect of any claim by a third party that the
+     Software, or your possession and use of it, infringes that
+     third party's intellectual property rights. Any such claim is
+     governed by this EULA and is to be addressed to the Licensor.
+  e) Third-party beneficiary. For Software acquired through the
+     Apple App Store, Apple, Inc. and its subsidiaries are
+     third-party beneficiaries of this EULA and, upon your
+     acceptance of its terms, are entitled to enforce this EULA
+     against you in their own right.
+  f) Right of withdrawal. Because the Software is digital content
+     supplied immediately on download and not on a durable medium,
+     any statutory right of withdrawal is forfeited once the
+     download or installation has begun with your prior express
+     consent and your acknowledgment of that forfeiture, as
+     provided by Article L.221-28 13° of the French Consumer Code.
 
-
-11. SUPPORT AND UPDATES
+13. SUPPORT AND UPDATES
 
 The Licensor may, at its discretion, provide support and updates
 for the Pro Edition. Support is not guaranteed and is provided
 on a best-effort basis.
 
+14. GOVERNING LAW AND JURISDICTION
 
-12. GOVERNING LAW
+  a) This EULA, and any dispute or claim arising out of or in
+     connection with it or the Software, shall be governed by and
+     construed in accordance with the laws of France, without
+     regard to its conflict-of-law rules.
+  b) The United Nations Convention on Contracts for the
+     International Sale of Goods (CISG) does not apply to this
+     EULA.
+  c) Subject to paragraph (d), the courts of Bobigny, France shall
+     have exclusive jurisdiction over any such dispute or claim.
+  d) Where you are a consumer, nothing in this Section limits the
+     protection afforded to you by the mandatory provisions of the
+     law of the country in which you are habitually resident, nor
+     any right you may have to bring or defend proceedings in the
+     courts of that country. Paragraphs (a) and (c) apply only to
+     the extent permitted by those mandatory provisions.
 
-This EULA shall be governed by and construed in accordance with
-the laws of the jurisdiction in which the Licensor is established,
-without regard to conflict of law principles.
-
-
-13. SEVERABILITY
+15. SEVERABILITY
 
 If any provision of this EULA is held to be unenforceable, the
 remaining provisions shall remain in full force and effect.
 
-
-14. ENTIRE AGREEMENT
+16. ENTIRE AGREEMENT
 
 This EULA constitutes the entire agreement between you and the
 Licensor regarding the Software and supersedes all prior
 communications, proposals, and representations.
 
-
-15. CONTACT
+17. CONTACT
 
 For support, licensing inquiries, or questions:
-  <insert-contact-email>
+
+  <kghemari@yahoo.com>
+
+Or by post:
+
+  Miradata SASU
+  12 rue Jacques Catric
+  93260 Les Lilas, France

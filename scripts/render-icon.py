@@ -24,7 +24,27 @@ Usage
 
 Full icon regeneration workflow:
     python3 scripts/render-icon.py /tmp/logo-clean.png
-    pnpm tauri icon /tmp/logo-clean.png
+    pnpm tauri icon /tmp/logo-clean.png -o /tmp/icon-regen --ios-color transparent
+    cp /tmp/icon-regen/ios/*.png src-tauri/icons/ios/
+    ./scripts/sync-ios-icons.sh
+
+(If resvg is installed -- it preserves alpha, unlike qlmanage -- the first
+line can be replaced with:
+    resvg -w 1024 -h 1024 src/assets/logo.svg /tmp/logo-clean.png)
+
+Two `tauri icon` traps this workflow works around:
+  * `--ios-color` defaults to #fff: the CLI composites every iOS icon onto an
+    opaque white canvas, baking white corners into all AppIcon-*.png while
+    every other platform keeps its alpha.  Passing `transparent` keeps the
+    corners alpha-0 like the rest of the icon set.
+  * Without `-o` the CLI detects the generated Xcode project and writes the
+    iOS icons straight into src-tauri/gen/apple/Assets.xcassets/
+    AppIcon.appiconset/, leaving src-tauri/icons/ios/ (the source of truth
+    sync-ios-icons.sh copies from) stale.  Regenerating into a scratch dir
+    and copying ios/ back also keeps the `--ios-color` value from leaking
+    into android/values/ic_launcher_background.xml (it would turn the
+    adaptive-icon background #00000000) and avoids churning the
+    byte-unstable icon.icns.
 """
 import struct
 import sys

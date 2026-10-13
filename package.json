@@ -48,7 +48,9 @@
     "android:clean": "rm -rf src-tauri/gen/android",
     "ios:clean": "rm -rf src-tauri/gen/apple",
     "mobile:init": "pnpm ios:init && pnpm android:init",
-    "clean:all": "pnpm ios:clean && pnpm android:clean"
+    "clean:all": "pnpm ios:clean && pnpm android:clean",
+    "notices": "python3 scripts/generate-notices.py",
+    "license:check": "python3 scripts/generate-notices.py --check"
   },
   "license": "PolyForm-Noncommercial-1.0.0",
   "dependencies": {

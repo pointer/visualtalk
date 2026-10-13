@@ -75,7 +75,11 @@ fn get_system_locale() -> String {
 }
 
 #[tauri::command]
-fn get_meeting_session(room: String, state: State<'_, AppState>) -> Result<MeetingSession, String> {
+fn get_meeting_session(
+    room: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<MeetingSession, String> {
     let data = state
         .data
         .lock()
@@ -87,7 +91,7 @@ fn get_meeting_session(room: String, state: State<'_, AppState>) -> Result<Meeti
         let _ = meetings.add_history(room.clone(), &state.config_dir);
     }
 
-    create_session(room, &data)
+    create_session(room, &data, &app)
 }
 
 #[tauri::command]
@@ -798,6 +802,39 @@ fn notify_meeting_ended(
 // ===================
 // ==========
 
+/// One-time migration for the user's LiveKit server configuration.
+///
+/// Earlier builds kept it inside `settings.json` under the `livekit_config`
+/// key — the same file that `AppData` owns and rewrites wholesale via
+/// `fs::write`. Saving a note or a profile change therefore silently wiped the
+/// saved server. That was masked while a built-in default server existed; now
+/// that VisualTalk is bring-your-own-server, the config lives in its own store
+/// file (`commands::STORE_FILE`) so the two writers cannot clobber each other.
+///
+/// Copy-only: the legacy key is left untouched and simply ignored, which avoids
+/// rewriting a file that `AppData` may be about to write itself.
+fn migrate_livekit_store(app: &AppHandle) {
+    const LEGACY_FILE: &str = "settings.json";
+
+    let Ok(store) = app.store(commands::STORE_FILE) else {
+        return;
+    };
+    // Already migrated, or configured fresh — nothing to do.
+    if store.get(commands::SETTINGS_KEY).is_some() {
+        return;
+    }
+
+    let Ok(legacy) = app.store(LEGACY_FILE) else {
+        return;
+    };
+    let Some(value) = legacy.get(commands::SETTINGS_KEY) else {
+        return;
+    };
+
+    store.set(commands::SETTINGS_KEY, value.clone());
+    let _ = store.save();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     dotenvy::dotenv().ok();
@@ -814,6 +851,12 @@ pub fn run() {
                 .unwrap_or_else(|_| std::env::temp_dir().join("visualtalk"));
 
             let _ = std::fs::create_dir_all(&config_dir);
+
+            // Must run before `AppState::new`, which loads `settings.json` and
+            // later rewrites it — after that point the legacy key may be gone.
+            let handle = app.handle().clone();
+            migrate_livekit_store(&handle);
+
             app.manage(AppState::new(config_dir.clone()));
             app.manage(recording::RecordingState::new(config_dir));
             Ok(())
