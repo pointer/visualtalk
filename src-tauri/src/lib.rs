@@ -30,32 +30,6 @@ use session::{create_session, MeetingSession};
 use settings::{UserProfile, UserSettings};
 use state::AppState;
 
-use serde::Serialize;
-
-#[derive(Serialize)]
-pub struct AppConfig {
-    livekit_url: String,
-    api_key: String,
-    room: String,
-    identity: String,
-}
-
-#[tauri::command]
-fn get_config() -> Result<AppConfig, String> {
-    let livekit_url =
-        std::env::var("LIVEKIT_URL").map_err(|_| "LIVEKIT_URL not set".to_string())?;
-    let api_key =
-        std::env::var("LIVEKIT_API_KEY").map_err(|_| "LIVEKIT_API_KEY not set".to_string())?;
-    let room = std::env::var("ROOM").map_err(|_| "ROOM not set".to_string())?;
-    let identity = std::env::var("IDENTITY").map_err(|_| "IDENTITY not set".to_string())?;
-    Ok(AppConfig {
-        livekit_url,
-        api_key,
-        room,
-        identity,
-    })
-}
-
 /// Detect the OS system locale.
 ///
 /// Reads LANG / LC_ALL / LANGUAGE environment variables (set by macOS and Linux)
@@ -759,18 +733,6 @@ fn update_user_notes(
     emit_event(&app, VtEvent::NotesUpdated { notes });
     Ok(())
 }
-#[tauri::command]
-fn generate_livekit_token(
-    api_key: String,
-    identity: String,
-    room: String,
-    valid_for_seconds: Option<u64>,
-) -> Result<String, String> {
-    let secret = std::env::var("LIVEKIT_API_SECRET")
-        .map_err(|_| "LIVEKIT_API_SECRET not set in environment".to_string())?;
-    let validity = valid_for_seconds.unwrap_or(86400);
-    token::generate_token(&api_key, &secret, &identity, &room, validity)
-}
 
 // ===================
 // ===== MEETING LIFECYCLE EVENTS =====
@@ -919,9 +881,7 @@ pub fn run() {
             calculate_tile_size,
             should_feature_screen_share,
             calculate_filmstrip_dimensions,
-            // Token Generation
-            generate_livekit_token,
-            get_config,
+            // Locale
             get_system_locale,
             // Backgrounds
             get_background,

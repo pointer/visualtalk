@@ -159,16 +159,15 @@ visualtalk/
 - [Rust](https://www.rust-lang.org/) (latest stable) & Cargo
 - [Tauri v2 CLI prerequisites](https://v2.tauri.app/start/prerequisites/)
 
-### Environment Variables
-Create a `.env` file in the root directory (or `src-tauri/`):
+### LiveKit Server Configuration
+VisualTalk is bring-your-own-server: it ships **no** default LiveKit server and
+**no** embedded credentials. Configure your own server in the app under
+**Settings → LiveKit** (URL, API key, API secret). The values are stored locally
+in the Tauri store (`livekit.json` in the app config directory) and are the
+single source of truth for token minting — environment variables are not used.
 
-```env
-LIVEKIT_URL=wss://your-livekit-server.livekit.cloud
-LIVEKIT_API_KEY=your_api_key
-LIVEKIT_API_SECRET=your_api_secret
-ROOM=general
-IDENTITY=User1
-```
+> The optional `.env` file (loaded via `dotenvy`) is only consulted for
+> non-credential development helpers such as `AI_API_KEY`.
 
 ### Development
 ```bash

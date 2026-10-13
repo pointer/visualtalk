@@ -346,35 +346,24 @@ export function useLiveKitRoom() {
     resetParticipants([{ id: "local", name: "You (Local)", isLocal: true, videoTrack: null }]);
 
     // Resolve LiveKit server URL + token:
-    //   1) get_config + generate_livekit_token (dev: values come from .env)
-    //   2) get_meeting_session                 (packaged builds: Rust defaults)
-    //   3) token/url passed down from the main window via query params
+    //   1) get_meeting_session — Rust mints the token from the server saved in
+    //      Settings → LiveKit (the single source of truth)
+    //   2) token/url passed down from the main window via query params
+    //      (host flow / invite deep links)
     let LIVEKIT_URL = providedUrl || null;
     let token = null;
     try {
-      const conf = await invoke("get_config");
-      LIVEKIT_URL = LIVEKIT_URL || conf.livekit_url;
-      token = await invoke("generate_livekit_token", {
-        apiKey: conf.api_key,
-        identity: identity,
-        room: roomName,
-        validForSeconds: 86400,
-      });
+      const session = await invoke("get_meeting_session", { room: roomName });
+      LIVEKIT_URL = LIVEKIT_URL || session.livekit_url;
+      token = session.token;
     } catch (err) {
-      console.warn("[connectToMeeting] get_config/generate_livekit_token failed, falling back:", err);
-      try {
-        const session = await invoke("get_meeting_session", { room: roomName });
-        LIVEKIT_URL = LIVEKIT_URL || session.livekit_url;
-        token = session.token;
-      } catch (err2) {
-        if (providedToken) {
-          token = providedToken; // last resort: token minted by the main window
-        } else {
-          const msg = `Could not obtain a LiveKit token: ${err2 && err2.message ? err2.message : err2}`;
-          console.error("[connectToMeeting]", msg);
-          setConnectionError(msg);
-          throw new Error(msg);
-        }
+      if (providedToken) {
+        token = providedToken; // last resort: token minted by the main window
+      } else {
+        const msg = `Could not obtain a LiveKit token: ${err && err.message ? err.message : err}`;
+        console.error("[connectToMeeting]", msg);
+        setConnectionError(msg);
+        throw new Error(msg);
       }
     }
     if (!LIVEKIT_URL) {
