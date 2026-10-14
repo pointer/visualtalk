@@ -60,10 +60,11 @@ Notes.txt
 *.md
 ExportOptions copy.plist
 ExportOptions.plist
-tauri.conf.json
-package.json
-vite.config.js
-.gitignore
+# NOTE: tauri.conf.json / package.json / vite.config.js / .gitignore must NOT
+# be ignored here, even as a "just in case" safeguard. They are tracked, so git
+# ignores the patterns — but gitignore-aware tooling (globby with gitignore:
+# true, which tauri-action@v1 uses to locate src-tauri/tauri.conf.json) filters
+# purely by pattern and fails with "Couldn't detect Tauri dir".
 
 # ── Compliance / legal files must ALWAYS be tracked ───────────────────────────
 # The blanket *.md / *.txt / *.lock rules above would silently drop these.

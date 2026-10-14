@@ -126,12 +126,14 @@ jobs:
           releaseName: 'App ${{ github.ref_name }}'
           releaseDraft: true
           prerelease: false
+          tauriScript: pnpm tauri
           args: ${{ matrix.args }}
 
       - name: Build Tauri app (no release, branch builds)
         if: "!startsWith(github.ref, 'refs/tags/')"
         uses: tauri-apps/tauri-action@v1
         with:
+          tauriScript: pnpm tauri
           args: ${{ matrix.args }}
 
       - name: Upload desktop artifacts
@@ -149,6 +151,10 @@ jobs:
   android:
     needs: license-audit
     runs-on: ubuntu-22.04
+    # Release 1 targets the iOS App Store. The Android signing secrets
+    # (ANDROID_KEYSTORE_BASE64 and friends) are not provisioned yet, so the
+    # signed-AAB step is expected to fail — don't turn the whole release red.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -323,33 +329,21 @@ jobs:
           ./scripts/fix-ios-project.sh --check
           ./scripts/sync-ios-icons.sh --check
 
-      - name: Import iOS signing certificate & provisioning profile
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
-          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-          IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
-          PP_PATH=$RUNNER_TEMP/profile.mobileprovision
-
-          echo -n "$IOS_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
-          echo -n "$IOS_PROVISION_PROFILE_BASE64" | base64 --decode -o $PP_PATH
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security import $CERTIFICATE_PATH -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
-
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
-
+      # Tauri CLI v2 handles CI signing natively when these env vars are set:
+      # it imports the .p12 into a temporary keychain, installs the mobile
+      # provision, flips the generated Xcode project to CODE_SIGN_STYLE=Manual
+      # with the right PROVISIONING_PROFILE_SPECIFIER, and restores everything
+      # after the build. A hand-rolled keychain import fails because the
+      # project is configured for Automatic signing (fix-ios-project.sh, for
+      # local dev) and the runner has no Apple ID account — xcodebuild then
+      # errors with "No Accounts" / "No profiles for 'com.katebg.visualtalk'".
+      # See: https://v2.tauri.app/distribute/sign/ios/#manual-signing
       - name: Build iOS app (signed, for tag pushes)
         if: startsWith(github.ref, 'refs/tags/')
+        env:
+          IOS_CERTIFICATE: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_MOBILE_PROVISION: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
         run: pnpm tauri ios build --export-method app-store-connect
 
       - name: Build iOS app (unsigned, for branch builds)

@@ -59,8 +59,8 @@ config.json
 *.txt
 Notes.txt
 *.lock
-tauri.conf.json
-package.json
-vite.config.js
-.gitignore
+# NOTE: never ignore tauri.conf.json / package.json / vite.config.js /
+# .gitignore here — gitignore-aware tools (e.g. tauri-action's globby-based
+# Tauri-dir detection) filter by pattern regardless of git tracking and would
+# fail. See the root .gitignore for details.
 App.jsx
