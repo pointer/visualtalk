@@ -202,6 +202,13 @@ def npm_index():
                 continue
             if not d.get('name'):
                 continue
+            # Platform-specific native binaries (esbuild/rollup/rolldown/
+            # lightningcss/tauri-cli bindings, fsevents, …) declare os/cpu
+            # restrictions, install differently on every runner OS and are
+            # never bundled into the shipped app. Skipping them keeps the
+            # notices corpus identical on macOS, Linux and Windows.
+            if d.get('os') or d.get('cpu'):
+                continue
             idx[(d['name'], d.get('version', ''))] = (os.path.dirname(f), d)
     return idx
 

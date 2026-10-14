@@ -11,7 +11,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 ## 1. Summary
 
 - Shipped (statically linked or bundled) components: **557**
-- Build-time-only components (not distributed): **90**
+- Build-time-only components (not distributed): **84**
 - No GPL, AGPL, SSPL, BUSL, Elastic License or Commons Clause component is linked into any distributed binary.
 - Weak copyleft present: MPL-2.0 (file-scoped, see section 6) and CDLA-Permissive-2.0 (root CA certificate data).
 
@@ -689,14 +689,11 @@ Used to compile and bundle VisualTalk but **not** included in any distributed ar
 | `@jridgewell/sourcemap-codec` | 1.6.0 | MIT |
 | `@jridgewell/trace-mapping` | 0.3.31 | MIT |
 | `@oxc-project/types` | 0.151.0 | MIT |
-| `@rolldown/binding-darwin-arm64` | 1.2.11 | MIT |
 | `@rolldown/pluginutils` | 1.0.1 | MIT |
 | `@tailwindcss/node` | 4.3.3 | MIT |
 | `@tailwindcss/oxide` | 4.3.3 | MIT |
-| `@tailwindcss/oxide-darwin-arm64` | 4.3.3 | MIT |
 | `@tailwindcss/vite` | 4.3.3 | MIT |
 | `@tauri-apps/cli` | 2.12.0 | Apache-2.0 OR MIT |
-| `@tauri-apps/cli-darwin-arm64` | 2.12.0 | Apache-2.0 OR MIT |
 | `@types/babel__core` | 7.20.5 | MIT |
 | `@types/babel__generator` | 7.27.0 | MIT |
 | `@types/babel__template` | 7.4.4 | MIT |
@@ -717,7 +714,6 @@ Used to compile and bundle VisualTalk but **not** included in any distributed ar
 | `escalade` | 3.2.0 | MIT |
 | `fdir` | 6.5.0 | MIT |
 | `fraction.js` | 5.3.4 | MIT |
-| `fsevents` | 2.3.3 | MIT |
 | `gensync` | 1.0.0-beta.2 | MIT |
 | `graceful-fs` | 4.2.11 | ISC |
 | `html-entities` | 2.3.3 | MIT |
@@ -728,8 +724,6 @@ Used to compile and bundle VisualTalk but **not** included in any distributed ar
 | `json5` | 2.2.3 | MIT |
 | `lightningcss` | 1.32.0 | MPL-2.0 |
 | `lightningcss` | 1.33.0 | MPL-2.0 |
-| `lightningcss-darwin-arm64` | 1.32.0 | MPL-2.0 |
-| `lightningcss-darwin-arm64` | 1.33.0 | MPL-2.0 |
 | `lru-cache` | 5.1.1 | ISC |
 | `magic-string` | 0.30.21 | MIT |
 | `merge-anything` | 5.1.7 | MIT |
