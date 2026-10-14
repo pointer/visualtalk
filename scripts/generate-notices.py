@@ -646,6 +646,19 @@ def render_js(doc):
             'export const THIRD_PARTY_NOTICES = %s;\n' % json.dumps(doc))
 
 
+def print_drift(pkgs, md_text):
+    """List exactly which (eco, name, version) rows differ between the
+    committed notices table and the live scan, so CI drift is self-diagnosing
+    instead of forcing artifact archaeology."""
+    on_disk = set(re.findall(r'^\| (crates\.io|npm) \| `([^`]+)` \| (\S+) \|',
+                             md_text, re.M))
+    scanned = {(p['eco'], p['name'], p['version']) for p in pkgs}
+    for key in sorted(on_disk - scanned):
+        print('  only in committed notices: %s %s %s' % key)
+    for key in sorted(scanned - on_disk):
+        print('  only in this scan:         %s %s %s' % key)
+
+
 def main():
     check = '--check' in sys.argv
     version = json.load(open(os.path.join(REPO, 'package.json'))).get('version', '0.0.0')
@@ -682,6 +695,8 @@ def main():
             failed = True
         elif strip_volatile(read(OUT_MD)) != strip_volatile(doc):
             print('\nFAIL: THIRD_PARTY_NOTICES.md is stale. Run `pnpm notices` and commit.')
+            print('Drift detail:')
+            print_drift(pkgs, read(OUT_MD))
             failed = True
         else:
             print('\n✓ THIRD_PARTY_NOTICES.md is up to date')
