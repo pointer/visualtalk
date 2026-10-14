@@ -10,7 +10,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 
 ## 1. Summary
 
-- Shipped (statically linked or bundled) components: **557**
+- Shipped (statically linked or bundled) components: **556**
 - Build-time-only components (not distributed): **84**
 - No GPL, AGPL, SSPL, BUSL, Elastic License or Commons Clause component is linked into any distributed binary.
 - Weak copyleft present: MPL-2.0 (file-scoped, see section 6) and CDLA-Permissive-2.0 (root CA certificate data).
@@ -23,7 +23,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | --- | --- |
 | `MIT OR Apache-2.0` | 254 |
 | `MIT` | 134 |
-| `Apache-2.0 OR MIT` | 56 |
+| `Apache-2.0 OR MIT` | 55 |
 | `Unicode-3.0` | 18 |
 | `Zlib OR Apache-2.0 OR MIT` | 17 |
 | `MIT/Apache-2.0` | 14 |
@@ -79,7 +79,6 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | crates.io | `tokio` | 1.53.2 | MIT |
 | crates.io | `url` | 2.5.8 | MIT OR Apache-2.0 |
 | crates.io | `urlencoding` | 2.1.3 | MIT |
-| npm | `@tauri-apps/api` | 2.12.0 | Apache-2.0 OR MIT |
 | npm | `@tauri-apps/api` | 2.12.3 | Apache-2.0 OR MIT |
 | npm | `@tauri-apps/plugin-clipboard-manager` | 2.4.1 | MIT OR Apache-2.0 |
 | npm | `@tauri-apps/plugin-dialog` | 2.8.2 | MIT OR Apache-2.0 |
@@ -629,14 +628,13 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `zvariant_derive` | 5.15.0 | MIT | Copyright (c) 2024 Zeeshan Ali Khan & zbus contributors |
 | `zvariant_utils` | 4.2.0 | MIT | The above copyright notice and this permission notice |
 
-### npm (24)
+### npm (23)
 
 | Component | Version | License | Copyright |
 | --- | --- | --- | --- |
 | `@bufbuild/protobuf` | 1.10.1 | (Apache-2.0 AND BSD-3-Clause) |  |
 | `@livekit/mutex` | 1.1.1 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `@livekit/protocol` | 1.50.4 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
-| `@tauri-apps/api` | 2.12.0 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `@tauri-apps/api` | 2.12.3 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `@tauri-apps/plugin-clipboard-manager` | 2.4.1 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
 | `@tauri-apps/plugin-dialog` | 2.8.2 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |

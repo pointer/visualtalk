@@ -647,16 +647,16 @@ def render_js(doc):
 
 
 def print_drift(pkgs, md_text):
-    """List exactly which (eco, name, version) rows differ between the
-    committed notices table and the live scan, so CI drift is self-diagnosing
-    instead of forcing artifact archaeology."""
-    on_disk = set(re.findall(r'^\| (crates\.io|npm) \| `([^`]+)` \| (\S+) \|',
-                             md_text, re.M))
-    scanned = {(p['eco'], p['name'], p['version']) for p in pkgs}
-    for key in sorted(on_disk - scanned):
-        print('  only in committed notices: %s %s %s' % key)
-    for key in sorted(scanned - on_disk):
-        print('  only in this scan:         %s %s %s' % key)
+    """List exactly which (name, version) rows differ between the committed
+    notices tables (sections 3 and 4 use ``| `name` | version | …`` rows) and
+    the live scan, so CI drift is self-diagnosing instead of forcing artifact
+    archaeology."""
+    on_disk = set(re.findall(r'^\| `([^`]+)` \| (\S+) \|', md_text, re.M))
+    scanned = {(p['name'], p['version']) for p in pkgs}
+    for name, ver in sorted(on_disk - scanned):
+        print('  only in committed notices: %s %s' % (name, ver))
+    for name, ver in sorted(scanned - on_disk):
+        print('  only in this scan:         %s %s' % (name, ver))
 
 
 def main():
