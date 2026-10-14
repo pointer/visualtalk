@@ -1,7 +1,7 @@
 # VisualTalk — Third-Party Software Notices
 
 Product version: 3.3.33  
-Generated: 2026-10-13  
+Generated: 2026-10-14  
 Regenerate with: `pnpm notices` (runs `scripts/generate-notices.py`)
 
 VisualTalk incorporates the third-party software listed below. This document satisfies the attribution and notice requirements of those licenses (MIT, Apache-2.0 §4, BSD, ISC, Zlib, Unicode-3.0, MPL-2.0 §3, CDLA-Permissive-2.0 and others). The full text of each license is reproduced in section 5.
@@ -10,7 +10,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 
 ## 1. Summary
 
-- Shipped (statically linked or bundled) components: **556**
+- Shipped (statically linked or bundled) components: **557**
 - Build-time-only components (not distributed): **90**
 - No GPL, AGPL, SSPL, BUSL, Elastic License or Commons Clause component is linked into any distributed binary.
 - Weak copyleft present: MPL-2.0 (file-scoped, see section 6) and CDLA-Permissive-2.0 (root CA certificate data).
@@ -23,7 +23,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | --- | --- |
 | `MIT OR Apache-2.0` | 254 |
 | `MIT` | 134 |
-| `Apache-2.0 OR MIT` | 55 |
+| `Apache-2.0 OR MIT` | 56 |
 | `Unicode-3.0` | 18 |
 | `Zlib OR Apache-2.0 OR MIT` | 17 |
 | `MIT/Apache-2.0` | 14 |
@@ -68,12 +68,11 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | crates.io | `icalendar` | 0.17.14 | MIT/Apache-2.0 |
 | crates.io | `rand` | 0.10.3 | MIT OR Apache-2.0 |
 | crates.io | `reqwest` | 0.13.5 | MIT OR Apache-2.0 |
-| crates.io | `ring` | 0.17.14 | Apache-2.0 AND ISC |
 | crates.io | `serde` | 1.0.229 | MIT OR Apache-2.0 |
 | crates.io | `serde_json` | 1.0.151 | MIT OR Apache-2.0 |
 | crates.io | `sha2` | 0.11.0 | MIT OR Apache-2.0 |
-| crates.io | `tauri` | 2.12.2 | Apache-2.0 OR MIT |
-| crates.io | `tauri-build` | 2.7.1 | Apache-2.0 OR MIT |
+| crates.io | `tauri` | 2.12.3 | Apache-2.0 OR MIT |
+| crates.io | `tauri-build` | 2.7.2 | Apache-2.0 OR MIT |
 | crates.io | `tauri-plugin-dialog` | 2.8.1 | Apache-2.0 OR MIT |
 | crates.io | `tauri-plugin-opener` | 2.7.0 | Apache-2.0 OR MIT |
 | crates.io | `tauri-plugin-store` | 2.5.0 | Apache-2.0 OR MIT |
@@ -81,8 +80,9 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | crates.io | `url` | 2.5.8 | MIT OR Apache-2.0 |
 | crates.io | `urlencoding` | 2.1.3 | MIT |
 | npm | `@tauri-apps/api` | 2.12.0 | Apache-2.0 OR MIT |
+| npm | `@tauri-apps/api` | 2.12.3 | Apache-2.0 OR MIT |
 | npm | `@tauri-apps/plugin-clipboard-manager` | 2.4.1 | MIT OR Apache-2.0 |
-| npm | `@tauri-apps/plugin-opener` | 2.6.0 | MIT OR Apache-2.0 |
+| npm | `@tauri-apps/plugin-dialog` | 2.8.2 | MIT OR Apache-2.0 |
 | npm | `@tauri-apps/plugin-opener` | 2.7.1 | MIT OR Apache-2.0 |
 | npm | `@tauri-apps/plugin-store` | 2.5.0 | MIT OR Apache-2.0 |
 | npm | `livekit-client` | 2.22.3 | Apache-2.0 |
@@ -475,10 +475,10 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `tao` | 0.37.1 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `tao-macros` | 0.1.4 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `target-lexicon` | 0.12.16 | Apache-2.0 WITH LLVM-exception | "Licensor" shall mean the copyright owner or entity authorized by |
-| `tauri` | 2.12.2 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
-| `tauri-build` | 2.7.1 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
-| `tauri-codegen` | 2.7.1 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
-| `tauri-macros` | 2.7.1 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `tauri` | 2.12.3 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `tauri-build` | 2.7.2 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `tauri-codegen` | 2.7.2 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `tauri-macros` | 2.7.2 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `tauri-plugin` | 2.7.1 | Apache-2.0 OR MIT |  |
 | `tauri-plugin-dialog` | 2.8.1 | Apache-2.0 OR MIT | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
 | `tauri-plugin-fs` | 2.6.0 | Apache-2.0 OR MIT | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
@@ -629,7 +629,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `zvariant_derive` | 5.15.0 | MIT | Copyright (c) 2024 Zeeshan Ali Khan & zbus contributors |
 | `zvariant_utils` | 4.2.0 | MIT | The above copyright notice and this permission notice |
 
-### npm (23)
+### npm (24)
 
 | Component | Version | License | Copyright |
 | --- | --- | --- | --- |
@@ -637,8 +637,9 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `@livekit/mutex` | 1.1.1 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `@livekit/protocol` | 1.50.4 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `@tauri-apps/api` | 2.12.0 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `@tauri-apps/api` | 2.12.3 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `@tauri-apps/plugin-clipboard-manager` | 2.4.1 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
-| `@tauri-apps/plugin-opener` | 2.6.0 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
+| `@tauri-apps/plugin-dialog` | 2.8.2 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
 | `@tauri-apps/plugin-opener` | 2.7.1 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
 | `@tauri-apps/plugin-store` | 2.5.0 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
 | `csstype` | 3.2.3 | MIT | Copyright (c) 2017-2018 Fredrik Nicol |
