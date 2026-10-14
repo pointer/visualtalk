@@ -21,11 +21,21 @@ square are fully transparent (alpha 0), never white.
 Usage
 -----
     python3 scripts/render-icon.py [OUT.png]     # default: /tmp/logo-clean.png
+    python3 scripts/render-icon.py OUT.png --bg '#fff'   # opaque, no alpha channel
+
+`--bg` flattens the corners onto that colour and writes an **RGB** PNG (colour
+type 2) with no alpha channel at all. Apple rejects the 1024x1024 App Store
+icon (`AppIcon-512@2x.png`, idiom `ios-marketing`) if it carries an alpha
+channel, and `sips -g hasAlpha` reports `yes` for it, so the store icon must be
+rendered through this path. Every other icon keeps alpha: those platforms mask
+or composite it themselves.
 
 Full icon regeneration workflow:
     python3 scripts/render-icon.py /tmp/logo-clean.png
     pnpm tauri icon /tmp/logo-clean.png -o /tmp/icon-regen --ios-color transparent
     cp /tmp/icon-regen/ios/*.png src-tauri/icons/ios/
+    # App Store icon: opaque 1024x1024, overwrites the alpha copy above
+    python3 scripts/render-icon.py src-tauri/icons/ios/AppIcon-512@2x.png --bg '#fff'
     ./scripts/sync-ios-icons.sh
 
 (If resvg is installed -- it preserves alpha, unlike qlmanage -- the first
@@ -114,7 +124,15 @@ def chunk(typ, data):
     return c + struct.pack('>I', zlib.crc32(typ + data) & 0xffffffff)
 
 
-def render():
+def render(bg=None):
+    """Render the icon to PNG bytes.
+
+    bg=None       -> RGBA (colour type 6), corners alpha-0. Default: every
+                     platform that masks or composites the icon itself.
+    bg=(r, g, b)  -> RGB (colour type 2), corners flattened onto bg and no
+                     alpha channel at all. Required for the 1024x1024 App Store
+                     icon, which Apple rejects if the PNG carries alpha.
+    """
     rows = []
     step = 1.0 / K
     for py in range(N):
@@ -132,26 +150,80 @@ def render():
                         b += s[2]
                         a += s[3]
             n = K * K
-            if a == 0:
-                row += b'\x00\x00\x00\x00'
+            if bg is None:
+                if a == 0:
+                    row += b'\x00\x00\x00\x00'
+                else:
+                    row += bytes((int(r / n + 0.5), int(g / n + 0.5),
+                                  int(b / n + 0.5), int(a / n + 0.5)))
             else:
-                row += bytes((int(r / n + 0.5), int(g / n + 0.5),
-                              int(b / n + 0.5), int(a / n + 0.5)))
+                # r/g/b accumulate *premultiplied* by coverage (outside samples
+                # contribute nothing), so compositing over the background is
+                # just `fg + bg * (1 - coverage)`. Anti-aliasing is preserved.
+                cov = (a / n) / 255.0
+                inv = 1.0 - cov
+                row += bytes((
+                    min(255, max(0, int(r / n + bg[0] * inv + 0.5))),
+                    min(255, max(0, int(g / n + bg[1] * inv + 0.5))),
+                    min(255, max(0, int(b / n + bg[2] * inv + 0.5))),
+                ))
         rows.append(bytes(row))
 
     raw = b''.join(b'\x00' + r for r in rows)
+    colour_type = 2 if bg is not None else 6
     return (b'\x89PNG\r\n\x1a\n'
-            + chunk(b'IHDR', struct.pack('>IIBBBBB', N, N, 8, 6, 0, 0, 0))
+            + chunk(b'IHDR', struct.pack('>IIBBBBB', N, N, 8, colour_type, 0, 0, 0))
             + chunk(b'IDAT', zlib.compress(raw, 9))
             + chunk(b'IEND', b''))
 
 
+def parse_color(text):
+    """Parse a CSS colour into an (r, g, b) tuple, or None for 'transparent'.
+
+    Accepts '#rgb', '#rrggbb' and the handful of named colours that are useful
+    here. Anything else raises so a typo cannot silently ship a wrong icon.
+    """
+    named = {'transparent': None, 'white': (255, 255, 255), 'black': (0, 0, 0)}
+    key = text.strip().lower()
+    if key in named:
+        return named[key]
+    hexdigits = key.lstrip('#')
+    if len(hexdigits) == 3:
+        hexdigits = ''.join(c * 2 for c in hexdigits)
+    if len(hexdigits) != 6:
+        raise ValueError('cannot parse colour %r (use #rgb, #rrggbb or a name)' % text)
+    return tuple(int(hexdigits[i:i + 2], 16) for i in (0, 2, 4))
+
+
 def main(argv):
-    out = argv[1] if len(argv) > 1 else '/tmp/logo-clean.png'
-    png = render()
+    out = '/tmp/logo-clean.png'
+    bg = None
+    i = 1
+    while i < len(argv):
+        arg = argv[i]
+        if arg.startswith('--bg='):
+            bg = parse_color(arg.split('=', 1)[1])
+        elif arg == '--bg':
+            i += 1
+            if i >= len(argv):
+                print('error: --bg needs a colour argument', file=sys.stderr)
+                return 2
+            bg = parse_color(argv[i])
+        elif arg in ('-h', '--help'):
+            print(__doc__)
+            return 0
+        elif arg.startswith('-'):
+            print('error: unknown option %r' % arg, file=sys.stderr)
+            return 2
+        else:
+            out = arg
+        i += 1
+
+    png = render(bg)
     with open(out, 'wb') as f:
         f.write(png)
-    print('wrote %s (%d bytes, %dx%d RGBA)' % (out, len(png), N, N))
+    kind = ('RGB, opaque bg #%02x%02x%02x' % bg) if bg else 'RGBA'
+    print('wrote %s (%d bytes, %dx%d %s)' % (out, len(png), N, N, kind))
     return 0
 
 

@@ -113,6 +113,7 @@ mod tests {
             display_name: "Test User".to_string(),
             email: "test@example.com".to_string(),
             pmi: "123 456 7890".to_string(),
+            ..Default::default()
         };
 
         let event = VtEvent::ProfileUpdated { profile };
@@ -134,6 +135,7 @@ mod tests {
             mute_on_join: false,
             preferred_mic_id: Some("mic-123".to_string()),
             preferred_cam_id: None,
+            ..Default::default()
         };
 
         let event = VtEvent::SettingsUpdated { settings };
@@ -259,6 +261,7 @@ mod tests {
             display_name: "U".to_string(),
             email: "u@u.u".to_string(),
             pmi: "0".to_string(),
+            ..Default::default()
         };
 
         let settings = UserSettings {
@@ -268,6 +271,7 @@ mod tests {
             mute_on_join: false,
             preferred_mic_id: None,
             preferred_cam_id: None,
+            ..Default::default()
         };
 
         let meeting = ScheduledMeeting {

@@ -14,8 +14,15 @@ use tauri::State;
 
 use crate::state::AppState;
 
-const PRO_REQUIRED: &str = "E2EE requires VisualTalk Pro Edition. \
-    Get it from the App Store, Google Play, or Microsoft Store.";
+/// Message returned by every Pro-only command in this Community build.
+///
+/// Deliberately does not point at a store. Release 1 ships the Community edition
+/// only, so there is no purchasable Pro edition yet — telling users (and App
+/// Review) to "get it from the App Store" when nothing is sold there is both
+/// wrong and a rejection risk. Restore store wording only once the
+/// non-consumable Pro IAP actually ships.
+const PRO_REQUIRED: &str = "E2EE requires VisualTalk Pro Edition, \
+    which is not available in this build.";
 
 type E2eeResult<T> = Result<T, String>;
 

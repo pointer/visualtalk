@@ -5,6 +5,7 @@ mod backgrounds;
 mod chat;
 mod ai;
 mod commands;
+mod demo;
 mod device;
 mod e2ee;
 mod egress;
@@ -154,6 +155,141 @@ fn update_user_settings(
     //  and relying solely on the event for cross-window sync.]
     emit_event(&app, VtEvent::SettingsUpdated { settings });
     Ok(())
+}
+
+// ── Recordings folder ────────────────────────────────────────────────────────
+//
+// Local recordings land in `<app_config_dir>/recordings` by default, which on
+// macOS is `~/Library/Application Support/<bundle-id>/recordings`. That path is
+// correct but undiscoverable — users finish a meeting and cannot find the file.
+// These commands let Settings show the path, reveal it, and relocate it.
+
+#[derive(serde::Serialize)]
+struct RecordingsDirInfo {
+    path: String,
+    /// True when the user has not chosen their own folder.
+    is_default: bool,
+    exists: bool,
+}
+
+fn recordings_dir_info(rec: &recording::RecordingState) -> RecordingsDirInfo {
+    let dir = rec.dir();
+    RecordingsDirInfo {
+        is_default: dir == rec.default_dir,
+        exists: dir.is_dir(),
+        path: dir.to_string_lossy().to_string(),
+    }
+}
+
+#[tauri::command]
+fn get_recordings_dir(rec: State<'_, recording::RecordingState>) -> RecordingsDirInfo {
+    recordings_dir_info(&rec)
+}
+
+/// Point local recordings at `path`, or back at the built-in folder when
+/// `path` is `None`.
+#[tauri::command]
+fn set_recordings_dir(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    rec: State<'_, recording::RecordingState>,
+    path: Option<String>,
+) -> Result<RecordingsDirInfo, String> {
+    // Apply first. If the folder cannot be created we must not persist a
+    // setting that would silently break every subsequent recording.
+    let requested = recording::resolve_recordings_dir(&rec.default_dir, path.as_deref());
+    let effective = rec.set_dir(requested)?;
+
+    let settings = {
+        let mut data = state
+            .data
+            .lock()
+            .map_err(|_| "Failed to lock app data".to_string())?;
+        // Store `None` for the built-in location so the default keeps tracking
+        // the platform folder if it ever moves (portable installs, renamed id).
+        data.settings.recordings_dir = if effective == rec.default_dir {
+            None
+        } else {
+            Some(effective.to_string_lossy().to_string())
+        };
+        data.save(&state.config_dir)?;
+        data.settings.clone()
+    };
+
+    emit_event(&app, VtEvent::SettingsUpdated { settings });
+    Ok(recordings_dir_info(&rec))
+}
+
+// ── Reporting & blocking (App Store Review Guideline 1.2) ────────────────────
+
+#[derive(serde::Serialize)]
+struct ReportContact {
+    /// Meeting organizer's address — the destination for in-meeting reports
+    /// about objectionable content. The licensor never sees meeting content, so
+    /// it cannot moderate it; the organizer can.
+    organizer: String,
+    /// Publisher support address, shown in Settings → About.
+    support: String,
+}
+
+#[tauri::command]
+fn get_report_contact(state: State<'_, AppState>) -> Result<ReportContact, String> {
+    let data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    Ok(ReportContact {
+        organizer: data.profile.effective_report_email(),
+        support: crate::settings::SUPPORT_EMAIL.to_string(),
+    })
+}
+
+#[tauri::command]
+fn get_blocked_participants(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    let data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    Ok(data.blocked_identities.clone())
+}
+
+/// Block or unblock a participant locally, by LiveKit identity.
+///
+/// Blocking is a client-side filter only: it hides that participant's chat,
+/// files and video for this user. It cannot remove them from the room, because
+/// only the organizer holds that authority on the LiveKit server. Returns the
+/// updated block list so the UI can apply it without a second round-trip.
+#[tauri::command]
+fn set_participant_blocked(
+    state: State<'_, AppState>,
+    identity: String,
+    blocked: bool,
+) -> Result<Vec<String>, String> {
+    let id = identity.trim();
+    if id.is_empty() {
+        return Err("No participant selected".to_string());
+    }
+    let mut data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+
+    if blocked {
+        if !data.blocked_identities.iter().any(|b| b == id) {
+            data.blocked_identities.push(id.to_string());
+        }
+    } else {
+        data.blocked_identities.retain(|b| b != id);
+    }
+    data.save(&state.config_dir)?;
+    Ok(data.blocked_identities.clone())
+}
+
+/// Whether this build carries demo credentials, so Settings can hide the
+/// Demo-mode toggle in normal builds.
+#[tauri::command]
+fn get_demo_available() -> bool {
+    demo::is_available()
 }
 
 #[tauri::command]
@@ -819,8 +955,43 @@ pub fn run() {
             let handle = app.handle().clone();
             migrate_livekit_store(&handle);
 
-            app.manage(AppState::new(config_dir.clone()));
-            app.manage(recording::RecordingState::new(config_dir));
+            // Recordings belong somewhere the user can actually reach. On
+            // desktop the config dir is fine — Settings → Recordings shows the
+            // path and reveals it in Finder/Explorer.
+            //
+            // iOS: the sandbox has no file manager, so the default is Documents,
+            // which `UIFileSharingEnabled` + `LSSupportsOpeningDocumentsInPlace`
+            // (Info.plist) expose in the Files app under "On My iPhone".
+            //
+            // That iOS path is currently UNREACHABLE in practice: local recording
+            // needs MediaRecorder, which WKWebView does not implement, so no iOS
+            // build can produce a recording (see useRecording.js). The directory
+            // and the plist keys are provisioned ahead of that feature. Until it
+            // lands, Settings → Recordings tells mobile users so explicitly via
+            // `settings.recordings.mobileHint` instead of promising a Files
+            // location that would always be empty.
+            let recordings_default = if cfg!(target_os = "ios") {
+                app.path()
+                    .document_dir()
+                    .map(|dir| dir.join("Recordings"))
+                    .unwrap_or_else(|_| recording::default_recordings_dir(&config_dir))
+            } else {
+                recording::default_recordings_dir(&config_dir)
+            };
+
+            let app_state = AppState::new(config_dir.clone());
+            // Honour a previously chosen recordings folder. Read before the
+            // state is moved into `manage`, since `RecordingState` needs it.
+            let recordings_override = app_state
+                .data
+                .lock()
+                .ok()
+                .and_then(|data| data.settings.recordings_dir.clone());
+            app.manage(app_state);
+            app.manage(recording::RecordingState::new(
+                recordings_default,
+                recordings_override,
+            ));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -918,6 +1089,13 @@ pub fn run() {
             recording::ffmpeg_transcode,
             recording::ffmpeg_stream_to_rtmp,
             recording::delete_recording,
+            // Recordings folder, reporting & blocking
+            get_recordings_dir,
+            set_recordings_dir,
+            get_report_contact,
+            get_blocked_participants,
+            set_participant_blocked,
+            get_demo_available,
             // AI Assistant (OpenAI-compatible endpoint)
             ai::ask_ai,
             ai::get_ai_settings,

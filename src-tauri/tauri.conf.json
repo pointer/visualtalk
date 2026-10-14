@@ -47,7 +47,8 @@
     },
     "iOS": {
       "infoPlist": "./Info.plist",
-      "developmentTeam": "DYH963CSCN"
+      "developmentTeam": "DYH963CSCN",
+      "minimumSystemVersion": "15.0"
     },
     "android": {
       "minSdkVersion": 26,

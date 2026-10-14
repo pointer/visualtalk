@@ -1,6 +1,6 @@
 import { createSignal, createEffect, onMount, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { RoomEvent } from "livekit-client";
 import * as chat from "./chat";
 import { useI18n } from "../i18n/I18nProvider";
@@ -19,6 +19,81 @@ export function ChatPanel(props) {
   const [aiSettings, setAiSettings] = createSignal(null);
   const [aiThinking, setAiThinking] = createSignal(false);
 
+  // ── UGC moderation (App Store Review Guideline 1.2) ──
+  // Chat is user-generated content, so every message needs a way to flag it and
+  // a way to block its author. Reports go to the *meeting organizer*, not the
+  // app publisher: the publisher never sees meeting content (especially with
+  // E2EE on) and therefore cannot moderate it, whereas the organizer chose the
+  // server and owns the meeting.
+  const [reportContact, setReportContact] = createSignal({ organizer: "", support: "" });
+  const [blocked, setBlocked] = createSignal([]);
+  const [reported, setReported] = createSignal([]);
+
+  const isBlocked = (id) => !!id && blocked().includes(id);
+
+  /// Messages to render, with blocked senders filtered out. Blocking is a local
+  /// view filter only — it cannot remove anyone from the room, since that
+  /// authority belongs to the organizer on the LiveKit server.
+  const visibleMessages = () => messages().filter((m) => !isBlocked(m.sender));
+
+  const reportMessage = async (msg) => {
+    const to = (reportContact().organizer || "").trim();
+    if (!to) {
+      alert(t("chat.reportNoAddress"));
+      return;
+    }
+    // Truncate the excerpt: a pasted megabyte must not become an unusable
+    // mailto URL, and the organizer only needs enough to identify the message.
+    const excerpt = String(msg.text || msg.fileName || "").slice(0, 500);
+    const body = [
+      t("chat.reportBodyPrompt"),
+      "",
+      `Room: ${props.room?.name || ""}`,
+      `Reported participant: ${msg.sender || ""}`,
+      `Display name: ${msg.senderName || ""}`,
+      `Sent at: ${msg.timestamp ? new Date(msg.timestamp).toLocaleString() : ""}`,
+      `Message ID: ${msg.id || ""}`,
+      "",
+      "--- Reported content ---",
+      excerpt,
+      "--- End of reported content ---",
+      "",
+      `Reported by: ${props.displayName || ""}`,
+    ].join("\n");
+
+    try {
+      await openUrl(
+        `mailto:${encodeURIComponent(to)}` +
+          `?subject=${encodeURIComponent(t("chat.reportSubject"))}` +
+          `&body=${encodeURIComponent(body)}`
+      );
+      // Remember the report so the affordance changes state and a second flag on
+      // the same message is visibly redundant rather than silently repeated.
+      if (msg.id && !reported().includes(msg.id)) {
+        setReported([...reported(), msg.id]);
+      }
+    } catch (err) {
+      console.error("Failed to open report email:", err);
+      alert(t("chat.reportFailed"));
+    }
+  };
+
+  const blockSender = async (msg) => {
+    const id = msg.sender;
+    if (!id || isBlocked(id)) return;
+    if (!confirm(t("chat.blockConfirm"))) return;
+    try {
+      const next = await invoke("set_participant_blocked", { identity: id, blocked: true });
+      setBlocked(next);
+      // Tell the meeting so the video grid and remote audio drop this
+      // participant immediately, not just the chat transcript.
+      props.onBlocked?.(next);
+    } catch (err) {
+      console.error("Failed to block participant:", err);
+      alert(t("chat.blockFailed"));
+    }
+  };
+
   let messagesEndRef = null;
   let storedPublicKeyB64 = null; // Stored for re-broadcasting on new participants
   let aiConsentGiven = false; // One-time consent for cloud AI while E2EE is active
@@ -28,6 +103,19 @@ export function ChatPanel(props) {
       setAiSettings(await invoke("get_ai_settings"));
     } catch (err) {
       console.warn("AI settings unavailable:", err);
+    }
+    // Moderation state. Loaded independently of the AI settings above and
+    // non-fatally: if either fails, chat must still work — the report button
+    // degrades to an explanatory alert rather than breaking the meeting.
+    try {
+      setReportContact(await invoke("get_report_contact"));
+    } catch (err) {
+      console.warn("Report contact unavailable:", err);
+    }
+    try {
+      setBlocked(await invoke("get_blocked_participants"));
+    } catch (err) {
+      console.warn("Block list unavailable:", err);
     }
   });
 
@@ -466,7 +554,7 @@ export function ChatPanel(props) {
 
       {/* Messages */}
       <div class="flex-1 overflow-y-auto px-3 py-2 space-y-3">
-        <For each={messages()}>
+        <For each={visibleMessages()}>
           {(msg) => (
             <div class={`flex flex-col ${msg.isLocal ? "items-end" : "items-start"}`}>
               <div
@@ -578,6 +666,30 @@ export function ChatPanel(props) {
                   </div>
                 </Show>
               </div>
+
+              {/* Moderation affordances for user-generated content. Shown only on
+                  other people's messages — flagging or blocking your own would be
+                  meaningless. AI output is excluded: it is generated locally from
+                  the user's own prompt, not submitted by another participant. */}
+              <Show when={!msg.isLocal && msg.sender && msg.kind !== "ai" && msg.kind !== "ai-error"}>
+                <div class="flex items-center gap-3 mt-1 px-1">
+                  <button
+                    onClick={() => reportMessage(msg)}
+                    disabled={!!msg.id && reported().includes(msg.id)}
+                    class="text-[10px] text-gray-500 hover:text-amber-400 disabled:text-gray-600 disabled:cursor-default transition"
+                    title={t("chat.report")}
+                  >
+                    {msg.id && reported().includes(msg.id) ? t("chat.reported") : t("chat.report")}
+                  </button>
+                  <button
+                    onClick={() => blockSender(msg)}
+                    class="text-[10px] text-gray-500 hover:text-red-400 transition"
+                    title={t("chat.block")}
+                  >
+                    {t("chat.block")}
+                  </button>
+                </div>
+              </Show>
             </div>
           )}
         </For>
@@ -598,7 +710,7 @@ export function ChatPanel(props) {
             </div>
           </div>
         </Show>
-        {messages().length === 0 && (
+        {visibleMessages().length === 0 && (
           <div class="text-center text-gray-500 text-sm mt-10">{t("chat.noMessages")}</div>
         )}
         <div ref={messagesEndRef} />

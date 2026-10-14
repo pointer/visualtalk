@@ -19,7 +19,11 @@
 # repo (the remaining 3 live in SwiftRs.o, which swift-rs's own-member-only guard
 # skips — see scripts/ios-build.sh).
 #
-# Upstream, still open: https://github.com/tauri-apps/tauri/issues/16130
+# Upstream https://github.com/tauri-apps/tauri/issues/16130 is now FIXED in the
+# `tauri` 2.12.3 crate (tauri-apps/tauri#16246), so a true release link no longer
+# depends on this component. It is still checked/installed because the cost is
+# trivial and it keeps builds working if the crate is ever pinned back below
+# 2.12.3.
 #
 # Usage:
 #   ./scripts/ensure-ios-toolchain.sh          # install whatever is missing

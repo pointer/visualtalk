@@ -279,6 +279,46 @@ export function useLiveKitRoom() {
     }
   };
 
+  // ---- Local block list (UGC moderation) ----
+  // Identities this user has blocked, loaded from persisted settings. Blocking
+  // is a client-side filter: it hides the participant's tiles, keeps their audio
+  // unattached, and ChatPanel drops their messages. It cannot remove them from
+  // the room — only the meeting organizer holds that authority on the LiveKit
+  // server.
+  const [blockedIdentities, setBlockedIdentitiesSignal] = createSignal([]);
+
+  const isBlockedIdentity = (identity) =>
+    !!identity && blockedIdentities().includes(identity);
+
+  /**
+   * Apply a new block list, silencing anyone newly blocked straight away.
+   *
+   * Only the newly added identities are detached: re-running it for the whole
+   * list would touch participants who are already silent.
+   */
+  const setBlockedIdentities = (identities) => {
+    const next = Array.isArray(identities) ? identities : [];
+    const previous = blockedIdentities();
+    setBlockedIdentitiesSignal(next);
+    for (const id of next) {
+      if (!previous.includes(id)) detachParticipantAudio(id);
+    }
+  };
+
+  /**
+   * Participants to render, with blocked ones removed.
+   *
+   * Screen-share tiles are keyed `${identity}-screen`, so a blocked user's
+   * camera and their shared screen disappear together rather than leaving an
+   * orphaned screen tile.
+   */
+  const visibleParticipants = () =>
+    participants().filter((p) => {
+      if (p.isLocal) return true;
+      const identity = p.isScreen ? String(p.id).replace(/-screen$/, "") : p.id;
+      return !isBlockedIdentity(identity);
+    });
+
   const detachAllAudio = () => {
     for (const entry of [...attachedAudioElements.values()]) detachRemoteAudio(entry.track);
     attachedAudioElements.clear();
@@ -396,7 +436,13 @@ export function useLiveKitRoom() {
       } else if (track.kind === Track.Kind.Audio) {
         // CRITICAL: without this attach() call the remote voice is never routed
         // to an <audio> element and the meeting stays silent.
-        attachRemoteAudio(track, participant);
+        // Skipped for a blocked participant — otherwise blocking would hide their
+        // tile while their voice kept playing, which is worse than either
+        // behaviour on its own. Tile bookkeeping below still runs so the raw
+        // participant list stays complete; `visibleParticipants` does the hiding.
+        if (!isBlockedIdentity(participant.identity)) {
+          attachRemoteAudio(track, participant);
+        }
         updateParticipants((prev) => {
           if (prev.some((p) => p.id === id)) {
             return prev.map((p) => (p.id === id ? { ...p, audioTrack: track } : p));
@@ -898,5 +944,9 @@ export function useLiveKitRoom() {
     broadcastRecording,
     togglePreviewAudio,
     togglePreviewVideo,
+    // Local block list (UGC moderation)
+    blockedIdentities,
+    setBlockedIdentities,
+    visibleParticipants,
   };
 }

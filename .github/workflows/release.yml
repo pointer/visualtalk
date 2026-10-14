@@ -228,7 +228,10 @@ jobs:
   # ---------------------------------------------------------------
   ios:
     needs: license-audit
-    runs-on: macos-latest
+    # macos-26 is pinned rather than macos-latest so the Xcode 26.6 / Swift 6.3
+    # toolchain (and the iOS 26 SDK Apple requires for submission) cannot drift
+    # when GitHub re-points the `latest` alias at a new runner image.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
 
@@ -256,16 +259,73 @@ jobs:
       - name: Select Xcode version
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          # Pinned through the IOS_XCODE_VERSION repository variable rather than
+          # `latest-stable`: that alias silently changes whenever GitHub refreshes
+          # its runner images, so the Swift toolchain can shift under a release
+          # without any commit on our side.
+          #
+          # 26.6 is the newest Xcode on the macos-26 runner and ships the iOS 26
+          # SDK, which Apple requires for App Store submission. Do NOT fall back
+          # to Xcode 16.4 to dodge the Swift 6.4 link regression from
+          # tauri-apps/tauri#16130 — that regression is fixed in the `tauri`
+          # 2.12.3 crate this project depends on, and building against the iOS 18
+          # SDK would make the binary unsubmittable instead.
+          xcode-version: ${{ vars.IOS_XCODE_VERSION || '26.6' }}
 
-      - name: Install CocoaPods
-        run: brew install cocoapods
+      - name: Report Xcode / Swift toolchain
+        # Logged early so a failed release can be attributed to a toolchain
+        # change without re-running the job.
+        run: |
+          xcodebuild -version
+          swift --version
+          XCODE_MAJOR="$(xcodebuild -version | sed -n 's/^Xcode \([0-9]*\).*/\1/p')"
+          # tauri-apps/tauri#16130 (Swift 6.4 internalizing Tauri's non-public
+          # @_cdecl entry points in the Release configuration) is fixed in the
+          # `tauri` 2.12.3 crate, so Xcode 27 is no longer a hard blocker. A major
+          # above the pin still means the runner image drifted, which makes the
+          # release non-reproducible, so surface it.
+          if [ "${XCODE_MAJOR:-0}" -gt 26 ]; then
+            echo "::warning::Xcode ${XCODE_MAJOR} is newer than the pinned 26.6."
+            echo "::warning::The runner image has drifted; set the IOS_XCODE_VERSION"
+            echo "::warning::repository variable to re-pin and keep release builds"
+            echo "::warning::reproducible."
+          fi
+
+      - name: Install CocoaPods and xcodegen
+        # xcodegen is required by scripts/fix-ios-project.sh, which regenerates
+        # visualtalk.xcodeproj from the patched project.yml. ensure-ios-toolchain.sh
+        # only *warns* when xcodegen is missing, so install it explicitly here.
+        run: brew install cocoapods xcodegen
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Init iOS project (if not present)
-        run: test -d src-tauri/gen/apple || pnpm tauri ios init
+        # `pnpm ios:init`, NOT a bare `tauri ios init`. The npm script chains the
+        # local fixes that a bare init skips:
+        #   1. ensure-ios-toolchain.sh installs rustup's `llvm-tools`. Without it
+        #      swift-rs cannot re-globalize the @_cdecl symbols Xcode internalizes
+        #      and emits only a `cargo:warning` before giving up — the link then
+        #      fails with 9 undefined symbols instead of 3.
+        #   2. fix-ios-project.sh patches project.yml: DEVELOPMENT_TEAM must be the
+        #      certificate OU (not the Apple ID in the CN parentheses), plus
+        #      CODE_SIGN_STYLE / CODE_SIGN_IDENTITY, plus anchoring pnpm to the repo
+        #      root in the "Build Rust Code" phase (that phase runs with
+        #      cwd=src-tauri/gen/apple, which has no package.json, so a bare
+        #      `pnpm tauri` dies with ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL).
+        #   3. fix-ios-project.sh in turn calls sync-ios-icons.sh, replacing Tauri's
+        #      placeholder AppIcon set with src-tauri/icons/ios. Skipping this ships
+        #      the yellow/teal Tauri logo to the App Store.
+        run: test -d src-tauri/gen/apple || pnpm ios:init
+
+      - name: Verify iOS toolchain and project fixes
+        # Fail fast — before the ~20 minute Rust build — if any local iOS fix has
+        # drifted or the toolchain is incomplete. Each script is idempotent and
+        # --check only reports, exiting 1 on drift.
+        run: |
+          ./scripts/ensure-ios-toolchain.sh --check
+          ./scripts/fix-ios-project.sh --check
+          ./scripts/sync-ios-icons.sh --check
 
       - name: Import iOS signing certificate & provisioning profile
         if: startsWith(github.ref, 'refs/tags/')

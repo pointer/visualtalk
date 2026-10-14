@@ -12,7 +12,22 @@ use tauri::{AppHandle, Manager};
 /// State for tracking active local recordings
 pub struct RecordingState {
     pub active_recordings: Mutex<Vec<ActiveRecording>>,
-    pub recordings_dir: PathBuf,
+    /// Built-in location for this platform. Kept so Settings can tell whether
+    /// the user has relocated recordings and offer a "use default" reset.
+    pub default_dir: PathBuf,
+    /// Effective recordings folder. Behind a `Mutex` so Settings → Recordings
+    /// can relocate it at runtime instead of requiring an app restart.
+    pub recordings_dir: Mutex<PathBuf>,
+}
+
+/// Built-in recordings location on desktop: `<app_config_dir>/recordings`.
+///
+/// On macOS that is `~/Library/Application Support/<bundle-id>/recordings`,
+/// which is correct but not somewhere users think to look — hence the Settings
+/// panel that shows the path and can reveal it. iOS does not use this: see the
+/// platform default computed in `lib.rs`.
+pub fn default_recordings_dir(config_dir: &Path) -> PathBuf {
+    config_dir.join("recordings")
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,13 +54,57 @@ pub struct ChunkReceipt {
 }
 
 impl RecordingState {
-    pub fn new(config_dir: PathBuf) -> Self {
-        let recordings_dir = config_dir.join("recordings");
+    /// `default_dir` is this platform's built-in folder; `dir_override` is the
+    /// user-chosen folder from Settings, if any, and takes precedence.
+    pub fn new(default_dir: PathBuf, dir_override: Option<String>) -> Self {
+        let recordings_dir = resolve_recordings_dir(&default_dir, dir_override.as_deref());
         let _ = std::fs::create_dir_all(&recordings_dir);
         Self {
             active_recordings: Mutex::new(Vec::new()),
-            recordings_dir,
+            default_dir,
+            recordings_dir: Mutex::new(recordings_dir),
         }
+    }
+
+    /// Current recordings folder.
+    ///
+    /// Returns a clone rather than the guard so callers can hold it across
+    /// `await` points in the async chunk-writing command.
+    pub fn dir(&self) -> PathBuf {
+        match self.recordings_dir.lock() {
+            Ok(guard) => guard.clone(),
+            Err(_) => std::env::temp_dir().join("visualtalk-recordings"),
+        }
+    }
+
+    /// Point recordings at a new folder, creating it if needed.
+    ///
+    /// Existing files are left where they are: moving gigabytes of `.webm`
+    /// across volumes on a settings toggle would be slow and lossy on failure,
+    /// and the old recordings are still listed by their absolute paths.
+    pub fn set_dir(&self, path: PathBuf) -> Result<PathBuf, String> {
+        std::fs::create_dir_all(&path)
+            .map_err(|e| format!("Cannot create {}: {}", path.display(), e))?;
+        if !path.is_dir() {
+            return Err(format!("{} is not a folder", path.display()));
+        }
+        match self.recordings_dir.lock() {
+            Ok(mut guard) => {
+                *guard = path.clone();
+                Ok(path)
+            }
+            Err(_) => Err("Recordings folder is locked".to_string()),
+        }
+    }
+}
+
+/// Resolve the effective recordings folder from the optional user override.
+///
+/// A blank or missing override falls back to the platform default.
+pub fn resolve_recordings_dir(default_dir: &Path, dir_override: Option<&str>) -> PathBuf {
+    match dir_override.map(str::trim) {
+        Some(custom) if !custom.is_empty() => PathBuf::from(custom),
+        _ => default_dir.to_path_buf(),
     }
 }
 
@@ -121,7 +180,7 @@ pub async fn save_recording_chunk(
     is_first_chunk: bool,
 ) -> Result<ChunkReceipt, String> {
     let state = app.state::<RecordingState>();
-    let file_path = recording_path(&state.recordings_dir, &room_name, &recording_id);
+    let file_path = recording_path(&state.dir(), &room_name, &recording_id);
 
     // Decode base64
     let data = base64::Engine::decode(
@@ -191,7 +250,7 @@ pub async fn finalize_recording(
     let resolved = if candidate.is_absolute() {
         candidate
     } else {
-        recording_path(&state.recordings_dir, &room_name, &recording_id)
+        recording_path(&state.dir(), &room_name, &recording_id)
     };
 
     // Fail loudly rather than registering a recording that does not exist —
@@ -239,7 +298,7 @@ pub async fn finalize_recording(
 #[tauri::command]
 pub async fn get_local_recordings(app: AppHandle) -> Result<Vec<RecordingFileInfo>, String> {
     let state = app.state::<RecordingState>();
-    let dir = &state.recordings_dir;
+    let dir = state.dir();
 
     let mut files = Vec::new();
     if dir.exists() {

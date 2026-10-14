@@ -1,8 +1,16 @@
 import { useI18n } from "../i18n/I18nProvider";
 import { createSignal, onMount, onCleanup, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
+import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
+import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { requestMediaPermissions } from "./Permissions";
 import { LicenseScreen } from "./LicenseScreen";
+
+// iOS and Android expose no folder picker to the webview, so relocating the
+// recordings folder is a desktop-only control. Mirrors the UA test already used
+// in lib/canvasVideoFallback.js.
+const IS_MOBILE = /iPhone|iPad|iPod|Android/.test(navigator.userAgent);
 
 export function SettingsTab(props) {
   const { t, locale, changeLocale, availableLocales } = useI18n();
@@ -35,6 +43,7 @@ export function SettingsTab(props) {
     display_name: "",
     email: "",
     pmi: "",
+    report_email: "",
   });
 
   const [settings, setSettings] = createSignal({
@@ -42,6 +51,11 @@ export function SettingsTab(props) {
     use_pmi: false,
     always_show_preview: true,
     mute_on_join: false,
+    // Present from the first render on purpose: `update_user_settings` sends the
+    // whole object, and a save fired before onMount lands would otherwise
+    // serialize without these keys and let serde reset them to defaults.
+    recordings_dir: null,
+    demo_mode: false,
   });
 
   // AI Assistant settings
@@ -55,6 +69,27 @@ export function SettingsTab(props) {
   const [aiStatus, setAiStatus] = createSignal("");
   const [aiSaving, setAiSaving] = createSignal(false);
   const [aiTesting, setAiTesting] = createSignal(false);
+
+  // ── Recordings folder ──
+  // Recordings default to <app_config_dir>/recordings, which is real but
+  // undiscoverable — the folder lives under ~/Library/Application Support on
+  // macOS. Surfacing the path here (plus reveal / relocate) is what makes a
+  // finished recording findable.
+  const [recDir, setRecDir] = createSignal({ path: "", is_default: true, exists: false });
+  const [recFiles, setRecFiles] = createSignal([]);
+  const [recBusy, setRecBusy] = createSignal(false);
+
+  // ── Support & demo ──
+  // `support` is the publisher's address (Settings → About); `organizer` is
+  // where in-meeting abuse reports go. Kept separate on purpose: the licensor
+  // never sees meeting content and so cannot moderate it.
+  const [supportEmail, setSupportEmail] = createSignal("");
+  const [demoAvailable, setDemoAvailable] = createSignal(false);
+  const [blocked, setBlocked] = createSignal([]);
+  // Read from the bundle rather than hardcoded: the About box used to claim
+  // "1.0.0" and a build date of "August 31, 2024" while the app was actually
+  // 3.3.33, which is exactly the kind of thing an App Reviewer notices.
+  const [appVersion, setAppVersion] = createSignal("");
 
   // Enumerate media devices through the webview (the only source WKWebView
   // exposes) and sync them into the Rust DeviceManager via `set_devices`, so
@@ -128,6 +163,95 @@ export function SettingsTab(props) {
     }
   });
 
+  // ── Recordings ──
+
+  const loadRecordings = async () => {
+    const [dir, files] = await Promise.all([
+      invoke("get_recordings_dir").catch(() => null),
+      invoke("get_local_recordings").catch(() => []),
+    ]);
+    if (dir) setRecDir(dir);
+    setRecFiles(Array.isArray(files) ? files : []);
+  };
+
+  // Native folder picker. Handled in Rust's dialog plugin (already a
+  // dependency) rather than `<input type="file" webkitdirectory>`, which
+  // WKWebView does not support for directories.
+  const chooseRecordingsDir = async () => {
+    setRecBusy(true);
+    try {
+      const picked = await dialogOpen({ directory: true, multiple: false });
+      if (!picked) return; // cancelled
+      setRecDir(await invoke("set_recordings_dir", { path: picked }));
+      await loadRecordings();
+    } catch (err) {
+      console.error("Failed to change recordings folder:", err);
+      alert(`${t("settings.recordings.changeFailed")}: ${err}`);
+    } finally {
+      setRecBusy(false);
+    }
+  };
+
+  const resetRecordingsDir = async () => {
+    setRecBusy(true);
+    try {
+      setRecDir(await invoke("set_recordings_dir", { path: null }));
+      await loadRecordings();
+    } catch (err) {
+      console.error("Failed to reset recordings folder:", err);
+      alert(`${t("settings.recordings.changeFailed")}: ${err}`);
+    } finally {
+      setRecBusy(false);
+    }
+  };
+
+  // Reveal a recording in the file manager. Uses `revealItemInDir` rather than
+  // `openPath` on purpose: the opener capability scopes `open-path` to
+  // $APPCONFIG/*, which would reject any user-relocated folder, whereas
+  // `reveal-item-in-dir` is granted unrestricted by `opener:default`.
+  const revealRecording = async (path) => {
+    try {
+      await revealItemInDir(path);
+    } catch (err) {
+      console.error("Failed to reveal recording:", err);
+      alert(`${t("settings.recordings.revealFailed")}: ${err}`);
+    }
+  };
+
+  const revealRecordingsDir = async () => {
+    // Reveal the newest file when there is one: that opens the folder *and*
+    // selects the recording the user is looking for. Falling back to the folder
+    // itself still lands them in the right place.
+    const newest = recFiles()[0];
+    await revealRecording(newest ? newest.path : recDir().path);
+  };
+
+  const deleteRecording = async (path) => {
+    if (!confirm(t("settings.recordings.deleteConfirm"))) return;
+    try {
+      await invoke("delete_recording", { filePath: path });
+      await loadRecordings();
+    } catch (err) {
+      console.error("Failed to delete recording:", err);
+      alert(`${t("settings.recordings.deleteFailed")}: ${err}`);
+    }
+  };
+
+  const unblockParticipant = async (identity) => {
+    try {
+      setBlocked(await invoke("set_participant_blocked", { identity, blocked: false }));
+    } catch (err) {
+      console.error("Failed to unblock participant:", err);
+    }
+  };
+
+  const formatBytes = (n) => {
+    if (!n && n !== 0) return "";
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   // Load all settings on mount
   onMount(async () => {
     try {
@@ -153,6 +277,19 @@ export function SettingsTab(props) {
 
       const ai = await invoke("get_ai_settings").catch(() => null);
       if (ai) setAiCfg(ai);
+
+      // Recordings, support contact, demo availability and the block list.
+      // Each is independently non-fatal: if one fails the rest of Settings must
+      // still render, so these are caught rather than allowed to reject the
+      // whole onMount.
+      await loadRecordings().catch((err) => console.warn("Recordings unavailable:", err));
+
+      const contact = await invoke("get_report_contact").catch(() => null);
+      if (contact) setSupportEmail(contact.support || "");
+
+      setDemoAvailable(await invoke("get_demo_available").catch(() => false));
+      setBlocked(await invoke("get_blocked_participants").catch(() => []));
+      setAppVersion(await getVersion().catch(() => ""));
 
     } catch (err) {
       console.error("Failed to load settings:", err);
@@ -188,6 +325,47 @@ export function SettingsTab(props) {
       alert(t("settings.profileFailed"));
     }
   };
+
+  // Compose a mailto. Shared by the About-box support contact and the
+  // in-meeting abuse report so both encode identically and fail the same way.
+  const sendMail = async (to, subject, body) => {
+    const target = (to || "").trim();
+    if (!target) {
+      alert(t("settings.reportEmailMissing"));
+      return false;
+    }
+    try {
+      await openUrl(
+        `mailto:${encodeURIComponent(target)}` +
+          `?subject=${encodeURIComponent(subject)}` +
+          `&body=${encodeURIComponent(body)}`
+      );
+      return true;
+    } catch (err) {
+      console.error("Failed to open email client:", err);
+      alert(t("settings.reportEmailFailed"));
+      return false;
+    }
+  };
+
+  // Settings → About: reach the publisher. This is the *developer's* address,
+  // and deliberately not the destination for in-meeting abuse reports — those go
+  // to the meeting organizer, because the publisher never sees meeting content
+  // and so cannot moderate it.
+  const openSupportEmail = () =>
+    sendMail(
+      supportEmail(),
+      "VisualTalk support request",
+      `${t("settings.supportBodyPrompt")}\n\n` +
+        `App: VisualTalk\n` +
+        `Identity: ${profile().identity || ""}\n`
+    );
+
+  // The organizer address that in-meeting reports are sent to. An empty
+  // `report_email` means "use my profile email"; Rust resolves the same way in
+  // `UserProfile::effective_report_email`, and this mirrors it for display.
+  const organizerEmail = () =>
+    (profile().report_email || "").trim() || (profile().email || "").trim();
 
   // Update settings
   const updateSettings = async () => {
@@ -287,6 +465,7 @@ export function SettingsTab(props) {
               { id: "meeting", label: "Meeting", icon: "📹" },
               { id: "profile", label: "Profile", icon: "👤" },
               { id: "livekit", label: "LiveKit", icon: "⏚" },
+              { id: "recordings", label: "Recordings", icon: "⏺" },
               { id: "ai", label: "AI Assistant", icon: "✨" },
               { id: "about", label: "About", icon: "ℹ️" },
             ].map((section) => (
@@ -559,6 +738,65 @@ export function SettingsTab(props) {
                       placeholder="Enter your username"
                     />
                   </div>
+
+                  {/* Report Email — where reports about *your* meetings are sent.
+                      As the organizer you chose the LiveKit server and own what
+                      happens on it, so in-meeting "Report" actions route to you,
+                      not to the app publisher (the publisher never sees meeting
+                      content and cannot moderate it). Blank means "use my Email
+                      above"; set it to redirect reports to a moderation alias.
+                      Required for UGC apps under App Store Review Guideline 1.2. */}
+                  <div class="bg-[#1a1a1a] rounded-lg p-4">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">
+                      {t("settings.reportEmailLabel")}
+                    </label>
+                    <input
+                      type="email"
+                      value={profile().report_email}
+                      onInput={(e) =>
+                        setProfile({ ...profile(), report_email: e.target.value })
+                      }
+                      class="w-full bg-[#2a2a2a] text-white px-4 py-2 rounded border border-gray-700 hover:border-gray-600 focus:outline-none focus:border-blue-600 transition"
+                      placeholder={profile().email || "you@example.com"}
+                    />
+                    <p class="mt-2 text-xs text-gray-500">
+                      {t("settings.reportEmailHint")}{" "}
+                      <Show when={organizerEmail()}>
+                        <span class="text-gray-400">{organizerEmail()}</span>
+                      </Show>
+                      <Show when={!organizerEmail()}>
+                        <span class="text-amber-400">{t("settings.reportEmailUnset")}</span>
+                      </Show>
+                    </p>
+                  </div>
+
+                  {/* Blocked participants — the other half of Guideline 1.2.
+                      Blocking is local: it hides that person's chat, files and
+                      video for you, and cannot remove them from the room (only
+                      the organizer can do that on the LiveKit server). */}
+                  <Show when={blocked().length > 0}>
+                    <div class="bg-[#1a1a1a] rounded-lg p-4">
+                      <label class="block text-sm font-medium text-gray-300 mb-2">
+                        {t("settings.blockedTitle")}
+                      </label>
+                      <p class="mb-3 text-xs text-gray-500">{t("settings.blockedHint")}</p>
+                      <div class="space-y-2">
+                        <For each={blocked()}>
+                          {(identity) => (
+                            <div class="flex items-center justify-between gap-2 bg-[#0f0f0f] rounded px-3 py-2">
+                              <span class="text-sm text-gray-300 truncate">{identity}</span>
+                              <button
+                                onClick={() => unblockParticipant(identity)}
+                                class="shrink-0 text-xs text-blue-400 hover:text-blue-300 transition"
+                              >
+                                {t("settings.unblock")}
+                              </button>
+                            </div>
+                          )}
+                        </For>
+                      </div>
+                    </div>
+                  </Show>
                 </div>
 
                 <button
@@ -645,6 +883,40 @@ export function SettingsTab(props) {
                   {loading() ? t("settings.saving") : t("settings.saveConfig")}
                 </button>
               </form>
+
+              {/* Demo mode. Only rendered in builds compiled with
+                  VISUALTALK_DEMO_*, so a normal install never shows a switch
+                  that would do nothing. Lets App Review exercise a real meeting
+                  with no server configured — see src-tauri/src/demo.rs for why
+                  those credentials must be rotated after review. */}
+              <Show when={demoAvailable()}>
+                <div class="mt-4 pt-4 border-t border-[#2a2a2a]">
+                  <label class="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!settings().demo_mode}
+                      onChange={async (e) => {
+                        const prev = settings();
+                        const next = { ...prev, demo_mode: e.currentTarget.checked };
+                        setSettings(next);
+                        try {
+                          await invoke("update_user_settings", { settings: next });
+                        } catch (err) {
+                          console.error("Failed to save demo mode:", err);
+                          setSettings(prev);
+                        }
+                      }}
+                      class="mt-1 w-4 h-4 accent-blue-600"
+                    />
+                    <span>
+                      <span class="block text-sm text-gray-200">{t("settings.demoMode")}</span>
+                      <span class="block text-xs text-gray-500 mt-0.5">
+                        {t("settings.demoModeHint")}
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </Show>
             </div>
           </Show>
 
@@ -747,6 +1019,118 @@ export function SettingsTab(props) {
             </div>
           </Show>
 
+          {/* Recordings — where local recordings are saved.
+              The default folder is real but undiscoverable (it sits under
+              ~/Library/Application Support on macOS), so the path is shown
+              verbatim with a reveal button, and can be relocated. */}
+          <Show when={activeSection() === "recordings"}>
+            <div class="w-full max-w-2xl bg-[#1c1c1c] rounded-2xl p-4 sm:p-6 shadow-xl border border-[#2a2a2a]">
+              <h3 class="text-lg font-semibold mb-4">{t("settings.recordings.title")}</h3>
+
+              <div class="bg-[#1a1a1a] rounded-lg p-4 mb-4">
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                  {t("settings.recordings.folder")}
+                </label>
+                <p class="font-mono text-xs text-gray-400 break-all bg-[#0f0f0f] rounded px-3 py-2 border border-[#2a2a2a]">
+                  {recDir().path || "…"}
+                </p>
+                {/* defaultHint invites the user to relocate the folder, but the
+                    Change button below is desktop-only — so don't advertise an
+                    action this platform cannot perform. */}
+                <Show when={recDir().is_default && !IS_MOBILE}>
+                  <p class="mt-2 text-xs text-gray-500">{t("settings.recordings.defaultHint")}</p>
+                </Show>
+                {/* Local recording needs MediaRecorder, which WKWebView does not
+                    implement, so no iOS build can write a recording yet. Say so
+                    plainly rather than pointing at a folder that will stay empty
+                    (the Documents/Recordings default and the file-sharing plist
+                    keys are provisioned ahead of that feature — see lib.rs). */}
+                <Show when={IS_MOBILE}>
+                  <p class="mt-2 text-xs text-gray-500">{t("settings.recordings.mobileHint")}</p>
+                </Show>
+                <Show when={recDir().path && !recDir().exists}>
+                  <p class="mt-2 text-xs text-amber-400">{t("settings.recordings.missing")}</p>
+                </Show>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <button
+                    onClick={revealRecordingsDir}
+                    class="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 rounded-lg transition disabled:opacity-50"
+                  >
+                    {t("settings.recordings.open")}
+                  </button>
+                  <Show when={!IS_MOBILE}>
+                    <button
+                      onClick={chooseRecordingsDir}
+                      disabled={recBusy()}
+                      class="px-3 py-2 text-sm bg-[#2a2a2a] hover:bg-[#333] border border-[#3a3a3a] rounded-lg transition disabled:opacity-50"
+                    >
+                      {t("settings.recordings.change")}
+                    </button>
+                    <Show when={!recDir().is_default}>
+                      <button
+                        onClick={resetRecordingsDir}
+                        disabled={recBusy()}
+                        class="px-3 py-2 text-sm text-gray-400 hover:text-white bg-[#2a2a2a] hover:bg-[#333] border border-[#3a3a3a] rounded-lg transition disabled:opacity-50"
+                      >
+                        {t("settings.recordings.reset")}
+                      </button>
+                    </Show>
+                  </Show>
+                </div>
+              </div>
+
+              {/* Existing recordings, newest first. Listed here because a file
+                  the user cannot find is indistinguishable from a recording
+                  that was never saved. */}
+              <div class="bg-[#1a1a1a] rounded-lg p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <label class="block text-sm font-medium text-gray-300">
+                    {t("settings.recordings.files")}
+                  </label>
+                  <span class="text-xs text-gray-500">{recFiles().length}</span>
+                </div>
+
+                <Show when={recFiles().length === 0}>
+                  <p class="text-sm text-gray-500 py-4 text-center">
+                    {t(IS_MOBILE ? "settings.recordings.noneMobile" : "settings.recordings.none")}
+                  </p>
+                </Show>
+
+                <div class="space-y-2">
+                  <For each={recFiles()}>
+                    {(file) => (
+                      <div class="flex items-center gap-2 bg-[#0f0f0f] rounded px-3 py-2">
+                        <div class="min-w-0 flex-1">
+                          <p class="text-sm text-gray-200 truncate">{file.name}</p>
+                          <p class="text-xs text-gray-500">
+                            {formatBytes(file.size_bytes)}
+                            <Show when={file.created}>
+                              {" · "}
+                              {new Date(file.created * 1000).toLocaleString()}
+                            </Show>
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => revealRecording(file.path)}
+                          class="shrink-0 text-xs text-blue-400 hover:text-blue-300 transition"
+                        >
+                          {t("settings.recordings.reveal")}
+                        </button>
+                        <button
+                          onClick={() => deleteRecording(file.path)}
+                          class="shrink-0 text-xs text-red-400 hover:text-red-300 transition"
+                        >
+                          {t("settings.recordings.delete")}
+                        </button>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              </div>
+            </div>
+          </Show>
+
           {/* About */}
           <Show when={activeSection() === "about"}>
             <div class="space-y-6">
@@ -756,12 +1140,7 @@ export function SettingsTab(props) {
                 <div class="bg-[#1a1a1a] rounded-lg p-6 space-y-4">
                   <div>
                     <p class="text-sm text-gray-400">Application Version</p>
-                    <p class="text-lg font-medium">1.0.0</p>
-                  </div>
-
-                  <div>
-                    <p class="text-sm text-gray-400">Build Date</p>
-                    <p class="text-lg font-medium">August 31, 2024</p>
+                    <p class="text-lg font-medium">{appVersion() || "—"}</p>
                   </div>
 
                   <div>
@@ -808,6 +1187,34 @@ export function SettingsTab(props) {
                   </div>
 
 
+
+                  {/* Contact Support — the publisher's address, so users can
+                      reach whoever builds VisualTalk. Distinct from in-meeting
+                      abuse reports, which go to the meeting organizer
+                      (Settings → Profile) because the publisher never sees
+                      meeting content and cannot moderate it. -->}
+                  <div class="pt-4 border-t border-gray-700">
+                    <button
+                      onClick={openSupportEmail}
+                      class="w-full flex items-center justify-between px-4 py-3 bg-[#0f0f0f] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg transition-colors"
+                    >
+                      <div class="flex items-center gap-3 min-w-0">
+                        <svg class="w-5 h-5 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <div class="text-left min-w-0">
+                          <p class="text-sm font-medium text-white">{t("settings.contactSupport")}</p>
+                          <p class="text-xs text-gray-500 truncate">
+                            {supportEmail() || t("settings.reportEmailMissing")}
+                          </p>
+                        </div>
+                      </div>
+                      <svg class="w-4 h-4 shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    <p class="mt-2 text-xs text-gray-600">{t("settings.supportVsReport")}</p>
+                  </div>
 
                   {/* License Button */}
                   <div class="pt-4 border-t border-gray-700">

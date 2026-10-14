@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
-# ios-build.sh — Build the iOS app on Xcode 27 despite tauri-apps/tauri#16130.
+# ios-build.sh — Optimized dev-profile iOS build (local device debugging).
 #
-# THE PROBLEM
+# STATUS: NO LONGER NEEDED FOR SHIPPING.
+# `tauri` 2.12.3 carries the upstream fix (tauri-apps/tauri#16246) for the
+# Swift 6.4 / Xcode 27 link failure described below. A true release archive now
+# links cleanly on Xcode 27, so use `pnpm ios:build:release` (ad hoc /
+# release-testing) or `pnpm ios:build:store` (App Store Connect) for anything
+# you intend to distribute. Verified 2026-10-14 on Xcode 27.0 / Swift 6.4:
+# both produce an arm64 IPA with get-task-allow=false.
+#
+# This script is kept for iteration on a physical device: it yields an
+# optimized Rust build with a development signature, which is faster to turn
+# around than a release archive.
+#
+# THE ORIGINAL PROBLEM (fixed in tauri 2.12.3 — kept for context)
 # `tauri ios build` (release) fails to link on Xcode 27 / Swift 6.4:
 #
 #   error: linking with `cc` failed: exit status: 1
@@ -25,9 +37,9 @@
 #
 # TRADE-OFF
 # Xcode builds the app in its Debug configuration and the IPA is development-signed.
-# Rust is optimized; Swift is not. App Store submission needs a true release build,
-# which stays blocked until tauri-apps/tauri#16130 is fixed — so `ios:build:release`
-# and `ios:build:store` are deliberately left on the real release path.
+# Rust is optimized; Swift is not. That is fine for on-device iteration but not
+# distributable — App Store submission requires a true release build, so use
+# `pnpm ios:build:store` (or `ios:build:release`) for anything you ship.
 #
 # Usage:
 #   ./scripts/ios-build.sh                      # optimized build, debugging export

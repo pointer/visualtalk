@@ -1,5 +1,7 @@
 import { createSignal, onMount, onCleanup, Show } from "solid-js";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { useMediaDevices } from "./lib/useMediaDevices";
 import { useLiveKitRoom } from "./lib/useLiveKitRoom";
 import { useBackgroundEffects } from "./lib/useBackgroundEffects";
@@ -50,6 +52,14 @@ export function MeetingView(props) {
 
   // ---- Lifecycle ----
   onMount(async () => {
+    // Apply the persisted block list *before* connecting, so a blocked
+    // participant is never audible or visible even for the first frames.
+    try {
+      room.setBlockedIdentities(await invoke("get_blocked_participants"));
+    } catch (err) {
+      console.warn("Block list unavailable:", err);
+    }
+
     const status = await requestMediaPermissions();
     if (!status.camera || !status.microphone) {
       // Show the reason instead of leaving the user staring at a black preview.
@@ -188,7 +198,10 @@ export function MeetingView(props) {
   const announceSavedRecording = (path) => {
     setRecordingSaved(path);
     if (savedToastTimer) clearTimeout(savedToastTimer);
-    savedToastTimer = setTimeout(() => setRecordingSaved(""), 6000);
+    // Longer than a purely informational toast would need: there is now a
+    // "show in folder" button to click, and 6s is not enough time to read a
+    // long path and reach for it.
+    savedToastTimer = setTimeout(() => setRecordingSaved(""), 10000);
   };
 
   /**
@@ -289,7 +302,7 @@ export function MeetingView(props) {
             </Show>
 
             <main class="flex-1 overflow-hidden">
-              <VideoGrid participants={room.participants()} raisedHands={room.raisedHands()} />
+              <VideoGrid participants={room.visibleParticipants()} raisedHands={room.raisedHands()} />
             </main>
 
             {/* Action Bar */}
@@ -317,7 +330,13 @@ export function MeetingView(props) {
 
           {/* Chat Sidebar */}
           <Show when={chatOpen()}>
-            <ChatPanel room={room.lkRoom()} onClose={toggleChat} displayName={identity} onE2EEStatus={setE2eeActive} />
+            <ChatPanel
+              room={room.lkRoom()}
+              onClose={toggleChat}
+              displayName={identity}
+              onE2EEStatus={setE2eeActive}
+              onBlocked={(list) => room.setBlockedIdentities(list)}
+            />
           </Show>
         </div>
       }>
@@ -415,17 +434,31 @@ export function MeetingView(props) {
         </div>
       </Show>
       {/* Recording Saved Confirmation — positive proof the file was preserved,
-          with the absolute path so the user can actually find it. */}
+          with the absolute path so the user can actually find it. The default
+          folder is under ~/Library/Application Support on macOS, which nobody
+          browses to, so the toast is actionable rather than informational. */}
       <Show when={recordingSaved()}>
         <div class="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 bg-[#1c1c1c] text-gray-200 text-xs px-4 py-2.5 rounded-lg shadow-lg border border-emerald-600/40 max-w-md">
           <div class="flex items-start gap-2">
             <svg class="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
-            <span class="leading-5 break-all">
-              {t("recording.saved")}{" "}
-              <span class="text-emerald-300">{recordingSaved()}</span>
-            </span>
+            <div class="min-w-0">
+              <span class="leading-5 break-all">
+                {t("recording.saved")}{" "}
+                <span class="text-emerald-300">{recordingSaved()}</span>
+              </span>
+              <button
+                onClick={() =>
+                  revealItemInDir(recordingSaved()).catch((err) =>
+                    console.error("Failed to reveal recording:", err)
+                  )
+                }
+                class="mt-1.5 block text-[11px] font-medium text-emerald-300 hover:text-emerald-200 underline underline-offset-2 transition"
+              >
+                {t("recording.showInFolder")}
+              </button>
+            </div>
           </div>
         </div>
       </Show>

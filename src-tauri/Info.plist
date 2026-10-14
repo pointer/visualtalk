@@ -6,5 +6,94 @@
     <string>VisualTalk needs access to your camera for video calls.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>VisualTalk needs access to your microphone for audio communication.</string>
+
+    <!--
+      NOTE: tauri.conf.json points BOTH bundle.macOS.infoPlist and
+      bundle.iOS.infoPlist at this file, so everything here is merged into the
+      macOS bundle too. The keys below are marked where they are iOS-only;
+      macOS ignores keys it does not recognise, so one shared file is safer than
+      a second merge path nothing currently verifies.
+
+      Tauri also auto-discovers an `Info.ios.plist` beside this file for
+      iOS-only keys, but that is not pinned by config here, so we do not rely
+      on it.
+    -->
+
+    <!-- Display name. Tauri derives this from `productName`, which is the
+         lowercase "visualtalk"; without this override the App Store listing and
+         the iOS home screen both render it uncapitalised. -->
+    <key>CFBundleDisplayName</key>
+    <string>VisualTalk</string>
+
+    <!-- iOS only; inert on macOS. Keeps the meeting audio session alive when the
+         app is backgrounded or the screen locks — without it iOS suspends the
+         socket and audio drops mid-call. `audio` is the right mode for LiveKit;
+         `voip` would additionally require PushKit and invites extra review. -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+    </array>
+
+    <!-- iOS 14+ requires this string before opening any local-network
+         connection. The AI backend defaults to http://localhost:11434 and is
+         user-configurable to a LAN address, so the prompt can legitimately
+         fire. -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>VisualTalk connects to an AI service on your local network to power live captions and summaries.</string>
+
+    <!-- EXPORT COMPLIANCE
+         `ITSAppUsesNonExemptEncryption = NO` means "this app uses no encryption
+         that is *non-exempt*" — i.e. either none at all, or only cryptography
+         that qualifies for an exemption / license exception. It does NOT claim
+         the app uses no cryptography. Setting it here makes App Store Connect
+         stop asking the export-compliance question on every submission.
+
+         VisualTalk's complete cryptographic inventory:
+
+           1. TLS on wss:// to the LiveKit server (rustls → aws-lc-rs/ring).
+           2. DTLS-SRTP for media, implemented by the WebRTC/LiveKit stack.
+           3. AES-GCM end-to-end encryption of chat and file transfers (Pro).
+           4. HMAC-SHA256 over the locally-minted connection JWT (token.rs) —
+              authentication/integrity only, no confidentiality.
+           5. HTTPS to a user-configured AI endpoint.
+
+         All of it uses standard, publicly documented algorithms (TLS, SRTP,
+         AES, HMAC-SHA2) rather than any proprietary or custom cipher, and the
+         source is publicly available. That places it under the mass-market /
+         publicly-available provisions — the Note to Category 5 Part 2 and
+         License Exception ENC (15 CFR 740.17) — which is the exemption Apple's
+         "non-exempt" wording refers to. Hence NO.
+
+         TWO CAVEATS BEFORE YOU SHIP:
+
+         a) This is a legal determination, not an engineering one. The reasoning
+            above is the standard position for a video-calling app and is the
+            one Apple's own guidance points at, but confirm it with counsel —
+            especially item 3, since E2EE of user content is confidentiality of
+            data rather than transport-only protection, which is the one place a
+            stricter reading could differ.
+
+         b) If you rely on License Exception ENC, BIS requires an annual
+            self-classification report (due 1 February each year, to
+            crypt@bis.doc.gov and ENC Regs Self-classification Reporting). That
+            obligation attaches to the exporter — Miradata — not to Apple, and
+            filing it is easy to overlook. Confirm whether it applies to you.
+
+         If counsel concludes the app does use non-exempt encryption, set this
+         to <true/> and answer the questionnaire in App Store Connect instead. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+
+    <!-- iOS only; inert on macOS. Exposes the app's Documents directory in the
+         Files app ("On My iPhone → VisualTalk") and lets documents be opened in
+         place. Local recordings are written to Documents/Recordings on iOS
+         precisely so this makes them reachable — without these two keys the
+         sandbox has no file manager and a recording can never be retrieved,
+         which is the mobile half of the "where did my recording go" problem
+         that Settings → Recordings solves on desktop. -->
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
 </dict>
 </plist>
