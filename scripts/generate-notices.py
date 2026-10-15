@@ -626,13 +626,20 @@ def policy(pkgs):
     return bad, watch
 
 
-def strip_volatile(text):
-    """Drop generation-timestamp lines so --check fails only on real drift.
+_VOLATILE_DATE = re.compile(r'Generated: \d{4}-\d{2}-\d{2}')
 
-    Handles both the Markdown header (`Generated: …`) and the generated JS
-    header (` * Generated: …`), otherwise the CI gate would report drift on
-    every run simply because the date changed.
+
+def strip_volatile(text):
+    """Normalize the generation timestamp so --check fails only on real drift.
+
+    The Markdown file carries `Generated: …` on its own line, but the JS
+    module embeds the whole document as a single JSON string, where the date
+    appears mid-line (`…\\nGenerated: 2026-10-14  \\n…`). Line filtering alone
+    cannot reach it, so replace every occurrence with a fixed placeholder
+    first — otherwise the CI gate reports drift the moment the calendar day
+    changes (the JS was committed on 2026-10-14 and failed on 2026-10-15).
     """
+    text = _VOLATILE_DATE.sub('Generated: <DATE>', text)
     return '\n'.join(l for l in text.splitlines()
                      if not l.lstrip(' */#').startswith('Generated:'))
 
