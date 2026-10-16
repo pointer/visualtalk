@@ -1,34 +1,28 @@
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-use chrono::Utc;
-use hmac::{Hmac, KeyInit, Mac};
-use serde::{Deserialize, Serialize};
-use sha2::Sha256;
-use std::collections::BTreeMap;
+//! LiveKit access-token generation via the official `livekit-api` crate.
+//!
+//! This replaces the previous hand-rolled HS256 JWT implementation.
+//! `AccessToken` signs a spec-compliant LiveKit JWT: standard claims (`iss`,
+//! `sub`, `exp`, `nbf`) plus the `video` grants. Per the current token spec,
+//! the participant identity is carried by `sub` (no separate `identity`
+//! claim), matching what all official LiveKit SDKs issue — so tokens are
+//! accepted by any LiveKit server.
+//!
+//! The public function signature is intentionally unchanged so callers
+//! (`session.rs`, `commands.rs`) are unaffected by this migration.
+//!
+//! Crypto note: signing goes through `livekit-token` → `jsonwebtoken` v10,
+//! which is built on the pure-Rust RustCrypto stack (hmac/sha2) — it does NOT
+//! pull in `ring`. No new TLS/crypto provider is introduced; `native-tls` is
+//! selected for `livekit-api` to match the existing reqwest TLS backend. See
+//! the `livekit-api` comment in Cargo.toml before changing TLS features.
 
-// Claims structure for LiveKit JWT (matches LiveKit specification)
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct VideoGrant {
-    room_join: bool,
-    room: String,
-    can_publish: bool,
-    can_subscribe: bool,
-    can_publish_data: bool,
-}
+use livekit_api::access_token::{AccessToken, VideoGrants};
+use std::time::Duration;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    iss: String,
-    sub: String,
-    exp: usize,
-    nbf: usize,
-    iat: usize,
-    identity: String,
-    video: VideoGrant,
-}
-
-/// Generates a LiveKit JWT token using pure-Rust HMAC-SHA256.
-/// Completely avoids `jsonwebtoken` and `ring` to prevent crypto provider panics.
+/// Generates a LiveKit participant (room-join) JWT.
+///
+/// Grants mirror the previous implementation exactly: join the given room,
+/// publish, subscribe and publish data.
 pub fn generate_token(
     api_key: &str,
     api_secret: &str,
@@ -36,112 +30,66 @@ pub fn generate_token(
     room: &str,
     valid_for_seconds: u64,
 ) -> Result<String, String> {
-    let now = Utc::now().timestamp() as usize;
-    let exp = now + valid_for_seconds as usize;
-
-    let claims = Claims {
-        iss: api_key.to_string(),
-        sub: identity.to_string(),
-        exp,
-        nbf: now,
-        iat: now,
-        identity: identity.to_string(),
-        video: VideoGrant {
+    AccessToken::with_api_key(api_key, api_secret)
+        .with_identity(identity)
+        .with_grants(VideoGrants {
             room_join: true,
             room: room.to_string(),
-            can_publish: true,
-            can_subscribe: true,
-            can_publish_data: true,
-        },
-    };
-
-    // Build header
-    let header = BTreeMap::from([
-        ("alg".to_string(), "HS256".to_string()),
-        ("typ".to_string(), "JWT".to_string()),
-    ]);
-
-    let header_json = serde_json::to_string(&header).map_err(|e| e.to_string())?;
-    let claims_json = serde_json::to_string(&claims).map_err(|e| e.to_string())?;
-
-    let header_b64 = URL_SAFE_NO_PAD.encode(header_json.as_bytes());
-    let claims_b64 = URL_SAFE_NO_PAD.encode(claims_json.as_bytes());
-
-    let message = format!("{}.{}", header_b64, claims_b64);
-
-    // Sign with HMAC-SHA256
-    let mut mac = Hmac::<Sha256>::new_from_slice(api_secret.as_bytes())
-        .map_err(|e| format!("HMAC key error: {}", e))?;
-    mac.update(message.as_bytes());
-    let signature = mac.finalize().into_bytes();
-    let sig_b64 = URL_SAFE_NO_PAD.encode(&signature);
-
-    Ok(format!("{}.{}", message, sig_b64))
+            can_publish: Some(true),
+            can_subscribe: Some(true),
+            can_publish_data: Some(true),
+            ..Default::default()
+        })
+        .with_ttl(Duration::from_secs(valid_for_seconds))
+        .to_jwt()
+        .map_err(|e| format!("Failed to sign LiveKit token: {}", e))
 }
 
-// ── Server API token (for Egress, Room management, etc.) ──────
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ServerVideoGrant {
-    room_record: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    room_list: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    room_create: Option<bool>,
-}
+    /// The signed JWT must carry the exact claims LiveKit servers (and the
+    /// pre-migration hand-rolled implementation) expect: standard JWT claims
+    /// plus camelCase `video` grants.
+    #[test]
+    fn generates_valid_hs256_jwt_with_expected_claims() {
+        let jwt = generate_token(
+            "APItestkey",
+            "test-secret-long-enough-for-hs256",
+            "user-1",
+            "room-1",
+            300,
+        )
+        .expect("token generation should succeed");
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ServerClaims {
-    iss: String,
-    sub: String,
-    exp: usize,
-    nbf: usize,
-    iat: usize,
-    video: ServerVideoGrant,
-}
+        let parts: Vec<&str> = jwt.split('.').collect();
+        assert_eq!(parts.len(), 3, "JWT must have header.payload.signature");
 
-/// Generates a LiveKit Server API JWT for egress/room management.
-/// Uses `roomRecord` grant instead of `roomJoin`.
-pub fn generate_server_token(
-    api_key: &str,
-    api_secret: &str,
-    valid_for_seconds: u64,
-) -> Result<String, String> {
-    let now = Utc::now().timestamp() as usize;
-    let exp = now + valid_for_seconds as usize;
+        let header: serde_json::Value =
+            serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[0]).unwrap()).unwrap();
+        assert_eq!(header["alg"], "HS256");
+        assert_eq!(header["typ"], "JWT");
 
-    let claims = ServerClaims {
-        iss: api_key.to_string(),
-        sub: "".to_string(),
-        exp,
-        nbf: now,
-        iat: now,
-        video: ServerVideoGrant {
-            room_record: true,
-            room_list: Some(true),
-            room_create: Some(true),
-        },
-    };
+        let claims: serde_json::Value =
+            serde_json::from_slice(&URL_SAFE_NO_PAD.decode(parts[1]).unwrap()).unwrap();
+        assert_eq!(claims["iss"], "APItestkey");
+        // Per the current LiveKit token spec (protocol auth.proto), the
+        // participant identity is carried by the standard `sub` claim — there
+        // is no separate top-level `identity` claim (all official SDK v2s
+        // issue tokens in this shape and LiveKit servers read identity from
+        // `sub`).
+        assert_eq!(claims["sub"], "user-1");
+        assert_eq!(claims["video"]["roomJoin"], true);
+        assert_eq!(claims["video"]["room"], "room-1");
+        assert_eq!(claims["video"]["canPublish"], true);
+        assert_eq!(claims["video"]["canSubscribe"], true);
+        assert_eq!(claims["video"]["canPublishData"], true);
 
-    let header = BTreeMap::from([
-        ("alg".to_string(), "HS256".to_string()),
-        ("typ".to_string(), "JWT".to_string()),
-    ]);
-
-    let header_json = serde_json::to_string(&header).map_err(|e| e.to_string())?;
-    let claims_json = serde_json::to_string(&claims).map_err(|e| e.to_string())?;
-
-    let header_b64 = URL_SAFE_NO_PAD.encode(header_json.as_bytes());
-    let claims_b64 = URL_SAFE_NO_PAD.encode(claims_json.as_bytes());
-
-    let message = format!("{}.{}", header_b64, claims_b64);
-
-    let mut mac = Hmac::<Sha256>::new_from_slice(api_secret.as_bytes())
-        .map_err(|e| format!("HMAC key error: {}", e))?;
-    mac.update(message.as_bytes());
-    let signature = mac.finalize().into_bytes();
-    let sig_b64 = URL_SAFE_NO_PAD.encode(&signature);
-
-    Ok(format!("{}.{}", message, sig_b64))
+        let nbf = claims["nbf"].as_u64().unwrap();
+        let exp = claims["exp"].as_u64().unwrap();
+        assert_eq!(exp - nbf, 300, "exp must be nbf + ttl");
+        assert!(!parts[2].is_empty(), "signature must be present");
+    }
 }

@@ -1,10 +1,22 @@
 //! LiveKit Egress integration — server-side recording and RTMP streaming.
 //!
-//! Uses the LiveKit Server API (Twirp/HTTP) to start/stop egress sessions.
-//! Requires the LiveKit Egress service to be configured on the server.
+//! Uses the official `livekit-api` crate's `EgressClient`, which handles auth
+//! (it mints short-lived server tokens per request — the old manual
+//! `roomRecord` server token is no longer needed), Twirp framing and the
+//! protobuf wire types. Requires the LiveKit Egress service to be configured
+//! on the server.
+//!
+//! The Tauri command signatures and the JSON shape returned to the frontend
+//! (`EgressInfo`, status strings like `"EGRESS_ACTIVE"`) are unchanged.
 
 use crate::commands::{LiveKitSettings, SETTINGS_KEY, STORE_FILE};
-use crate::token;
+use livekit_api::services::egress::{
+    encoding::{self, EncodingOptions},
+    EgressClient, EgressListFilter, EgressListOptions, EgressOutput, RoomCompositeOptions,
+};
+use livekit_protocol::{
+    EncodedFileOutput, EncodedFileType, EgressInfo as ProtoEgressInfo, EgressStatus, StreamOutput,
+};
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
@@ -56,12 +68,6 @@ pub struct EgressInfo {
     pub error: Option<String>,
 }
 
-/// Response from list egress
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ListEgressResponse {
-    pub items: Vec<EgressInfo>,
-}
-
 /// Generate the LiveKit HTTP API URL from the WebSocket URL
 fn api_url_from_ws(ws_url: &str) -> String {
     ws_url
@@ -69,10 +75,6 @@ fn api_url_from_ws(ws_url: &str) -> String {
         .replace("ws://", "http://")
         .trim_end_matches('/')
         .to_string()
-}
-
-fn make_server_token(api_key: &str, api_secret: &str) -> Result<String, String> {
-    token::generate_server_token(api_key, api_secret, 600)
 }
 
 fn resolve_credentials(
@@ -116,10 +118,9 @@ pub async fn start_room_egress(
         &request.custom_api_secret,
     )?;
 
-    let base_url = api_url_from_ws(&livekit_url);
-    let token = make_server_token(&api_key, &api_secret)?;
+    let client = EgressClient::with_api_key(&api_url_from_ws(&livekit_url), &api_key, &api_secret);
 
-    let body = match request.output_type {
+    let (output, options) = match request.output_type {
         EgressOutputType::File => {
             let cfg = request.file_config.unwrap_or(FileOutputConfig {
                 file_type: "MP4".to_string(),
@@ -129,11 +130,18 @@ pub async fn start_room_egress(
                     chrono::Utc::now().timestamp()
                 ),
             });
-            serde_json::json!({
-                "roomName": request.room_name,
-                "layout": "grid",
-                "file": { "fileType": cfg.file_type, "filepath": cfg.filepath }
-            })
+            let mut file_output = EncodedFileOutput {
+                filepath: cfg.filepath,
+                ..Default::default()
+            };
+            file_output.set_file_type(file_type_from_str(&cfg.file_type));
+            (
+                EgressOutput::File(file_output),
+                RoomCompositeOptions {
+                    layout: "grid".to_string(),
+                    ..Default::default()
+                },
+            )
         }
         EgressOutputType::Stream => {
             let cfg = request.stream_config.unwrap_or(StreamOutputConfig {
@@ -143,36 +151,27 @@ pub async fn start_room_egress(
             if cfg.urls.is_empty() {
                 return Err("At least one RTMP URL is required for streaming.".to_string());
             }
-            serde_json::json!({
-                "roomName": request.room_name,
-                "layout": "grid",
-                "stream": { "urls": cfg.urls, "preset": cfg.preset }
-            })
+            let encoding = encoding_for_preset(&cfg.preset);
+            (
+                EgressOutput::Stream(StreamOutput {
+                    urls: cfg.urls,
+                    ..Default::default()
+                }),
+                RoomCompositeOptions {
+                    layout: "grid".to_string(),
+                    encoding,
+                    ..Default::default()
+                },
+            )
         }
     };
 
-    let client = reqwest::Client::new();
-    let resp = client
-        .post(format!(
-            "{}/twirp/livekit.Egress/StartRoomCompositeEgress",
-            base_url
-        ))
-        .header("Authorization", format!("Bearer {}", token))
-        .header("Content-Type", "application/json")
-        .json(&body)
-        .send()
+    let info = client
+        .start_room_composite_egress(&request.room_name, vec![output], options)
         .await
-        .map_err(|e| format!("Failed to connect to LiveKit API: {}", e))?;
+        .map_err(|e| format!("LiveKit API error: {}", e))?;
 
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
-        return Err(format!("LiveKit API error ({}): {}", status, text));
-    }
-
-    resp.json::<EgressInfo>()
-        .await
-        .map_err(|e| format!("Failed to parse egress response: {}", e))
+    Ok(to_api_info(info))
 }
 
 /// Stop an active egress session
@@ -187,30 +186,14 @@ pub async fn stop_egress(
     let (api_key, api_secret, livekit_url) =
         resolve_credentials(&app, &custom_base_url, &custom_api_key, &custom_api_secret)?;
 
-    let base_url = api_url_from_ws(&livekit_url);
-    let token = make_server_token(&api_key, &api_secret)?;
+    let client = EgressClient::with_api_key(&api_url_from_ws(&livekit_url), &api_key, &api_secret);
 
-    let body = serde_json::json!({ "egressId": egress_id });
-
-    let client = reqwest::Client::new();
-    let resp = client
-        .post(format!("{}/twirp/livekit.Egress/StopEgress", base_url))
-        .header("Authorization", format!("Bearer {}", token))
-        .header("Content-Type", "application/json")
-        .json(&body)
-        .send()
+    let info = client
+        .stop_egress(&egress_id)
         .await
-        .map_err(|e| format!("Failed to connect to LiveKit API: {}", e))?;
+        .map_err(|e| format!("LiveKit API error: {}", e))?;
 
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
-        return Err(format!("LiveKit API error ({}): {}", status, text));
-    }
-
-    resp.json::<EgressInfo>()
-        .await
-        .map_err(|e| format!("Failed to parse egress response: {}", e))
+    Ok(to_api_info(info))
 }
 
 /// List active egress sessions for a room
@@ -225,34 +208,74 @@ pub async fn list_egress(
     let (api_key, api_secret, livekit_url) =
         resolve_credentials(&app, &custom_base_url, &custom_api_key, &custom_api_secret)?;
 
-    let base_url = api_url_from_ws(&livekit_url);
-    let token = make_server_token(&api_key, &api_secret)?;
+    let client = EgressClient::with_api_key(&api_url_from_ws(&livekit_url), &api_key, &api_secret);
 
-    let mut body = serde_json::Map::new();
-    if let Some(room) = room_name {
-        body.insert("roomName".to_string(), serde_json::Value::String(room));
-    }
+    let filter = match room_name.filter(|r| !r.is_empty()) {
+        Some(room) => EgressListFilter::Room(room),
+        None => EgressListFilter::All,
+    };
 
-    let client = reqwest::Client::new();
-    let resp = client
-        .post(format!("{}/twirp/livekit.Egress/ListEgress", base_url))
-        .header("Authorization", format!("Bearer {}", token))
-        .header("Content-Type", "application/json")
-        .json(&body)
-        .send()
+    let items = client
+        .list_egress(EgressListOptions {
+            filter,
+            ..Default::default()
+        })
         .await
-        .map_err(|e| format!("Failed to connect to LiveKit API: {}", e))?;
+        .map_err(|e| format!("LiveKit API error: {}", e))?;
 
-    if !resp.status().is_success() {
-        let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
-        return Err(format!("LiveKit API error ({}): {}", status, text));
+    Ok(items.into_iter().map(to_api_info).collect())
+}
+
+// ── proto → serde mapping (keeps the frontend wire format unchanged) ──
+
+/// Map the SDK's `EgressStatus` enum back to the SCREAMING_SNAKE strings the
+/// old JSON/Twirp responses carried, so the frontend sees identical values.
+fn status_str(status: EgressStatus) -> &'static str {
+    match status {
+        EgressStatus::EgressStarting => "EGRESS_STARTING",
+        EgressStatus::EgressActive => "EGRESS_ACTIVE",
+        EgressStatus::EgressEnding => "EGRESS_ENDING",
+        EgressStatus::EgressComplete => "EGRESS_COMPLETE",
+        EgressStatus::EgressFailed => "EGRESS_FAILED",
+        EgressStatus::EgressAborted => "EGRESS_ABORTED",
+        EgressStatus::EgressLimitReached => "EGRESS_LIMIT_REACHED",
     }
+}
 
-    let list: ListEgressResponse = resp
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse egress list: {}", e))?;
+/// Convert the protobuf `EgressInfo` returned by the SDK into this module's
+/// serde struct (identical JSON shape as before the migration).
+fn to_api_info(info: ProtoEgressInfo) -> EgressInfo {
+    let status = status_str(info.status()).to_string();
+    let error = if info.error.is_empty() {
+        None
+    } else {
+        Some(info.error)
+    };
+    EgressInfo {
+        egress_id: info.egress_id,
+        room_name: info.room_name,
+        status,
+        started_at: info.started_at,
+        ended_at: info.ended_at,
+        error,
+    }
+}
 
-    Ok(list.items)
+/// Map the file-type strings used by the settings UI to protobuf enums.
+fn file_type_from_str(s: &str) -> EncodedFileType {
+    match s.to_uppercase().as_str() {
+        "MP4" => EncodedFileType::Mp4,
+        "OGG" => EncodedFileType::Ogg,
+        _ => EncodedFileType::DefaultFiletype,
+    }
+}
+
+/// Map a stream preset name from the frontend ("FULL_HD_1080" by default) to
+/// the SDK's built-in encoding presets.
+fn encoding_for_preset(preset: &str) -> EncodingOptions {
+    match preset {
+        "HD_720" | "H264_720P_30" => encoding::H264_720P_30,
+        // "FULL_HD_1080" (the frontend default) and anything else → 1080p30.
+        _ => encoding::H264_1080P_30,
+    }
 }

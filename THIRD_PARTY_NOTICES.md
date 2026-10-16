@@ -1,7 +1,7 @@
 # VisualTalk — Third-Party Software Notices
 
 Product version: 3.3.33  
-Generated: 2026-10-14  
+Generated: 2026-10-16  
 Regenerate with: `pnpm notices` (runs `scripts/generate-notices.py`)
 
 VisualTalk incorporates the third-party software listed below. This document satisfies the attribution and notice requirements of those licenses (MIT, Apache-2.0 §4, BSD, ISC, Zlib, Unicode-3.0, MPL-2.0 §3, CDLA-Permissive-2.0 and others). The full text of each license is reproduced in section 5.
@@ -10,7 +10,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 
 ## 1. Summary
 
-- Shipped (statically linked or bundled) components: **556**
+- Shipped (statically linked or bundled) components: **610**
 - Build-time-only components (not distributed): **84**
 - No GPL, AGPL, SSPL, BUSL, Elastic License or Commons Clause component is linked into any distributed binary.
 - Weak copyleft present: MPL-2.0 (file-scoped, see section 6) and CDLA-Permissive-2.0 (root CA certificate data).
@@ -21,26 +21,27 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 
 | License expression | Components |
 | --- | --- |
-| `MIT OR Apache-2.0` | 254 |
-| `MIT` | 134 |
-| `Apache-2.0 OR MIT` | 55 |
+| `MIT OR Apache-2.0` | 272 |
+| `MIT` | 144 |
+| `Apache-2.0 OR MIT` | 57 |
+| `MIT/Apache-2.0` | 20 |
+| `Apache-2.0` | 18 |
 | `Unicode-3.0` | 18 |
 | `Zlib OR Apache-2.0 OR MIT` | 17 |
-| `MIT/Apache-2.0` | 14 |
 | `Unlicense OR MIT` | 9 |
-| `MPL-2.0` | 5 |
+| `MPL-2.0` | 6 |
 | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | 5 |
-| `Apache-2.0` | 5 |
 | `BSD-3-Clause` | 4 |
 | `Apache-2.0/MIT` | 3 |
+| `Zlib` | 3 |
 | `Apache-2.0 OR ISC OR MIT` | 3 |
 | `ISC` | 3 |
-| `Zlib` | 2 |
 | `MIT OR Apache-2.0 OR Zlib` | 2 |
 | `MIT OR Zlib OR Apache-2.0` | 2 |
 | `BSD-3-Clause OR MIT OR Apache-2.0` | 2 |
 | `MIT OR Apache-2.0 OR LGPL-2.1-or-later` | 2 |
 | `Unlicense/MIT` | 2 |
+| `BSD-2-Clause OR Apache-2.0 OR MIT` | 2 |
 | `0BSD OR MIT OR Apache-2.0` | 1 |
 | `ISC AND (Apache-2.0 OR ISC)` | 1 |
 | `ISC AND (Apache-2.0 OR ISC) AND Apache-2.0 AND MIT AND BSD-3-Clause AND (Apache-2.0 OR ISC OR MIT) AND (Apache-2.0 OR ISC OR MIT-0)` | 1 |
@@ -51,6 +52,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `(Apache-2.0 OR MIT) AND BSD-3-Clause` | 1 |
 | `Apache-2.0 / MIT` | 1 |
 | `Apache-2.0 AND ISC` | 1 |
+| `Apache-2.0 OR BSL-1.0` | 1 |
 | `Apache-2.0 WITH LLVM-exception` | 1 |
 | `(MIT OR Apache-2.0) AND Unicode-3.0` | 1 |
 | `CDLA-Permissive-2.0` | 1 |
@@ -66,6 +68,8 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | crates.io | `dotenvy` | 0.15.7 | MIT |
 | crates.io | `hmac` | 0.13.0 | MIT OR Apache-2.0 |
 | crates.io | `icalendar` | 0.17.14 | MIT/Apache-2.0 |
+| crates.io | `livekit-api` | 0.9.0 | Apache-2.0 |
+| crates.io | `livekit-protocol` | 0.8.1 | Apache-2.0 |
 | crates.io | `rand` | 0.10.3 | MIT OR Apache-2.0 |
 | crates.io | `reqwest` | 0.13.5 | MIT OR Apache-2.0 |
 | crates.io | `serde` | 1.0.229 | MIT OR Apache-2.0 |
@@ -90,7 +94,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 
 ## 3. All shipped components
 
-### crates.io (533)
+### crates.io (587)
 
 | Component | Version | License | Copyright |
 | --- | --- | --- | --- |
@@ -174,6 +178,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `darling` | 0.24.1 | MIT | Copyright (c) 2017 Ted Driggs |
 | `darling_core` | 0.24.1 | MIT | Copyright (c) 2017 Ted Driggs |
 | `darling_macro` | 0.24.1 | MIT | Copyright (c) 2017 Ted Driggs |
+| `data-encoding` | 2.11.1 | MIT | Copyright (c) 2015-2020 Julien Cretin |
 | `dbus` | 0.9.12 | Apache-2.0/MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `defmt` | 1.1.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `defmt-macros` | 1.1.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -181,6 +186,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `deranged` | 0.5.8 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `derive_more` | 2.1.1 | MIT | Copyright (c) 2016 Jelte Fennema |
 | `derive_more-impl` | 2.1.1 | MIT | Copyright (c) 2016 Jelte Fennema |
+| `device-info` | 0.1.1 | Apache-2.0 |  |
 | `digest` | 0.10.7 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `digest` | 0.11.3 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `dirs` | 7.0.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -196,6 +202,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `dtoa-short` | 0.3.5 | MPL-2.0 |  |
 | `dunce` | 1.0.5 | CC0-1.0 OR MIT-0 OR Apache-2.0 | exclusive Copyright and Related Rights (defined below) upon the creator |
 | `dyn-clone` | 1.0.20 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `either` | 1.19.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `embed-resource` | 3.0.12 | MIT | Copyright (c) 2017 nabijaczleweli |
 | `embed_plist` | 1.2.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `encoding_rs` | 0.8.42 | (Apache-2.0 OR MIT) AND BSD-3-Clause | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -211,11 +218,15 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `fdeflate` | 0.3.7 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `field-offset` | 0.3.6 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `find-msvc-tools` | 0.1.14 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `fixedbitset` | 0.5.7 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `flate2` | 1.1.10 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `fnv` | 1.0.7 | Apache-2.0 / MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `foldhash` | 0.1.5 | Zlib | Copyright (c) 2024 Orson Peters |
 | `foldhash` | 0.2.0 | Zlib | Copyright (c) 2024 Orson Peters |
+| `foreign-types` | 0.3.2 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `foreign-types` | 0.5.0 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `foreign-types-macros` | 0.2.4 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `foreign-types-shared` | 0.1.1 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `foreign-types-shared` | 0.3.1 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `form_urlencoded` | 1.2.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `fs_extra` | 1.3.0 | MIT | Copyright (c) 2017 Denis Kurilenko |
@@ -251,11 +262,13 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `gtk3-macros` | 0.18.2 | MIT | The above copyright notice and this permission notice shall be included in all |
 | `h2` | 0.4.20 | MIT | Copyright (c) 2017 h2 authors |
 | `hashbrown` | 0.12.3 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `hashbrown` | 0.15.5 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `hashbrown` | 0.17.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `heck` | 0.4.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `heck` | 0.5.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `hermit-abi` | 0.5.3 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `hex` | 0.4.3 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `hmac` | 0.12.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `hmac` | 0.13.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `html5ever` | 0.39.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `http` | 1.5.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -265,6 +278,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `hybrid-array` | 0.4.15 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `hyper` | 1.12.0 | MIT | Copyright (c) 2014-2026 Sean McArthur |
 | `hyper-rustls` | 0.27.10 | Apache-2.0 OR ISC OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `hyper-tls` | 0.6.0 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `hyper-util` | 0.1.21 | MIT | Copyright (c) 2023-2025 Sean McArthur |
 | `iana-time-zone` | 0.1.65 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `iana-time-zone-haiku` | 0.1.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -287,6 +301,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `is-docker` | 0.2.0 | MIT | Copyright (c) 2023 Sean Larkin |
 | `is-wsl` | 0.4.0 | MIT | Copyright (c) 2023 Sean Larkin |
 | `iso8601` | 0.6.6 | MIT | Copyright (c) 2015 Jan-Erik Rediger, Hendrik Sollich |
+| `itertools` | 0.14.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `itoa` | 1.0.18 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `javascriptcore-rs` | 1.1.2 | MIT | Copyright (c) 2013-2021, The Gtk-rs Project Developers. |
 | `javascriptcore-rs-sys` | 1.1.1 | MIT | Copyright (c) 2013-2017, The Gtk-rs Project Developers. |
@@ -305,6 +320,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `js-sys` | 0.3.106 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `json-patch` | 4.2.0 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `jsonptr` | 0.7.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `jsonwebtoken` | 10.4.0 | MIT | Copyright (c) 2015 Vincent Prouillet |
 | `keyboard-types` | 0.8.3 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `libappindicator` | 0.9.0 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `libappindicator-sys` | 0.9.0 | Apache-2.0 OR MIT |  |
@@ -314,6 +330,13 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `libredox` | 0.1.25 | MIT | Copyright (c) 2023 4lDO2 |
 | `linux-raw-sys` | 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `litemap` | 0.8.3 | Unicode-3.0 | COPYRIGHT AND PERMISSION NOTICE |
+| `livekit-api` | 0.9.0 | Apache-2.0 |  |
+| `livekit-common` | 0.1.5 | Apache-2.0 |  |
+| `livekit-net` | 0.1.3 | Apache-2.0 |  |
+| `livekit-protocol` | 0.8.1 | Apache-2.0 |  |
+| `livekit-region` | 0.1.1 | Apache-2.0 |  |
+| `livekit-signaling` | 0.1.6 | Apache-2.0 |  |
+| `livekit-token` | 0.3.0 | Apache-2.0 |  |
 | `lock_api` | 0.4.14 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `log` | 0.4.34 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `lru-slab` | 0.1.3 | MIT OR Apache-2.0 OR Zlib | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -325,11 +348,14 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `miniz_oxide` | 0.9.1 | MIT OR Zlib OR Apache-2.0 | Copyright 2013-2014 RAD Game Tools and Valve Software |
 | `mio` | 1.2.4 | MIT | Copyright (c) 2014 Carl Lerche and other MIO contributors |
 | `muda` | 0.20.0 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `multimap` | 0.10.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `multiversion_no_op` | 1.0.0 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `native-tls` | 0.2.18 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `ndk` | 0.9.0 | MIT OR Apache-2.0 |  |
 | `ndk-context` | 0.1.1 | MIT OR Apache-2.0 |  |
 | `ndk-sys` | 0.6.0+11769913 | MIT OR Apache-2.0 |  |
 | `new_debug_unreachable` | 1.0.6 | MIT | Copyright (c) 2015 Jonathan Reem |
+| `nix` | 0.31.3 | MIT | Copyright (c) 2015 Carl Lerche + nix-rust Authors |
 | `nom` | 8.0.0 | MIT | Copyright (c) 2014-2019 Geoffroy Couprie |
 | `nom-language` | 0.1.0 | MIT |  |
 | `num-conv` | 0.2.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -355,15 +381,23 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `objc2-web-kit` | 0.3.2 | Zlib OR Apache-2.0 OR MIT |  |
 | `once_cell` | 1.21.4 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `open` | 5.4.4 | MIT | Copyright © `2015` `Sebastian Thiel` |
+| `openssl` | 0.10.81 | Apache-2.0 | Copyright 2011-2017 Google Inc. |
+| `openssl-macros` | 0.1.1 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `openssl-probe` | 0.2.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `openssl-sys` | 0.9.117 | MIT | Copyright (c) 2014 Alex Crichton |
 | `option-ext` | 0.2.0 | MPL-2.0 |  |
 | `ordered-stream` | 0.2.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `os_info` | 3.15.0 | MIT | Copyright (c) 2017 Stanislav Tkach |
 | `pango` | 0.18.3 | MIT | The above copyright notice and this permission notice shall be included in all |
 | `pango-sys` | 0.18.0 | MIT | The above copyright notice and this permission notice shall be included in all |
 | `parking` | 2.2.1 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `parking_lot` | 0.12.5 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `parking_lot_core` | 0.9.12 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `pbjson` | 0.9.0 | MIT |  |
+| `pbjson-build` | 0.9.0 | MIT |  |
+| `pbjson-types` | 0.9.0 | MIT |  |
 | `percent-encoding` | 2.3.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `petgraph` | 0.8.3 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `phf` | 0.13.1 | MIT | Copyright (c) 2014-2022 Steven Fackler, Yuki Okushi |
 | `phf_codegen` | 0.13.1 | MIT | Copyright (c) 2014-2022 Steven Fackler, Yuki Okushi |
 | `phf_generator` | 0.13.1 | MIT | Copyright (c) 2014-2022 Steven Fackler, Yuki Okushi |
@@ -380,13 +414,20 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `portable-atomic-util` | 0.2.8 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `potential_utf` | 0.1.6 | Unicode-3.0 | COPYRIGHT AND PERMISSION NOTICE |
 | `powerfmt` | 0.2.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `ppv-lite86` | 0.2.21 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `precomputed-hash` | 0.1.1 | MIT | Copyright (c) 2017 Emilio Cobos Álvarez |
+| `prettyplease` | 0.2.37 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `proc-macro-crate` | 1.3.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `proc-macro-crate` | 2.0.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `proc-macro-crate` | 3.5.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `proc-macro-error` | 1.0.4 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `proc-macro-error-attr` | 1.0.4 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `proc-macro2` | 1.0.107 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `progenitor-client` | 0.15.1 | MPL-2.0 |  |
+| `prost` | 0.14.4 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `prost-build` | 0.14.4 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `prost-derive` | 0.14.4 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `prost-types` | 0.14.4 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `quick-xml` | 0.42.0 | MIT | Copyright (c) 2016 Johann Tuffe |
 | `quinn` | 0.11.12 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `quinn-proto` | 0.11.19 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -395,7 +436,11 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `r-efi` | 5.3.0 | MIT OR Apache-2.0 OR LGPL-2.1-or-later |  |
 | `r-efi` | 6.0.0 | MIT OR Apache-2.0 OR LGPL-2.1-or-later |  |
 | `rand` | 0.10.3 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `rand` | 0.9.5 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `rand_chacha` | 0.9.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `rand_core` | 0.10.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `rand_core` | 0.6.4 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `rand_core` | 0.9.5 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `rand_pcg` | 0.10.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `raw-window-handle` | 0.6.2 | MIT OR Apache-2.0 OR Zlib | "Licensor" shall mean the copyright owner or entity authorized by |
 | `redox_syscall` | 0.5.18 | MIT | Copyright (c) 2017 Redox OS Developers |
@@ -405,6 +450,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `regex` | 1.13.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `regex-automata` | 0.4.18 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `regex-syntax` | 0.8.11 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `reqwest` | 0.12.28 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `reqwest` | 0.13.5 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `rfd` | 0.16.0 | MIT | Copyright (c) 2022 Bartłomiej Maryńczak |
 | `ring` | 0.17.14 | Apache-2.0 AND ISC | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -418,6 +464,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `rustls-platform-verifier-android` | 0.2.0 | MIT OR Apache-2.0 |  |
 | `rustls-webpki` | 0.103.15 | ISC | Copyright 2015 Brian Smith. |
 | `rustversion` | 1.0.23 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `ryu` | 1.0.23 | Apache-2.0 OR BSL-1.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `same-file` | 1.0.6 | Unlicense/MIT | Copyright (c) 2017 Andrew Gallant |
 | `schannel` | 0.1.29 | MIT | Copyright (c) 2015 steffengy |
 | `schemars` | 0.8.22 | MIT | Copyright (c) 2019 Graham Esau |
@@ -438,15 +485,18 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `serde_repr` | 0.1.21 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `serde_spanned` | 0.6.9 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `serde_spanned` | 1.1.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `serde_urlencoded` | 0.7.1 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `serde_with` | 3.24.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `serde_with_macros` | 3.24.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `serialize-to-javascript` | 0.1.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `serialize-to-javascript-impl` | 0.1.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `servo_arc` | 0.4.3 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `sha1` | 0.10.7 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `sha2` | 0.10.9 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `sha2` | 0.11.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `shlex` | 2.0.1 | MIT OR Apache-2.0 | Copyright 2015 Nicholas Allegra (comex). |
 | `signal-hook-registry` | 1.4.8 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `signature` | 2.2.0 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `simd-adler32` | 0.3.10 | MIT | Copyright (c) [2021] [Marvin Countryman] |
 | `simd_cesu8` | 1.2.0 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `simdutf8` | 0.1.5 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -500,7 +550,9 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `tinyvec` | 1.13.3 | Zlib OR Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `tokio` | 1.53.2 | MIT | Copyright (c) Tokio Contributors |
 | `tokio-macros` | 2.7.2 | MIT | Copyright (c) 2019 Yoshua Wuyts |
+| `tokio-native-tls` | 0.3.1 | MIT | Copyright (c) 2019 Tokio Contributors |
 | `tokio-rustls` | 0.26.6 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `tokio-tungstenite` | 0.29.0 | MIT | Copyright (c) 2017 Daniel Abramov |
 | `tokio-util` | 0.7.20 | MIT | Copyright (c) Tokio Contributors |
 | `toml` | 0.8.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `toml` | 1.1.8+spec-1.1.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -520,6 +572,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `tracing-core` | 0.1.36 | MIT | Copyright (c) 2019 Tokio Contributors |
 | `tray-icon` | 0.25.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `try-lock` | 0.2.5 | MIT | Copyright (c) 2018-2023 Sean McArthur |
+| `tungstenite` | 0.29.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `typeid` | 1.0.3 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `typenum` | 1.20.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `uds_windows` | 1.2.1 | MIT | Copyright (c) Microsoft Corporation. All rights reserved. |
@@ -531,6 +584,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `urlpattern` | 0.6.0 | MIT | Copyright (c) 2021 the Deno authors |
 | `utf8_iter` | 1.0.4 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `uuid` | 1.28.0 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `vcpkg` | 0.2.15 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `version-compare` | 0.2.1 | MIT | Copyright (c) 2017 Tim Visée |
 | `version_check` | 0.9.5 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `vswhom` | 0.1.0 | MIT | Copyright (c) 2019 nabijaczleweli |
@@ -572,6 +626,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `windows-strings` | 0.5.1 | MIT OR Apache-2.0 |  |
 | `windows-sys` | 0.45.0 | MIT OR Apache-2.0 |  |
 | `windows-sys` | 0.52.0 | MIT OR Apache-2.0 |  |
+| `windows-sys` | 0.59.0 | MIT OR Apache-2.0 |  |
 | `windows-sys` | 0.60.2 | MIT OR Apache-2.0 |  |
 | `windows-sys` | 0.61.2 | MIT OR Apache-2.0 |  |
 | `windows-targets` | 0.42.2 | MIT OR Apache-2.0 |  |
@@ -616,9 +671,12 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `zbus_macros` | 5.19.0 | MIT | Copyright (c) 2024 Zeeshan Ali Khan & zbus contributors |
 | `zbus_names` | 4.3.4 | MIT | Copyright (c) 2024 Zeeshan Ali Khan & zbus contributors |
 | `zcheapstr` | 1.1.0 | MIT | Copyright (c) 2026 Zeeshan Ali Khan & zcheapstr contributors |
+| `zerocopy` | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `zerocopy-derive` | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `zerofrom` | 0.1.8 | Unicode-3.0 | COPYRIGHT AND PERMISSION NOTICE |
 | `zerofrom-derive` | 0.1.8 | Unicode-3.0 | COPYRIGHT AND PERMISSION NOTICE |
 | `zeroize` | 1.9.1 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `zeroize_derive` | 1.5.0 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `zerotrie` | 0.2.5 | Unicode-3.0 | COPYRIGHT AND PERMISSION NOTICE |
 | `zerovec` | 0.11.8 | Unicode-3.0 | COPYRIGHT AND PERMISSION NOTICE |
 | `zerovec-derive` | 0.11.6 | Unicode-3.0 | COPYRIGHT AND PERMISSION NOTICE |
@@ -949,6 +1007,34 @@ TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
    of your accepting any such warranty or additional liability.
 
 END OF TERMS AND CONDITIONS
+```
+
+### BSD-2-Clause
+
+_Reproduced verbatim from: num_enum 0.7.6 (`LICENSE-BSD`)_
+
+```
+Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* Neither the name of num_enum nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 
 ### BSD-3-Clause
@@ -1716,6 +1802,10 @@ Permission is granted to anyone to use this software for any purpose, including 
 3. This notice may not be removed or altered from any source distribution.
 ```
 
+### BSL-1.0
+
+_The canonical text of this license is available at: https://spdx.org/licenses/BSL-1.0.html_
+
 ## 6. MPL-2.0 covered files — source availability
 
 The following components are licensed under the Mozilla Public License 2.0. MPL-2.0 is **file-scoped**: it covers only the source files of these components, not VisualTalk's own code, which remains under its own license.
@@ -1726,6 +1816,7 @@ The following components are licensed under the Mozilla Public License 2.0. MPL-
 | `cssparser-macros` | 0.7.1 | https://github.com/servo/rust-cssparser |
 | `dtoa-short` | 0.3.5 | https://github.com/upsuper/dtoa-short |
 | `option-ext` | 0.2.0 | https://github.com/soc/option-ext.git |
+| `progenitor-client` | 0.15.1 | https://github.com/oxidecomputer/progenitor.git |
 | `selectors` | 0.38.0 | https://github.com/servo/stylo |
 
 VisualTalk does not modify these files. Their unmodified Source Code Form is available from the upstream repositories above and from crates.io / npmjs.com. The full MPL-2.0 text is reproduced in section 5.
@@ -2390,3 +2481,7 @@ regulations, including the U.S. Export Administration Regulations (EAR,
 15 CFR 730-774), Category 5 Part 2. Users and redistributors are responsible for
 complying with all applicable export, re-export and sanctions laws in their
 jurisdiction.
+
+## 10. Generation warnings (review manually)
+
+- `BSL-1.0`: unrecognised license identifier — review manually and add a signature to SIGNATURES in scripts/generate-notices.py.
