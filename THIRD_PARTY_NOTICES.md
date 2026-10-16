@@ -10,7 +10,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 
 ## 1. Summary
 
-- Shipped (statically linked or bundled) components: **610**
+- Shipped (statically linked or bundled) components: **611**
 - Build-time-only components (not distributed): **84**
 - No GPL, AGPL, SSPL, BUSL, Elastic License or Commons Clause component is linked into any distributed binary.
 - Weak copyleft present: MPL-2.0 (file-scoped, see section 6) and CDLA-Permissive-2.0 (root CA certificate data).
@@ -24,7 +24,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `MIT OR Apache-2.0` | 272 |
 | `MIT` | 144 |
 | `Apache-2.0 OR MIT` | 57 |
-| `MIT/Apache-2.0` | 20 |
+| `MIT/Apache-2.0` | 21 |
 | `Apache-2.0` | 18 |
 | `Unicode-3.0` | 18 |
 | `Zlib OR Apache-2.0 OR MIT` | 17 |
@@ -70,6 +70,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | crates.io | `icalendar` | 0.17.14 | MIT/Apache-2.0 |
 | crates.io | `livekit-api` | 0.9.0 | Apache-2.0 |
 | crates.io | `livekit-protocol` | 0.8.1 | Apache-2.0 |
+| crates.io | `openssl` | 0.10.81 | Apache-2.0 |
 | crates.io | `rand` | 0.10.3 | MIT OR Apache-2.0 |
 | crates.io | `reqwest` | 0.13.5 | MIT OR Apache-2.0 |
 | crates.io | `serde` | 1.0.229 | MIT OR Apache-2.0 |
@@ -94,7 +95,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 
 ## 3. All shipped components
 
-### crates.io (587)
+### crates.io (588)
 
 | Component | Version | License | Copyright |
 | --- | --- | --- | --- |
@@ -384,6 +385,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `openssl` | 0.10.81 | Apache-2.0 | Copyright 2011-2017 Google Inc. |
 | `openssl-macros` | 0.1.1 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `openssl-probe` | 0.2.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `openssl-src` | 300.6.1+3.6.3 | MIT/Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `openssl-sys` | 0.9.117 | MIT | Copyright (c) 2014 Alex Crichton |
 | `option-ext` | 0.2.0 | MPL-2.0 |  |
 | `ordered-stream` | 0.2.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
