@@ -151,10 +151,11 @@ jobs:
   android:
     needs: license-audit
     runs-on: ubuntu-22.04
-    # Release 1 targets the iOS App Store. The Android signing secrets
-    # (ANDROID_KEYSTORE_BASE64 and friends) are not provisioned yet, so the
-    # signed-AAB step is expected to fail — don't turn the whole release red.
-    continue-on-error: true
+    # Android signing secrets (ANDROID_KEYSTORE_BASE64 & friends) are
+    # provisioned; tag pushes AND manual workflow_dispatch both produce a
+    # Play-ready signed AAB. Upload-key signing is injected into the generated
+    # gradle project by scripts/fix-android-project.sh (the stock Tauri
+    # template ships no signingConfig).
     steps:
       - uses: actions/checkout@v4
 
@@ -184,12 +185,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Setup NDK
+      - name: Setup Android SDK (licenses + NDK)
+        # android-actions/setup-android@v3 was dropped: it invokes sdkmanager
+        # without --sdk_root and crashes on the runner image's cmdline-tools 16
+        # ("Computing updates" → exit 1). The ubuntu image already provides
+        # ANDROID_HOME; accepting licenses lets Gradle auto-fetch the
+        # platform/build-tools it needs, and the NDK is pinned for Tauri.
         run: |
-          sdkmanager "ndk;27.0.12077973"
+          SDKMANAGER=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses > /dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "ndk;27.0.12077973"
           echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
 
       - name: Install frontend dependencies
@@ -198,8 +203,14 @@ jobs:
       - name: Init Android project (if not present)
         run: test -d src-tauri/gen/android || pnpm tauri android init
 
+      - name: Apply Android project fixes (upload-key signing)
+        run: ./scripts/fix-android-project.sh
+
+      - name: Verify Android fixes applied (--check)
+        run: ./scripts/fix-android-project.sh --check
+
       - name: Decode Android signing key
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         run: |
           mkdir -p src-tauri/gen/android/app
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > src-tauri/gen/android/app/upload-keystore.jks
@@ -211,11 +222,11 @@ jobs:
           EOF
 
       - name: Build Android app (release AAB)
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         run: pnpm tauri android build --aab
 
       - name: Build Android app (debug APK, branch builds)
-        if: "!startsWith(github.ref, 'refs/tags/')"
+        if: "!startsWith(github.ref, 'refs/tags/') && github.event_name != 'workflow_dispatch'"
         run: pnpm tauri android build --apk --debug
 
       - name: Upload Android artifacts
