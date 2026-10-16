@@ -137,7 +137,14 @@ export function MeetingToolbar(props) {
 
       {/* 6. Record */}
       <button
-        onClick={props.isRecording() ? props.onStopRecording : props.onStartRecording}
+        // SolidJS binds event handlers once at render — a bare
+        // `props.isRecording() ? onStop : onStart` ternary would freeze the
+        // click behaviour to whatever the state was when the toolbar first
+        // rendered (not recording → always re-open the start dialog). Read
+        // the signal inside a closure so the choice is made at click time.
+        onClick={() =>
+          props.isRecording() ? props.onStopRecording() : props.onStartRecording()
+        }
         class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 relative select-none"
       >
         <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
