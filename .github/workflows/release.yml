@@ -199,6 +199,11 @@ jobs:
           # openssl-src (vendored OpenSSL for android targets) discovers the NDK
           # toolchain via ANDROID_NDK_HOME.
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
+          # OpenSSL's android Configure defaults RANLIB/AR to
+          # ${CROSS_COMPILE}ranlib/ar — binutils names the NDK dropped in r23.
+          # The LLVM bin dir provides llvm-ranlib/llvm-ar (env overrides below
+          # on the build steps).
+          echo "$ANDROID_HOME/ndk/27.0.12077973/toolchains/llvm/prebuilt/linux-x86_64/bin" >> "$GITHUB_PATH"
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
@@ -226,10 +231,16 @@ jobs:
 
       - name: Build Android app (release AAB)
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        env:
+          RANLIB: llvm-ranlib
+          AR: llvm-ar
         run: pnpm tauri android build --aab
 
       - name: Build Android app (debug APK, branch builds)
         if: "!startsWith(github.ref, 'refs/tags/') && github.event_name != 'workflow_dispatch'"
+        env:
+          RANLIB: llvm-ranlib
+          AR: llvm-ar
         run: pnpm tauri android build --apk --debug
 
       - name: Upload Android artifacts
