@@ -196,6 +196,9 @@ jobs:
           yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses > /dev/null || true
           "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "ndk;27.0.12077973"
           echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
+          # openssl-src (vendored OpenSSL for android targets) discovers the NDK
+          # toolchain via ANDROID_NDK_HOME.
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile

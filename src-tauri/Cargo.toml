@@ -53,6 +53,12 @@ p256 = { version = "0.14.0", features = ["ecdh"], optional = true }
 aes-gcm = { version = "0.11.1", optional = true }
 icalendar = "0.17"
 
+# Android cross-compile: livekit-api's native-tls backend needs OpenSSL, which
+# does not exist in the NDK sysroot — build it from source (openssl-src) only
+# for android targets. Desktop builds keep linking the system OpenSSL.
+[target.'cfg(target_os = "android")'.dependencies]
+openssl = { version = "0.10", features = ["vendored"] }
+
 [features]
 default = []
 e2ee = ["p256", "aes-gcm"]
