@@ -44,6 +44,11 @@
   "mainWindow.pmiUpdated": "PMI updated successfully!",
   "mainWindow.scheduleFailed": "Failed to schedule meeting.",
   "mainWindow.startErrorDetailed": "Could not start meeting: {error}",
+  "mainWindow.recentMeetings": "Recent meetings",
+  "mainWindow.recentCount": "{count} recent",
+  "mainWindow.recentEmpty": "Rooms you join will appear here.",
+  "mainWindow.recentRoom": "Room: #{room}",
+
   "meeting.title": "VisualTalk Meeting",
   "meeting.joinedAs": "Joined as:",
   "meeting.audioBlocked": "Sound is blocked by the browser.",

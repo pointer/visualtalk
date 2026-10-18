@@ -44,6 +44,11 @@
   "mainWindow.pmiUpdated": "¡PMI actualizado con éxito!",
   "mainWindow.scheduleFailed": "Error al programar la reunión.",
   "mainWindow.startErrorDetailed": "No se pudo iniciar la reunión: {error}",
+  "mainWindow.recentMeetings": "Reuniones recientes",
+  "mainWindow.recentCount": "{count} recientes",
+  "mainWindow.recentEmpty": "Las salas a las que te unas aparecerán aquí.",
+  "mainWindow.recentRoom": "Sala: #{room}",
+
   "meeting.title": "Reunión VisualTalk",
   "meeting.joinedAs": "Conectado como:",
   "meeting.audioBlocked": "El navegador bloquea el sonido.",
