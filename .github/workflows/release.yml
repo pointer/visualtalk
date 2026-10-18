@@ -153,9 +153,10 @@ jobs:
     runs-on: ubuntu-22.04
     # Android signing secrets (ANDROID_KEYSTORE_BASE64 & friends) are
     # provisioned; tag pushes AND manual workflow_dispatch both produce a
-    # Play-ready signed AAB. Upload-key signing is injected into the generated
-    # gradle project by scripts/fix-android-project.sh (the stock Tauri
-    # template ships no signingConfig).
+    # Play-ready signed AAB. Upload-key signing and the WebView media
+    # permissions are injected into the generated project by
+    # scripts/fix-android-project.sh (the stock Tauri template ships neither a
+    # signingConfig nor CAMERA/RECORD_AUDIO, so getUserMedia would be denied).
     steps:
       - uses: actions/checkout@v4
 
@@ -211,7 +212,7 @@ jobs:
       - name: Init Android project (if not present)
         run: test -d src-tauri/gen/android || pnpm tauri android init
 
-      - name: Apply Android project fixes (upload-key signing)
+      - name: Apply Android project fixes (signing + media permissions)
         run: ./scripts/fix-android-project.sh
 
       - name: Verify Android fixes applied (--check)
