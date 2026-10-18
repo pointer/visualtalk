@@ -8,9 +8,8 @@ import { requestMediaPermissions } from "./Permissions";
 import { LicenseScreen } from "./LicenseScreen";
 
 // iOS and Android expose no folder picker to the webview, so relocating the
-// recordings folder is a desktop-only control. Mirrors the UA test already used
-// in lib/canvasVideoFallback.js.
-const IS_MOBILE = /iPhone|iPad|iPod|Android/.test(navigator.userAgent);
+// recordings folder is a desktop-only control.
+import { IS_MOBILE } from "../lib/platform";
 
 export function SettingsTab(props) {
   const { t, locale, changeLocale, availableLocales } = useI18n();

@@ -1,15 +1,22 @@
 import { Show } from "solid-js";
 import { useI18n } from "../i18n/I18nProvider";
+import { SUPPORTS_SCREEN_SHARE } from "../lib/platform";
 
 /**
  * Meeting action toolbar with 7 buttons:
  * Mute, Camera, Screen Share, Raise Hand, Chat, Record, Leave.
  * All state props are SolidJS signal accessors.
+ *
+ * Screen Share is desktop-only (see lib/platform.js), so mobile renders 6 cells.
  */
+// Tailwind's scanner only sees whole class names in the source, hence the
+// literal ternary instead of an interpolated `grid-cols-${count}`.
+const GRID_COLS = SUPPORTS_SCREEN_SHARE ? "grid-cols-7" : "grid-cols-6";
+
 export function MeetingToolbar(props) {
   const { t } = useI18n();
   return (
-    <div class="max-w-lg mx-auto grid grid-cols-7 gap-x-0.5 justify-items-center items-start">
+    <div class={`max-w-lg mx-auto grid ${GRID_COLS} gap-x-0.5 justify-items-center items-start`}>
 
       {/* 1. Mute */}
       <button
@@ -66,26 +73,28 @@ export function MeetingToolbar(props) {
         </span>
       </button>
 
-      {/* 3. Screen Share */}
-      <button
-        onClick={props.onToggleScreenShare}
-        class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 select-none"
-      >
-        <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
-          props.isSharingScreen()
-            ? "bg-green-600 text-white"
-            : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
-        }`}>
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        </div>
-        <span class={`text-[9px] sm:text-[10px] font-medium tracking-wide truncate w-full text-center ${
-          props.isSharingScreen() ? "text-green-400" : "text-gray-400"
-        }`}>
-          {props.isSharingScreen() ? t("toolbar.stopShare") : t("toolbar.share")}
-        </span>
-      </button>
+      {/* 3. Screen Share — desktop only, hidden on mobile webviews */}
+      <Show when={SUPPORTS_SCREEN_SHARE}>
+        <button
+          onClick={props.onToggleScreenShare}
+          class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 select-none"
+        >
+          <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
+            props.isSharingScreen()
+              ? "bg-green-600 text-white"
+              : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+          }`}>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <span class={`text-[9px] sm:text-[10px] font-medium tracking-wide truncate w-full text-center ${
+            props.isSharingScreen() ? "text-green-400" : "text-gray-400"
+          }`}>
+            {props.isSharingScreen() ? t("toolbar.stopShare") : t("toolbar.share")}
+          </span>
+        </button>
+      </Show>
 
       {/* 4. Raise Hand */}
       <button

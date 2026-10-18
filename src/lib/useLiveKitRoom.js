@@ -3,6 +3,7 @@ import { Room, RoomEvent, Track, supportsAudioOutputSelection } from "livekit-cl
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { describeMediaError } from "../components/Permissions";
+import { SUPPORTS_SCREEN_SHARE } from "./platform";
 
 /**
  * Composable for LiveKit Room lifecycle, participants, and meeting actions.
@@ -813,6 +814,10 @@ export function useLiveKitRoom() {
   // ---- In-meeting: Toggle screen share ----
   const toggleScreenShare = async () => {
     if (!lkRoom()) return;
+    // getDisplayMedia does not exist in mobile webviews, so this can only ever
+    // reject there — the toolbar hides the button (see lib/platform.js) and we
+    // no-op as a second line of defence for any future caller.
+    if (!SUPPORTS_SCREEN_SHARE) return;
     if (isSharingScreen()) {
       await lkRoom().localParticipant.setScreenShareEnabled(false);
     } else {
