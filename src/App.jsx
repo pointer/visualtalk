@@ -33,9 +33,6 @@ function App() {
   // UPDATED: Accepts the rich object from MainWindow
   const joinMeeting = async (data) => {
     try {
-
-      console.log("Sending to Rust:", data);
-
       // Pass the whole object to Rust
       await invoke("open_meeting_window", {
         room: data.room,

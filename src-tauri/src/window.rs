@@ -68,8 +68,6 @@ pub fn spawn_meeting_window(
         target_path.push_str(&format!("&identity={}", i));
     }
 
-    println!("Opening meeting window with URL: {}", target_path);
-
     // Fallback for force-quit / crashed meeting windows: the JS-side
     // `notify_meeting_ended` never runs in those cases, so without this hook
     // the main window would never learn the meeting ended.  `Destroyed` fires

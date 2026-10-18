@@ -50,7 +50,5 @@ pub fn set_background(
 
     *current = settings.clone();
 
-    println!("Background updated: {:?}", settings);
-
     Ok(settings)
 }

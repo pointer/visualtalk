@@ -69,8 +69,6 @@ pub async fn create_meeting_invite(
     meeting: MeetingInvite,
 ) -> Result<MeetingInvite, String> {
     // 1. Load Host Settings (API Keys & URL)
-    println!("Title: {}", meeting.title);
-
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
     let value = store
         .get(SETTINGS_KEY)
@@ -193,10 +191,6 @@ pub async fn get_host_meeting_data(
 ) -> Result<HostMeetingData, String> {
     // 1. Load Settings
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-    println!(
-        "🔍 Looking for settings in {} under key {}",
-        STORE_FILE, SETTINGS_KEY
-    );
     let value = store
         .get(SETTINGS_KEY)
         .ok_or("LiveKit settings not configured. Go to Settings first!")?;
