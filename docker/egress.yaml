@@ -1,0 +1,58 @@
+# LiveKit Egress configuration for local VisualTalk development.
+#
+# Mounted read-only at /etc/egress.yaml by docker/docker-compose.yml
+# (EGRESS_CONFIG_FILE=/etc/egress.yaml).
+#
+# Credentials are deliberately NOT here. Egress reads them from its environment:
+#   LIVEKIT_WS_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+# docker-compose.yml fills those from docker/.env, so nothing secret is
+# committed and the same key pair the app uses for tokens works for the
+# recording API calls VisualTalk makes in src-tauri/src/egress.rs.
+#
+# Reference: https://docs.livekit.io/home/self-hosting/egress/
+
+# Egress and livekit-server talk over redis (PSRPC job dispatch); this must be
+# the same redis instance the server was given via REDIS_HOST.
+redis:
+  address: redis:6379
+
+# Liveness endpoint inside the container (not published).
+health_port: 8080
+
+logging:
+  # debug + `pion_level: debug` here is what reveals ICE problems ("Found valid
+  # candidate pair" / "Start signal not received"); pair it with
+  # LIVEKIT_LOG_LEVEL=debug in docker/.env for the server side.
+  level: info
+
+# RoomComposite / web egress render the room in a headless Chrome. The sandbox
+# stays DISABLED: enabling it additionally requires the upstream seccomp profile
+# (chrome-sandboxing-seccomp-profile.json) on top of the SYS_ADMIN capability
+# that docker-compose.yml already grants.
+enable_chrome_sandbox: false
+
+# Port egress serves its own recording templates on (inside the container).
+template_port: 7980
+
+cpu_cost:
+  # Room composite costs 4 CPUs; a laptop can typically run only one at a time.
+  # Keeping the admission limit conservative makes extra requests wait for a
+  # free worker instead of thrashing the machine.
+  max_cpu_utilization: 0.8
+  room_composite_cpu_cost: 4
+  web_cpu_cost: 4
+  participant_cpu_cost: 2
+  track_composite_cpu_cost: 1
+  track_cpu_cost: 0.5
+
+# Room composite with a DEFAULT layout ("grid"/"speaker" - exactly what
+# src-tauri/src/egress.rs requests) is composited by GStreamer + the Go SDK
+# instead of headless Chrome:
+#   * much lighter (~200 MB vs ~1.5 GB reserved for Chrome, ~0.4 CPU observed);
+#   * no browser involved, so no dependence on Chromium's ICE behaviour;
+#   * starts faster (no page load / template fetch).
+# Set it to false to get the Chrome-rendered default template instead - that
+# also works here (verified) because livekit.yaml enables rtc.use_mdns, which
+# lets the server resolve the mDNS candidates Chrome obfuscates its host
+# candidates into. Custom template URLs and web egress always use Chrome.
+enable_template_sdk: true

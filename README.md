@@ -115,11 +115,15 @@ visualtalk/
 │   │   ├── window.rs         # Native WebviewWindow builder & manager
 │   │   ├── settings.rs       # UserProfile & UserSettings disk persistence
 │   │   ├── meeting.rs        # Scheduled meetings, history, & invitations
-│   │   └── token.rs          # Pure-Rust HMAC-SHA256 JWT generator
+│   │   ├── token.rs          # Pure-Rust HMAC-SHA256 JWT generator
+│   │   └── egress.rs         # LiveKit Egress: server-side recording & RTMP commands
 │   ├── Cargo.toml            # Rust dependencies & crate configuration
 │   ├── Entitlements.plist    # macOS sandbox & hardware access entitlements
 │   ├── Info.plist            # macOS privacy usage descriptions (Camera & Mic)
 │   └── tauri.conf.json       # Tauri application configuration
+├── docker/                   # Local LiveKit + Egress stack (see docker/README.md)
+├── scripts/
+│   └── livekit-local.sh      # up/down/restart/status/logs/creds/smoke wrapper
 ├── macOS Tauri Camera Permission Checklist.md  # Detailed macOS WebRTC TCC guide
 ├── package.json              # Node dependencies & Vite build scripts
 └── vite.config.js            # Vite + Solid plugin configuration
@@ -168,6 +172,21 @@ single source of truth for token minting — environment variables are not used.
 
 > The optional `.env` file (loaded via `dotenvy`) is only consulted for
 > non-credential development helpers such as `AI_API_KEY`.
+
+### Local Server for Development (Docker)
+A ready-made, loopback-only LiveKit server + Egress recorder lives in
+[`docker/`](./docker/README.md):
+
+```bash
+./scripts/livekit-local.sh up --recording     # server + redis + recorder
+./scripts/livekit-local.sh creds              # URL / API key / API secret to paste above
+./scripts/livekit-local.sh smoke --recording  # optional end-to-end proof
+```
+
+It generates its own API key pair (never committed), needs no cloud account, and
+writes recordings to `docker/recordings/<room>-<timestamp>.mp4` — the same path
+`src-tauri/src/egress.rs` asks egress for. LAN/host-networking modes, compositor
+choice and troubleshooting: [`docker/README.md`](./docker/README.md).
 
 ### Development
 ```bash

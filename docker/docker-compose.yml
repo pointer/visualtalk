@@ -1,0 +1,131 @@
+name: visualtalk-livekit
+
+# Local, self-hosted LiveKit for VisualTalk development.
+#
+#   docker compose up -d                      # signalling + media
+#   docker compose --profile recording up -d  # + egress (server-side recording)
+#   docker compose down
+#
+# Prefer the wrapper - it creates docker/.env with a fresh key pair on first run
+# and prints exactly what to paste into VisualTalk:
+#
+#   ./scripts/livekit-local.sh up [--recording]
+#
+# Every tunable lives in docker/.env (documented in docker/.env.example).
+# Linux / full UDP range: see docker/compose.host.yml.
+
+x-container-logging: &container-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  livekit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        LIVEKIT_VERSION: ${LIVEKIT_VERSION:-v1.13.10}
+    image: visualtalk/livekit-server:${LIVEKIT_VERSION:-v1.13.10}-local
+    container_name: visualtalk-livekit
+    restart: unless-stopped
+    environment:
+      # Parsed as YAML "key: secret" - the space after the colon is required.
+      # Sourced from docker/.env so no credential is committed to the repo, and
+      # so the same pair can be pasted into VisualTalk's Settings -> LiveKit.
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?missing - create docker/.env from docker/.env.example, or run scripts/livekit-local.sh up}: ${LIVEKIT_API_SECRET:?missing - create docker/.env from docker/.env.example, or run scripts/livekit-local.sh up}"
+      # Advertised as a WebRTC ICE candidate, so it must be reachable from the
+      # client: 127.0.0.1 for the app on this machine, your LAN IP otherwise.
+      NODE_IP: ${LIVEKIT_NODE_IP:-127.0.0.1}
+      # Single muxed UDP port: Docker bridge networking cannot publish the
+      # 50000-60000 range LiveKit uses by default.
+      UDP_PORT: ${LIVEKIT_UDP_PORT:-7882}
+      # Redis is always part of this stack: the server uses it for room state and
+      # egress needs the same instance to receive recording jobs.
+      REDIS_HOST: redis:6379
+      LIVEKIT_LOGGING_LEVEL: ${LIVEKIT_LOG_LEVEL:-info}
+    ports:
+      # Bound to 127.0.0.1 by default: the server is for this machine only.
+      # Set LIVEKIT_BIND_ADDR=0.0.0.0 (and a real LIVEKIT_NODE_IP) to let
+      # phones/tablets on the same Wi-Fi join.
+      - "${LIVEKIT_BIND_ADDR:-127.0.0.1}:${LIVEKIT_PORT:-7880}:7880"
+      - "${LIVEKIT_BIND_ADDR:-127.0.0.1}:${LIVEKIT_RTC_TCP_PORT:-7881}:7881"
+      - "${LIVEKIT_BIND_ADDR:-127.0.0.1}:${LIVEKIT_UDP_PORT:-7882}:7882/udp"
+    volumes:
+      # Mounted so config edits need no rebuild; the image also bakes a copy.
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [livekit]
+    logging: *container-logging
+
+  redis:
+    image: redis:${REDIS_VERSION:-7-alpine}
+    container_name: visualtalk-livekit-redis
+    restart: unless-stopped
+    # Ephemeral on purpose: local room state must not survive a rebuild.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    # Not published - only containers on the livekit network can reach it.
+    expose: ["6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks: [livekit]
+    logging: *container-logging
+
+  egress:
+    # Pinned default, same rationale as LIVEKIT_VERSION above: a floating tag
+    # (v1.15) would silently swap the recording pipeline under you.
+    image: livekit/egress:${EGRESS_VERSION:-v1.15.0}
+    profiles: [recording]
+    container_name: visualtalk-egress
+    restart: unless-stopped
+    # Only needed for Chrome-based recordings (web egress, or room composite with
+    # a custom template). Required since egress v1.7.6: Chrome switches kernel
+    # namespaces and without SYS_ADMIN it fails with "chrome failed to start".
+    # VisualTalk's room composite uses the GStreamer compositor instead (see
+    # enable_template_sdk in egress.yaml) and needs no Chrome privileges.
+    cap_add: [SYS_ADMIN]
+    # Chrome renderers crash on Docker's default 64 MB /dev/shm.
+    shm_size: 1gb
+    networks: [livekit]
+    environment:
+      EGRESS_CONFIG_FILE: /etc/egress.yaml
+      # Container DNS name - deliberately NOT NODE_IP: egress is just another
+      # client of the server, and with NODE_IP=127.0.0.1 that address would be
+      # egress itself. Port 7880 is what livekit.yaml makes the server listen on
+      # inside the container; LIVEKIT_PORT only changes the host-side mapping.
+      # compose.host.yml maps the same name to 127.0.0.1 via extra_hosts.
+      #
+      # Media still flows although the server advertises NODE_IP as its only ICE
+      # candidate (livekit 1.13 has no nat1to1 list): the server sends its own
+      # checks to egress's bridge-network candidate and the pair validates
+      # (verified: "local udp4 host 172.18.0.4 <-> udp4 prflx 172.18.0.3:7882").
+      # If a recording ever stalls at "Start signal not received", set
+      # LIVEKIT_NODE_IP to this machine's LAN IP (see .env.example) so the
+      # advertised candidate is genuinely reachable.
+      LIVEKIT_WS_URL: ws://livekit:7880
+      LIVEKIT_API_KEY: "${LIVEKIT_API_KEY:?missing - create docker/.env from docker/.env.example, or run scripts/livekit-local.sh up}"
+      LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET:?missing - create docker/.env from docker/.env.example, or run scripts/livekit-local.sh up}"
+    volumes:
+      - ./egress.yaml:/etc/egress.yaml:ro
+      # VisualTalk asks egress for /recordings/<room>-<timestamp>.mp4, so
+      # finished recordings appear in LIVEKIT_RECORDINGS_DIR on the host.
+      # Note: the container user is uid 1001 - on Linux that directory must be
+      # writable by it (chown 1001 or chmod g+w).
+      - ${LIVEKIT_RECORDINGS_DIR:-./recordings}:/recordings
+    depends_on:
+      livekit:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging: *container-logging
+
+networks:
+  livekit:
+    name: visualtalk-livekit

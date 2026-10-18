@@ -1,0 +1,55 @@
+# LiveKit server configuration for LOCAL VisualTalk development.
+#
+# Consumed by `livekit-server --config /etc/livekit.yaml` inside the container
+# built by docker/Dockerfile (bind-mounted by docker/docker-compose.yml).
+#
+# Deliberately NOT in this file (all supplied at runtime by docker-compose, from
+# docker/.env, so switching between loopback / LAN / host modes is a .env edit):
+#   * keys      -> LIVEKIT_KEYS   ("key: secret"); nothing credential-like is
+#                  ever committed to the repo, and the server refuses to start
+#                  without it.
+#   * node_ip   -> NODE_IP        IP advertised to clients as an ICE candidate.
+#   * udp_port  -> UDP_PORT       single muxed port (bridge) or range (host net).
+#   * redis     -> LIVEKIT_REDIS_HOST  address of the redis service.
+#   * log level -> LIVEKIT_LOGGING_LEVEL
+#
+# Why node_ip/udp_port are not written here: a `node_ip` present in the config
+# file takes precedence over the --node-ip flag and the NODE_IP environment
+# variable in livekit-server 1.13.x (verified against v1.13.5), which would make
+# the .env knob silently ineffective. Leaving them out keeps one source of truth.
+# If neither is set, livekit-server auto-detects a local interface - on a laptop
+# with a VPN/bridge adapter that is frequently the WRONG one (e.g. 192.168.252.1
+# instead of the LAN address), so always set NODE_IP explicitly.
+#
+# Reference: https://docs.livekit.io/home/self-hosting/configuration/
+
+port: 7880
+
+logging:
+  level: info
+  pion_level: error
+  json: false
+
+rtc:
+  # TCP fallback for ICE, used when the UDP path fails (blocked, or not
+  # forwarded by the container runtime). Must stay published.
+  tcp_port: 7881
+  # Resolve mDNS ICE candidates (`<uuid>.local`). Browsers obfuscate their host
+  # candidates this way; without it the server drops them and a browser that
+  # cannot reach the advertised NODE_IP has no working candidate pair left.
+  # Needed for egress's headless Chrome (web egress / custom templates).
+  use_mdns: true
+  # Never call an external IP service: this server is for local development.
+  use_external_ip: false
+  # No public STUN servers -> no outbound network dependency, host candidates only.
+  stun_servers: []
+
+room:
+  # VisualTalk creates rooms implicitly on join; keep that frictionless locally.
+  auto_create: true
+  empty_timeout: 300
+  departure_timeout: 20
+  max_participants: 0
+
+# Webhooks are unused locally; add them here (or via LIVEKIT_WEBHOOK_URLS) when
+# you want egress/room events posted to a local endpoint.

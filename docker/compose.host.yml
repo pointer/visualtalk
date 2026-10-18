@@ -1,0 +1,60 @@
+# Optional override: host networking instead of Docker's bridge NAT.
+#
+#   cd docker
+#   docker compose -f docker-compose.yml -f compose.host.yml up -d
+#   # with recording:
+#   docker compose -f docker-compose.yml -f compose.host.yml \
+#     --profile recording up -d
+#
+# Use it (mostly on Linux, or Docker Desktop >= 4.34 with host networking
+# enabled under Settings -> Resources -> Network) when you want:
+#   * the full UDP port range instead of a single muxed port;
+#   * no NAT layer between clients and the media server;
+#   * to rule out UDP forwarding through the bridge when media stalls.
+#
+# Before starting, set in docker/.env:
+#   LIVEKIT_NODE_IP=<this machine's LAN IP>   # required - see the error below
+#   LIVEKIT_UDP_PORT=50000-60000              # optional, this is the default here
+#
+# Nothing is "published" in host mode: the processes bind the host's own
+# interfaces, so open 7880/tcp, 7881/tcp and the UDP range in your firewall, and
+# remember the server is then reachable from your whole LAN.
+#
+# Requires Docker Compose >= 2.24.4 (for the !reset tag below).
+
+services:
+  livekit:
+    network_mode: host
+    networks: !reset []
+    environment:
+      NODE_IP: "${LIVEKIT_NODE_IP:?host networking advertises this exact IP to clients as an ICE candidate - set LIVEKIT_NODE_IP in docker/.env to this machine's LAN IP; 127.0.0.1 only works for clients on this same machine}"
+      UDP_PORT: ${LIVEKIT_UDP_PORT:-50000-60000}
+      REDIS_HOST: 127.0.0.1:6379
+    ports: !reset []
+
+  redis:
+    network_mode: host
+    networks: !reset []
+    # Loopback only: with host networking redis would otherwise listen on every
+    # interface of your machine.
+    command:
+      [
+        "redis-server",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+        "--bind",
+        "127.0.0.1",
+        "--port",
+        "6379",
+      ]
+
+  egress:
+    network_mode: host
+    networks: !reset []
+    # docker/egress.yaml refers to the server and to redis by their compose
+    # service names; host networking has no DNS, so map both to loopback.
+    extra_hosts:
+      - "livekit:127.0.0.1"
+      - "redis:127.0.0.1"
