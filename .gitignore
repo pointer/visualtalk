@@ -84,7 +84,16 @@ ExportOptions.plist
 !docs/**/*.md
 !src-tauri/Cargo.lock
 !pnpm-lock.yaml
+# Local LiveKit stack: the template must be tracked, the real .env must not.
+!docker/.env.example
 
 # ── Python tooling (scripts/generate-notices.py) ────────────────────────────────
 __pycache__/
 *.pyc
+
+# Review-build demo credentials: written by scripts/make-review-build.sh,
+# sourced by the iOS "Build Rust Code" phase, removed when the script exits.
+.review-creds.sh
+
+# Local LiveKit egress output (docker/.env: LIVEKIT_RECORDINGS_DIR).
+docker/recordings/

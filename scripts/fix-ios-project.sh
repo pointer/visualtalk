@@ -235,16 +235,22 @@ for n, line in enumerate(lines):
         break
 
 # --- fix 4: anchor pnpm to the repo root in the Build Rust Code phase -------
-ANCHOR = 'cd "$SRCROOT/../../.." && pnpm tauri ios xcode-script'
-pat = re.compile(r'pnpm\s+(?:--dir\s+"[^"]*"\s+)?tauri\s+ios\s+xcode-script')
+ANCHOR = ('cd "$SRCROOT/../../.." && '
+          'if [ -f .review-creds.sh ]; then . ./.review-creds.sh; fi && '
+          'pnpm tauri ios xcode-script')
+pat = re.compile(r'(?:cd "\$SRCROOT/\.\./\.\./\.\." && )?'
+                 r'(?:if \[ -f \.review-creds\.sh \]; then '
+                 r'\. \./\.review-creds\.sh; fi && )?'
+                 r'pnpm\s+(?:--dir\s+"[^"]*"\s+)?tauri\s+ios\s+xcode-script')
 found = False
 for n, line in enumerate(lines):
     if "tauri ios xcode-script" in line:
         found = True
         if ANCHOR not in line:
-            changes.append('Build Rust Code: anchor to repo root via '
-                           'cd "$SRCROOT/../../.." (pnpm --dir is broken on '
-                           'pnpm 9 and 12)')
+            changes.append('Build Rust Code: anchor to repo root (pnpm --dir '
+                           'is broken on pnpm 9 and 12) and source '
+                           '.review-creds.sh so review-build demo credentials '
+                           'reach cargo despite Xcode phase env sanitizing')
             lines[n] = pat.sub(ANCHOR, line, count=1)
         break
 if not found:

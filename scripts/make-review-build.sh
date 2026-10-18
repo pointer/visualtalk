@@ -93,6 +93,23 @@ for var in VISUALTALK_DEMO_LIVEKIT_URL VISUALTALK_DEMO_API_KEY VISUALTALK_DEMO_A
 done
 export VISUALTALK_DEMO_LIVEKIT_URL VISUALTALK_DEMO_API_KEY VISUALTALK_DEMO_API_SECRET
 
+# Xcode build-phase scripts do not reliably inherit this shell's environment —
+# the credentials never reached cargo through the pnpm/xcodebuild chain, which
+# silently produced review IPAs with no demo project in them. The Build Rust
+# Code phase therefore sources them from a file instead (see fix 4 in
+# scripts/fix-ios-project.sh). The file is mode-600, git-ignored, and removed
+# when this script exits, so the secret still never touches the repository.
+CREDS_FILE="$REPO_ROOT/.review-creds.sh"
+umask 077
+{
+  printf 'export VISUALTALK_DEMO_LIVEKIT_URL=%q\n' "$VISUALTALK_DEMO_LIVEKIT_URL"
+  printf 'export VISUALTALK_DEMO_API_KEY=%q\n' "$VISUALTALK_DEMO_API_KEY"
+  printf 'export VISUALTALK_DEMO_API_SECRET=%q\n' "$VISUALTALK_DEMO_API_SECRET"
+} > "$CREDS_FILE"
+chmod 600 "$CREDS_FILE"
+trap 'rm -f "$CREDS_FILE"' EXIT
+echo "Creds file   : $CREDS_FILE (removed on exit)"
+
 # Show the key but never the secret: enough to confirm which project this build
 # points at, safe to leave in a terminal scrollback or a CI log.
 echo "Demo project : ${VISUALTALK_DEMO_LIVEKIT_URL}"
@@ -117,18 +134,20 @@ pnpm tauri ios build --export-method app-store-connect \
 # `option_env!` is compile-time, so a stale cargo cache could otherwise yield an
 # IPA with no demo project in it — a failure only the reviewer would ever see.
 # build.rs declares rerun-if-env-changed for these variables to prevent that;
-# this check is the belt to those braces.
-APP_BIN="$(find src-tauri/gen/apple/build -type f -name 'visualtalk' -perm +11 2>/dev/null | head -1 || true)"
-if [ -n "$APP_BIN" ]; then
-  if strings "$APP_BIN" | grep -qF "$VISUALTALK_DEMO_API_KEY"; then
-    echo "Verified: demo credentials are present in ${APP_BIN}."
+# this check is the belt to those braces. It inspects the exported IPA itself:
+# intermediate copies under build/ (Payload/, *.xcarchive/) routinely lag the
+# export and produced false WARNINGs while the shipped artifact was fine.
+IPA_PATH="$(find src-tauri/gen/apple/build -type f -name '*.ipa' -exec stat -f '%m %N' {} \; 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
+if [ -n "$IPA_PATH" ]; then
+  if unzip -p "$IPA_PATH" Payload/visualtalk.app/visualtalk 2>/dev/null | strings | grep -qF "$VISUALTALK_DEMO_API_KEY"; then
+    echo "Verified: demo credentials are present in ${IPA_PATH}."
   else
-    echo "WARNING: demo API key not found in ${APP_BIN}." >&2
+    echo "WARNING: demo API key not found in ${IPA_PATH}." >&2
     echo "         The build may have reused a cached object. Retry with:" >&2
     echo "           cargo clean -p visualtalk && $0" >&2
   fi
 else
-  echo "note: could not locate the built binary to verify — check the IPA manually."
+  echo "note: could not locate the exported IPA to verify — check it manually." >&2
 fi
 
 cat <<'EOF'
