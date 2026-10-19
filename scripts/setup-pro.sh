@@ -16,6 +16,14 @@ PRO_SRC="$REPO_ROOT/src-tauri/e2ee-pro/e2ee.rs"
 BACKUP="$REPO_ROOT/src-tauri/src/e2ee.rs.community-backup"
 
 check() {
+  if [ ! -f "$REPO_ROOT/src-tauri/tauri.pro.conf.json" ]; then
+    echo "❌ Pro identity overlay missing: src-tauri/tauri.pro.conf.json"
+    exit 1
+  fi
+  if [ ! -f "$REPO_ROOT/src-tauri/Info-pro.plist" ]; then
+    echo "❌ Pro Info.plist variant missing: src-tauri/Info-pro.plist"
+    exit 1
+  fi
   if [ ! -f "$PRO_SRC" ]; then
     echo "❌ Pro E2EE source not found at: $PRO_SRC"
     echo "   Ensure the private e2ee-pro submodule is initialized:"
@@ -45,6 +53,7 @@ setup() {
   # Replace stub with real implementation
   cp "$PRO_SRC" "$STUB"
   echo "🔐 Installed Pro E2EE implementation → src/e2ee.rs"
+  echo "🏷️  Pro identity overlay: src-tauri/tauri.pro.conf.json (merged by the *:pro scripts)"
   echo ""
   echo "You can now build with:"
   echo "  pnpm desktop:build:pro"

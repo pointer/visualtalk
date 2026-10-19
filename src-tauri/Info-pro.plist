@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSCameraUsageDescription</key>
+    <string>VisualTalk Pro needs access to your camera for video calls.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>VisualTalk Pro needs access to your microphone for audio communication.</string>
+
+    <!-- PRO VARIANT of Info.plist, pointed at by src-tauri/tauri.pro.conf.json
+         (bundle.macOS.infoPlist / bundle.iOS.infoPlist); the community edition
+         keeps using Info.plist. Keep the two files key-for-key in sync except
+         for the intentional differences: CFBundleDisplayName and the export
+         compliance declaration below. -->
+
+    <key>CFBundleDisplayName</key>
+    <string>VisualTalk Pro</string>
+
+    <!-- iOS only; inert on macOS. Keeps the meeting audio session alive when
+         the app is backgrounded or the screen locks. -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+    </array>
+
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>VisualTalk Pro connects to an AI service on your local network to power live captions and summaries.</string>
+
+    <!-- EXPORT COMPLIANCE — PRO DECLARES YES.
+         On top of the community edition's transport crypto (TLS, DTLS-SRTP),
+         Pro adds AES-256-GCM end-to-end encryption of chat and file transfers
+         (ECDH P-256 key agreement, HKDF-SHA-256 KDF): confidentiality of user
+         content, not merely transport protection. Under the conservative
+         reading that is non-exempt, so Pro declares YES and answers the App
+         Store Connect export-compliance questionnaire, backed by the compliance
+         packet (crypto description + BIS mass-market self-classification draft)
+         tracked as Phase 1 A3 in .clinerules/pro-ship-schedule.md.
+         The community edition's Info.plist keeps <false/> with its own
+         reasoning; do not "sync" this key between the two files. -->
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <true/>
+
+    <!-- iOS only; inert on macOS. Exposes Documents in the Files app. -->
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
+</dict>
+</plist>

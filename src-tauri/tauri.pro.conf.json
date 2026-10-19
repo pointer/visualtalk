@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "VisualTalk Pro",
+  "identifier": "com.katebg.visualtalk.pro",
+  "app": {
+    "windows": [
+      {
+        "title": "VisualTalk Pro",
+        "width": 800,
+        "height": 600,
+        "center": true
+      }
+    ]
+  },
+  "bundle": {
+    "macOS": {
+      "infoPlist": "./Info-pro.plist"
+    },
+    "iOS": {
+      "infoPlist": "./Info-pro.plist"
+    }
+  }
+}
