@@ -81,7 +81,42 @@ Notes for the classification narrative:
   Sequencing rule: any required French/EU filing must be complete **before**
   that first-availability date; the release is gated on it, not the reverse.
 
-## 5. App Store Connect — encryption answers (Pro record)
+## 5. Mainland China and restricted territories
+
+**Mainland China — EXCLUDE from initial availability (recommended; owner to
+confirm).** A China launch is a separate legal project, not a checkbox:
+
+- **PRC Cryptography Law** (effective 2020-01-01) and the revised
+  **Commercial Cryptography Regulations** (effective 2023-07-01): commercial
+  cryptography products are subject to OSCCA certification/type-approval
+  regimes, and import/export of commercial cryptography items is
+  list-controlled. Applicability to a foreign mass-market E2EE consumer app
+  is untested, and E2EE messaging services (WhatsApp, Signal) are
+  effectively blocked in China.
+- **Apple's mainland China storefront requires an ICP filing** (MIIT) for
+  every app since Oct 2023 — which in turn requires a Chinese legal entity
+  and domestic hosting. Neither exists for a bring-your-own-server app like
+  VisualTalk, so the China storefront is not reachable on this timeline.
+- **Google Play is unavailable in mainland China**; Android distribution
+  would run through local stores with their own filing/certification
+  requirements.
+- **PIPL** (data protection) and data-localization duties would attach to
+  any China-facing operation.
+
+Decision path: deselect mainland China in App Store Connect territory
+availability at submission. Revisit only with dedicated PRC counsel and a
+business case (local entity, ICP, OSCCA certification, PIPL program).
+
+**Russia / Belarus:** since 2022 BIS has restricted License Exception ENC
+availability for many encryption items to Russia/Belarus; platform-mediated
+consumer distribution sits in a gray zone. **TBD (counsel):** confirm
+whether to deselect these territories at initial release — recommended yes.
+
+**Embargoed destinations** (Cuba, Iran, North Korea, Syria, and the covered
+Ukrainian regions): blocked by the store platforms themselves; no action
+beyond never circumventing platform territory controls.
+
+## 6. App Store Connect — encryption answers (Pro record)
 
 Current build declaration (set in `src-tauri/Info-pro.plist`):
 `ITSAppUsesNonExemptEncryption = YES` — the **conservative** choice while
@@ -106,13 +141,18 @@ Community Edition record: keep `ITSAppUsesNonExemptEncryption = NO` — the CE
 binary contains no custom crypto; transport security comes from platform
 TLS/DTLS (Apple exemption: limited to OS encryption / exempt usage).
 
-## 6. Owner fact sheet — inputs still required (TBD)
+## 7. Owner fact sheet — inputs still required (TBD)
 
 - [x] Planned first-availability date (owner, 2026-10-19): worldwide
       simultaneous release, week after App Review approval — as soon as
-      possible (submission targeted in the Dec 2026 Phase 3 window). Hard
+      possible (submission targeted in the Dec 2026 Phase 3 window),
+      **subject to the territory exclusions in §5** (mainland China
+      recommended excluded; Russia/Belarus TBD via counsel). Hard
       gate: BIS self-classification and French/EU filing (or confirmed
       exemption) complete before first availability in ANY territory.
+- [ ] Territory exclusions confirmed at submission: deselect mainland
+      China in ASC availability (§5 recommendation — owner to confirm);
+      Russia/Belarus decision from counsel.
 - [x] Confirmation that RustCrypto crates are the only cryptographic
       components in the Pro binary (spot-checked via `cargo tree`, see §2;
       `ring` present only as transitive TLS).
@@ -126,7 +166,7 @@ TLS/DTLS (Apple exemption: limited to OS encryption / exempt usage).
 - [ ] Decision point: keep `YES` at submission (slower review, safer) vs.
       flip to `NO` with exemption basis (faster, needs paperwork first).
 
-## 7. References
+## 8. References
 
 - 15 CFR §740.17 (License Exception ENC, mass market), §742.15, Supp. 1 to
   Part 740.

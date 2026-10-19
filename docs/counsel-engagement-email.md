@@ -39,6 +39,10 @@ formalités applicables — c'est l'objet de cette consultation.
    note d'exemption motivée.
 4. **Recommandation App Store Connect** : réponse à la déclaration de
    chiffrement (`ITSAppUsesNonExemptEncryption` YES/NO), avec justification.
+5. **Exclusions territoriales** : confirmation du périmètre de mise à
+   disposition initiale — Chine continentale exclue (régime OSCCA/loi sur
+   la cryptographie, exigence de dépôt ICP depuis 2023) ; décision pour
+   Russie/Biélorussie au vu des restrictions ENC depuis 2022.
 
 **Deux questions préalables** (pour cadrer rapidement) :
 - Avez-vous déjà déposé des rapports de self-classification BIS
@@ -93,6 +97,10 @@ is the purpose of this consultation.
    reasoned exemption memo.
 4. **App Store Connect recommendation**: the encryption declaration answer
    (`ITSAppUsesNonExemptEncryption` YES/NO), with rationale.
+5. **Territory exclusions**: confirmation of the initial-release territory
+   list — mainland China excluded (OSCCA / PRC Cryptography Law regime,
+   ICP filing requirement since 2023); Russia/Belarus decision in light of
+   the post-2022 ENC restrictions.
 
 **Two screening questions:**
 - Have you filed BIS mass-market self-classification reports (§740.17) for
