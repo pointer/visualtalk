@@ -123,33 +123,29 @@ beyond never circumventing platform territory controls.
 ## 6. App Store Connect — encryption answers (Pro record)
 
 Current build declaration (set in `src-tauri/Info-pro.plist`):
-`ITSAppUsesNonExemptEncryption = NO` — **owner decision 2026-10-19**,
-superseding the earlier conservative YES. Rationale: Pro's E2EE uses only
-standard published algorithms (ECDH P-256, HKDF-SHA-256, AES-256-GCM, §2)
-from public open-source RustCrypto crates — no proprietary or non-standard
-crypto — qualifying for mass-market/exempt treatment under the Note to
-Category 5 Part 2 (5D992-type). Owner's assessment: a YES declaration
-creates prohibitive approval friction across stores and administrations for
-an indie release.
+`ITSAppUsesNonExemptEncryption = YES` — the **conservative** posture
+(owner decision 2026-10-19, reverting the same-day flip to NO). Rationale:
+the key asserts a legal position. YES is always truthful and never blocks
+approval — it only adds questionnaire friction. NO is an exemption *claim*
+that must be backed by the classification opinion and the BIS
+self-classification report, neither of which exists yet.
 
-ASC questionnaire (App Encryption Declaration), answers consistent with NO:
+ASC questionnaire (App Encryption Declaration) while YES:
 1. "Does your app use encryption?" → **Yes.**
-2. "Is it limited to exempt uses?" → **Yes** — mass-market exemption per the
-   Note to Category 5 Part 2 / 5D992-type treatment (standard published
-   algorithms only, per §2).
+2. "Is it limited to exempt uses?" → **No** while YES is the declared
+   posture.
 3. "Does it use proprietary or non-standard encryption?" → **No** (standard
    algorithms only, per §2).
 
-Standing obligations — the NO declaration asserts an exemption basis, so
-keep it documented:
-- The BIS mass-market self-classification report remains **recommended**
-  (one-time, free): it is the written record backing the NO answer.
-- Counsel's classification review (§7 scope item) should **confirm the NO
-  posture retrospectively**. If counsel disagrees, revert
-  `Info-pro.plist` to YES before submission — do not ship NO against a
-  negative opinion.
-- French/EU filing gate (§4) and territory exclusions (§5) are unchanged
-  and independent of this key.
+Path to flipping to **NO** before submission (fastest review) — requires
+**both** artifacts:
+1. Counsel confirms mass-market/exempt eligibility (Note to Category 5
+   Part 2 / 5D992-type — the expected outcome, since the app uses only
+   standard published algorithms per §2).
+2. The one-time BIS self-classification report is filed.
+Then set `Info-pro.plist` to NO, answer Q2 "Yes — exempt mass-market",
+and rebuild. **Do not flip without those two artifacts.** If submission
+arrives before counsel sign-off, submit with YES — it is shippable as-is.
 
 Community Edition record: keep `ITSAppUsesNonExemptEncryption = NO` — the CE
 binary contains no custom crypto; transport security comes from platform
@@ -177,11 +173,10 @@ TLS/DTLS (Apple exemption: limited to OS encryption / exempt usage).
       screening questions, end-Nov deadline and a sending checklist:
       `docs/counsel-engagement-email.md`. First contacts: CCI /
       Team France Export advisory desk, then 2–3 export-control firms.
-- [x] Decision point keep `YES` vs flip to `NO`: **decided — NO** (owner,
-      2026-10-19; basis and ASC answers in §6). BIS self-classification
-      report + counsel confirmation remain as the documentation backing
-      the exemption claim; revert to YES before submission only if
-      counsel gives a negative opinion.
+- [x] Decision point keep `YES` vs flip to `NO`: **YES for now** (owner,
+      2026-10-19, reverting the same-day NO). Flip to NO before submission
+      only with both artifacts in hand — counsel confirmation + filed BIS
+      self-classification report (path in §6); otherwise submit with YES.
 
 ## 8. References
 

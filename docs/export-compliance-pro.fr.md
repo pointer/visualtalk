@@ -145,35 +145,31 @@ territoriaux des plateformes, sans jamais les contourner.
 ## 6. App Store Connect — réponses chiffrement (dossier Pro)
 
 Déclaration du build actuel (définie dans `src-tauri/Info-pro.plist`) :
-`ITSAppUsesNonExemptEncryption = NO` — **décision du dirigeant du
-2026-10-19**, remplaçant le YES conservatoire initial. Justification :
-l'E2EE de Pro n'utilise que des algorithmes standard publiés (ECDH P-256,
-HKDF-SHA-256, AES-256-GCM, §2) issus de crates open source publiques
-RustCrypto — aucune cryptographie propriétaire ou non standard — ce qui
-qualifie pour le traitement grand public / exempt au titre de la Note de la
-Catégorie 5 Partie 2 (type 5D992). Évaluation du dirigeant : une déclaration
-YES créerait des frictions d'approbation rédhibitoires auprès des stores et
-des administrations pour une sortie indépendante.
+`ITSAppUsesNonExemptEncryption = YES` — posture **conservatoire** (décision
+du dirigeant du 2026-10-19, revenant sur le passage à NO du même jour).
+Justification : cette clé affirme une position juridique. YES est toujours
+véridique et ne bloque jamais l'approbation — il n'ajoute que des questions
+de questionnaire. NO est une *revendication* d'exemption qui doit s'appuyer
+sur l'avis de classification et le rapport d'auto-classification BIS —
+aucun des deux n'existe encore.
 
-Questionnaire ASC (App Encryption Declaration), réponses cohérentes avec NO :
+Questionnaire ASC (App Encryption Declaration) tant que YES :
 1. « Votre application utilise-t-elle du chiffrement ? » → **Oui.**
-2. « Est-il limité à des usages exemptés ? » → **Oui** — exemption grand
-   public au titre de la Note de la Catégorie 5 Partie 2 / traitement de
-   type 5D992 (algorithmes standard publiés uniquement, cf. §2).
+2. « Est-il limité à des usages exemptés ? » → **Non** tant que YES est la
+   posture déclarée.
 3. « Utilise-t-elle du chiffrement propriétaire ou non standard ? » →
    **Non** (algorithmes standard uniquement, cf. §2).
 
-Obligations permanentes — la déclaration NO affirme une base d'exemption,
-il faut donc la documenter :
-- Le rapport d'auto-classification grand public BIS reste **recommandé**
-  (unique, gratuit) : c'est la trace écrite qui étaye la réponse NO.
-- La revue de classification du conseil (point de périmètre §7 de l'e-mail
-  d'engagement) devra **confirmer rétrospectivement la position NO**. En cas
-  de désaccord du conseil, remettre `Info-pro.plist` à YES avant soumission
-  — ne jamais livrer NO contre un avis défavorable.
-- La condition suspensive des formalités françaises/UE (§4) et les
-  exclusions territoriales (§5) restent inchangées et indépendantes de
-  cette clé.
+Chemin pour basculer à **NO** avant soumission (review la plus rapide) —
+les **deux** éléments sont requis :
+1. Le conseil confirme l'éligibilité grand public/exempte (Note de la
+   Catégorie 5 Partie 2 / type 5D992 — issue attendue, l'application
+   n'utilisant que des algorithmes standard publiés, cf. §2).
+2. Le rapport d'auto-classification BIS (unique) est déposé.
+Alors : mettre `Info-pro.plist` à NO, répondre « Oui — exempt grand
+public » à la Q2, et recompiler. **Ne pas basculer sans ces deux
+éléments.** Si la soumission intervient avant l'avis du conseil,
+soumettre avec YES — état parfaitement livrable en l'état.
 
 Dossier Community Edition : conserver `ITSAppUsesNonExemptEncryption = NO`
 — le binaire CE ne contient aucune cryptographie personnalisée ; la sécurité
@@ -208,11 +204,11 @@ limité au chiffrement de l'OS / usage exempt).
       `docs/counsel-engagement-email.md`. Premiers contacts : CCI /
       guichet Team France Export, puis 2–3 cabinets spécialisés en
       contrôle des exportations.
-- [x] Point de décision YES vs NO : **tranché — NO** (dirigeant,
-      2026-10-19 ; justification et réponses ASC au §6). Le rapport
-      d'auto-classification BIS + la confirmation du conseil demeurent la
-      documentation étayant l'exemption ; revenir à YES avant soumission
-      uniquement en cas d'avis défavorable du conseil.
+- [x] Point de décision YES vs NO : **YES pour l'instant** (dirigeant,
+      2026-10-19, retour sur le NO du même jour). Bascule vers NO avant
+      soumission uniquement avec les deux éléments en main —
+      confirmation du conseil + rapport d'auto-classification BIS déposé
+      (chemin au §6) ; sinon soumettre avec YES.
 
 ## 8. Références
 
