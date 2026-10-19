@@ -1,5 +1,9 @@
 # VisualTalk Pro — Export-Compliance Packet (DRAFT)
 
+> **Version française :** `docs/export-compliance-pro.fr.md` (translation
+> for French counsel / ANSSI-DG Trésor formalities; this English original
+> governs in case of divergence — keep both in sync when editing).
+
 > **Status: internal draft for the Pro Edition (E2EE) record.** Not legal
 > advice. Items marked **TBD** await the owner's fact sheet; the BIS
 > self-classification and any French/EU dual-use filing must be reviewed by

@@ -123,7 +123,8 @@ Kind regards,
 
 ## Sending checklist
 
-- [ ] Attach `docs/export-compliance-pro.md` (PDF or MD).
+- [ ] Attach `docs/export-compliance-pro.md` (PDF or MD) — or its French
+      translation `docs/export-compliance-pro.fr.md` for French firms.
 - [ ] Fill bracketed identity fields; consider adding a phone number.
 - [ ] First contacts: CCI Seine-Saint-Denis / Team France Export advisory
       desk (free orientation), then 2–3 firms from the Paris Bar directory
