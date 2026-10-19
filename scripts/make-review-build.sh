@@ -28,6 +28,12 @@
 #   ./scripts/make-review-build.sh                 # App Store Connect IPA
 #   ./scripts/make-review-build.sh --check         # resolve creds, build nothing
 #   ./scripts/make-review-build.sh --features e2ee
+#   ./scripts/make-review-build.sh --pro           # Pro Edition review IPA
+#
+# --pro mirrors `pnpm ios:build:store:pro`: it installs and verifies the Pro
+# E2EE implementation (setup-pro.sh), merges src-tauri/tauri.pro.conf.json
+# (bundle id com.katebg.visualtalk.pro), sets VITE_ENABLE_E2EE=true, and adds
+# `--features e2ee` unless you passed it yourself.
 #
 # Credentials come from the environment if set, otherwise from the LiveKit
 # config already saved in Settings → LiveKit:
@@ -38,19 +44,45 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-# The config dir follows the bundle identifier, so derive it rather than
-# hardcoding a path that silently breaks if the identifier ever changes.
-IDENTIFIER="$(python3 -c 'import json;print(json.load(open("src-tauri/tauri.conf.json"))["identifier"])')"
-LIVEKIT_JSON="${HOME}/Library/Application Support/${IDENTIFIER}/livekit.json"
-
 CHECK_ONLY=0
+PRO=0
 PASSTHROUGH=()
 for arg in "$@"; do
   case "$arg" in
     --check) CHECK_ONLY=1 ;;
+    --pro) PRO=1 ;;
     *) PASSTHROUGH+=("$arg") ;;
   esac
 done
+
+# The config dir follows the bundle identifier, so derive it rather than
+# hardcoding a path that silently breaks if the identifier ever changes.
+# Pro builds deep-merge tauri.pro.conf.json over the base config, so the
+# overlay's identifier is the one the built app will use.
+if [ "$PRO" -eq 1 ]; then
+  IDENTIFIER="$(python3 -c 'import json;print(json.load(open("src-tauri/tauri.pro.conf.json"))["identifier"])')"
+else
+  IDENTIFIER="$(python3 -c 'import json;print(json.load(open("src-tauri/tauri.conf.json"))["identifier"])')"
+fi
+LIVEKIT_JSON="${HOME}/Library/Application Support/${IDENTIFIER}/livekit.json"
+
+# ---- Pro Edition preparation -------------------------------------------------
+TAURI_EXTRA=()
+if [ "$PRO" -eq 1 ]; then
+  # --check stays non-mutating: it validates credentials only. The real build
+  # below runs setup-pro.sh, which installs AND verifies the Pro implementation
+  # (its hardened --check catches stubs and stale copies).
+  if [ "$CHECK_ONLY" -eq 0 ]; then
+    ./scripts/setup-pro.sh
+  fi
+  export VITE_ENABLE_E2EE=true
+  TAURI_EXTRA+=(--config src-tauri/tauri.pro.conf.json)
+  # Pro always ships E2EE; add the cargo feature unless the caller passed it.
+  case " ${PASSTHROUGH[*]-} " in
+    *" e2ee "*) : ;;
+    *) PASSTHROUGH+=(-- --features e2ee) ;;
+  esac
+fi
 
 # ---- Resolve credentials ----------------------------------------------------
 # Environment wins, so CI can supply a dedicated review project without
@@ -112,6 +144,7 @@ echo "Creds file   : $CREDS_FILE (removed on exit)"
 
 # Show the key but never the secret: enough to confirm which project this build
 # points at, safe to leave in a terminal scrollback or a CI log.
+echo "Edition      : ${IDENTIFIER}"
 echo "Demo project : ${VISUALTALK_DEMO_LIVEKIT_URL}"
 echo "Demo API key : ${VISUALTALK_DEMO_API_KEY}"
 echo "Demo secret  : (${#VISUALTALK_DEMO_API_SECRET} chars, not printed)"
@@ -128,6 +161,7 @@ echo "Building App Store Connect IPA with demo credentials…"
 # NOTE: ${PASSTHROUGH[@]+...} is required — macOS ships bash 3.2, where
 # expanding an empty array as "${PASSTHROUGH[@]}" under `set -u` aborts.
 pnpm tauri ios build --export-method app-store-connect \
+  ${TAURI_EXTRA[@]+"${TAURI_EXTRA[@]}"} \
   ${PASSTHROUGH[@]+"${PASSTHROUGH[@]}"}
 
 # ---- Verify the credentials really landed -----------------------------------
@@ -139,7 +173,12 @@ pnpm tauri ios build --export-method app-store-connect \
 # export and produced false WARNINGs while the shipped artifact was fine.
 IPA_PATH="$(find src-tauri/gen/apple/build -type f -name '*.ipa' -exec stat -f '%m %N' {} \; 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)"
 if [ -n "$IPA_PATH" ]; then
-  if unzip -p "$IPA_PATH" Payload/visualtalk.app/visualtalk 2>/dev/null | strings | grep -qF "$VISUALTALK_DEMO_API_KEY"; then
+  # Derive the payload binary from the IPA itself: the app directory is named
+  # after the product ("visualtalk.app" for CE, "VisualTalk Pro.app" for Pro),
+  # so a hardcoded path silently skips verification for one of the editions.
+  APP_DIR="$(unzip -Z1 "$IPA_PATH" | sed -n 's|^Payload/\([^/]*\.app\)/.*|\1|p' | head -1)"
+  if [ -n "$APP_DIR" ] && \
+     unzip -p "$IPA_PATH" "Payload/${APP_DIR}/${APP_DIR%.app}" 2>/dev/null | strings | grep -qF "$VISUALTALK_DEMO_API_KEY"; then
     echo "Verified: demo credentials are present in ${IPA_PATH}."
   else
     echo "WARNING: demo API key not found in ${IPA_PATH}." >&2
@@ -158,3 +197,9 @@ cat <<'EOF'
  do not reuse this IPA for a later submission.
 ──────────────────────────────────────────────────────────────────────────────
 EOF
+
+if [ "$PRO" -eq 1 ] && [ "$CHECK_ONLY" -eq 0 ]; then
+  echo
+  echo "NOTE: the Pro E2EE implementation is still installed at src/e2ee.rs."
+  echo "      Run ./scripts/setup-pro.sh --revert before committing CE changes."
+fi
