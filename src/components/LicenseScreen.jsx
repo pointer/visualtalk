@@ -1,74 +1,17 @@
 import { createSignal, createResource } from "solid-js";
 
-// Single source of truth: the same PRIVACY.md that ships alongside the
-// installer is bundled verbatim at build time (Vite `?raw`), so the in-app
-// copy can never drift from it. At ~11 KB it needs no lazy loading, unlike
-// the third-party notices corpus.
+// Single source of truth: the same EULA, EULA-PRO and PRIVACY.md files that
+// ship alongside the installer are bundled verbatim at build time (Vite
+// `?raw`), so the in-app copies can never drift from the legal texts.
+// Combined they are ~31 KB, which needs no lazy loading, unlike the
+// third-party notices corpus.
 import PRIVACY_POLICY from "../../PRIVACY.md?raw";
+import COMMUNITY_EULA from "../../EULA?raw";
+import PRO_EULA from "../../EULA-PRO?raw";
 
 // Compile-time edition detection
 const IS_PRO =
   typeof __E2EE_ENABLED__ !== "undefined" && __E2EE_ENABLED__ === true;
-
-const COMMUNITY_EULA =
-  "VISUALTALK COMMUNITY EDITION \u2014 END USER LICENSE AGREEMENT\n" +
-  "Last Updated: October 4, 2026\n\n" +
-  "IMPORTANT: This EULA is a legal agreement between you and Miradata SASU for the Community Edition. By using this Software, you agree to these terms.\n\n" +
-  "1. LICENSE GRANT \u2014 Non-exclusive, non-transferable license for Noncommercial Purposes only.\n\n" +
-  "2. EDITION \u2014 Community Edition: video conferencing, chat, screen sharing, file transfer. NO End-to-End Encryption (E2EE).\n\n" +
-  "3. PERMITTED USE:\n" +
-  "  a) Personal, non-commercial communication\n" +
-  "  b) Educational and academic purposes\n" +
-  "  c) Non-profit and charitable organizations\n" +
-  "  d) Community groups and volunteer organizations\n" +
-  "  e) Evaluation and testing\n\n" +
-  "4. PROHIBITED USE:\n" +
-  "  a) Commercial business operations or corporate communications\n" +
-  "  b) Providing paid services or managed hosting\n" +
-  "  c) Internal operations of for-profit entities\n" +
-  "  d) Revenue-generating activities\n" +
-  "  e) Redistributing or selling the Software\n" +
-  "  f) Reverse engineering or decompiling\n\n" +
-  "5. INTELLECTUAL PROPERTY \u2014 Licensed, not sold. All rights remain with Licensor.\n\n" +
-  "6. DATA & PRIVACY \u2014 Messages are NOT end-to-end encrypted. You supply your own LiveKit server \u2014 no default server, no embedded credentials. See the Privacy tab.\n\n" +
-  "7. WARRANTY \u2014 PROVIDED \"AS IS\" WITHOUT WARRANTY OF ANY KIND.\n\n" +
-  "8. LIABILITY \u2014 Licensor not liable for indirect, incidental, or consequential damages.\n\n" +
-  "9. TERMINATION \u2014 Automatic if you violate any term.\n\n" +
-  "10. COMMERCIAL LICENSE \u2014 Purchase VisualTalk Pro Edition for commercial use.\n\n" +
-  "11. ENTIRE AGREEMENT \u2014 This EULA supersedes all prior communications.\n\n" +
-  "Source: PolyForm Noncommercial License 1.0.0\n" +
-  "Full text: https://polyformproject.org/licenses/noncommercial/1.0.0/";
-
-const PRO_EULA =
-  "VISUALTALK PRO EDITION \u2014 END USER LICENSE AGREEMENT\n" +
-  "Last Updated: October 13, 2026\n\n" +
-  "IMPORTANT: This EULA covers the Pro Edition with End-to-End Encryption (E2EE). By using this Software, you agree to these terms.\n\n" +
-  "1. LICENSE GRANT \u2014 Non-exclusive, non-transferable license for personal AND commercial use.\n\n" +
-  "2. EDITION \u2014 Pro Edition: all Community features + E2EE for chat and file transfers.\n" +
-  "   Crypto Stack: ECDH P-256 | HKDF-SHA-256 | AES-256-GCM\n\n" +
-  "3. PERMITTED USE:\n" +
-  "  a) Business meetings and corporate communications\n" +
-  "  b) Client and customer-facing conferences\n" +
-  "  c) Internal operations of for-profit entities\n" +
-  "  d) Paid consulting, coaching, professional services\n" +
-  "  e) All Community Edition uses\n\n" +
-  "4. PROHIBITED USE:\n" +
-  "  a) Redistributing or selling E2EE as a standalone service\n" +
-  "  b) Reverse engineering or decompiling, except as permitted for LGPL-licensed components or as required by applicable law\n" +
-  "  c) Circumventing or disabling E2EE encryption\n" +
-  "  d) Sharing license keys to bypass licensing\n" +
-  "  e) Using as a managed service without a hosting license\n\n" +
-  "5. INTELLECTUAL PROPERTY \u2014 Licensed, not sold. All rights remain with Licensor.\n\n" +
-  "6. DATA & PRIVACY \u2014 E2EE protects chat and file transfers; audio/video use your LiveKit server's transport security. You supply your own server \u2014 no default server, no embedded credentials. See the Privacy tab.\n\n" +
-  "7. OPEN-SOURCE COMPONENTS \u2014 The Software bundles third-party open-source components, which are licensed to you under their own terms and not under this EULA. Your rights under those licenses \u2014 including the GNU LGPL-2.1-or-later and file-scoped MPL-2.0 components \u2014 are not limited by this EULA, and include the right to obtain, modify, and re-link that source. The complete list and license texts are in the \u201COpen Source\u201D tab and in THIRD_PARTY_NOTICES.md.\n\n" +
-  "8. EXPORT COMPLIANCE \u2014 The Software contains cryptographic functionality and is subject to export control and sanctions laws. You may not export or re-export it in violation of those laws. Encryption details and the export-control classification are in the \u201COpen Source\u201D tab.\n\n" +
-  "9. WARRANTY \u2014 PROVIDED \"AS IS\". No guarantee E2EE is vulnerability-free. Mandatory French statutory warranties (garantie légale de conformité, garantie des vices cachés) cannot be excluded.\n\n" +
-  "10. LIABILITY \u2014 Total liability capped at amount paid in preceding 12 months, except for willful misconduct, gross negligence, fraud or personal injury.\n\n" +
-  "11. TERMINATION \u2014 Automatic if you violate any term. Sections 7 and 8 survive.\n\n" +
-  "12. REFUNDS \u2014 Apple and Google are the merchant of record, so your contract of sale and any refund are with the platform. The Licensor remains responsible for the Software itself and for warranty claims.\n\n" +
-  "13. GOVERNING LAW \u2014 Governed by the laws of France. Disputes fall under the jurisdiction of the courts of Bobigny, subject to any mandatory consumer protections in your country of residence.\n\n" +
-  "14. ENTIRE AGREEMENT \u2014 This EULA supersedes all prior communications.\n\n" +
-  "This is a summary. The complete, authoritative text is supplied as EULA-PRO with the Software.";
 
 const SOURCE_LICENSE =
   "POLYFORM NONCOMMERCIAL LICENSE 1.0.0\n\n" +
