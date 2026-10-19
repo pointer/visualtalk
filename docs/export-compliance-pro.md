@@ -74,8 +74,12 @@ Notes for the classification narrative:
   the Cerfa process for crypto means). **TBD:** confirm whether the
   general software declaration or an exemption applies; file before first
   distribution if required.
-- First-release date and distribution territory list: **TBD** (from owner's
-  fact sheet).
+- First-release date and distribution territory list (owner decision,
+  2026-10-19): **worldwide simultaneous release** in all store territories,
+  targeting the **week after App Review approval** — as soon as possible
+  (Phase 3 of the ship calendar targets submission in the Dec 2026 window).
+  Sequencing rule: any required French/EU filing must be complete **before**
+  that first-availability date; the release is gated on it, not the reverse.
 
 ## 5. App Store Connect — encryption answers (Pro record)
 
@@ -104,7 +108,11 @@ TLS/DTLS (Apple exemption: limited to OS encryption / exempt usage).
 
 ## 6. Owner fact sheet — inputs still required (TBD)
 
-- [ ] Planned first-availability date per territory (US, EU, other).
+- [x] Planned first-availability date (owner, 2026-10-19): worldwide
+      simultaneous release, week after App Review approval — as soon as
+      possible (submission targeted in the Dec 2026 Phase 3 window). Hard
+      gate: BIS self-classification and French/EU filing (or confirmed
+      exemption) complete before first availability in ANY territory.
 - [x] Confirmation that RustCrypto crates are the only cryptographic
       components in the Pro binary (spot-checked via `cargo tree`, see §2;
       `ring` present only as transitive TLS).
