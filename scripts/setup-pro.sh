@@ -34,6 +34,22 @@ check() {
     echo "❌ Cargo.toml missing [features] section with e2ee feature."
     exit 1
   fi
+  # Verify the INSTALLED implementation, not just that the Pro source exists.
+  # Marker: only the Pro implementation imports the AES-256-GCM cipher; the
+  # community stub contains no crypto imports at all.
+  if grep -q "Aes256Gcm" "$STUB"; then
+    if ! cmp -s "$STUB" "$PRO_SRC"; then
+      echo "❌ Installed e2ee.rs is a Pro implementation but DIFFERS from"
+      echo "   $PRO_SRC (stale copy or hand edit)."
+      echo "   Re-run ./scripts/setup-pro.sh to sync before building."
+      exit 1
+    fi
+    echo "✅ Installed e2ee.rs is the Pro implementation, in sync with e2ee-pro/."
+  else
+    echo "❌ Installed src/e2ee.rs is the COMMUNITY STUB (no Pro crypto markers)."
+    echo "   Run ./scripts/setup-pro.sh before any *:pro build."
+    exit 1
+  fi
   echo "✅ Pro build is ready."
 }
 
