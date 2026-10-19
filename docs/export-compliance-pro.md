@@ -119,6 +119,10 @@ TLS/DTLS (Apple exemption: limited to OS encryption / exempt usage).
 - [ ] Annual units/revenue expectations (some reports ask; platforms also
       provide sales data).
 - [ ] Counsel engagement for BIS self-classification + French declaration.
+      Ready-to-send draft emails (FR + EN) with the fixed-fee scope,
+      screening questions, end-Nov deadline and a sending checklist:
+      `docs/counsel-engagement-email.md`. First contacts: CCI /
+      Team France Export advisory desk, then 2–3 export-control firms.
 - [ ] Decision point: keep `YES` at submission (slower review, safer) vs.
       flip to `NO` with exemption basis (faster, needs paperwork first).
 
