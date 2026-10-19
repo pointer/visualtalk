@@ -26,19 +26,23 @@
     <key>NSLocalNetworkUsageDescription</key>
     <string>VisualTalk Pro connects to an AI service on your local network to power live captions and summaries.</string>
 
-    <!-- EXPORT COMPLIANCE — PRO DECLARES YES.
+    <!-- EXPORT COMPLIANCE — PRO DECLARES NO (exempt / mass market).
          On top of the community edition's transport crypto (TLS, DTLS-SRTP),
          Pro adds AES-256-GCM end-to-end encryption of chat and file transfers
-         (ECDH P-256 key agreement, HKDF-SHA-256 KDF): confidentiality of user
-         content, not merely transport protection. Under the conservative
-         reading that is non-exempt, so Pro declares YES and answers the App
-         Store Connect export-compliance questionnaire, backed by the compliance
-         packet (crypto description + BIS mass-market self-classification draft)
-         tracked as Phase 1 A3 in .clinerules/pro-ship-schedule.md.
+         (ECDH P-256 key agreement, HKDF-SHA-256 KDF). Every primitive is a
+         standard published algorithm (NIST/IETF) from public open-source
+         RustCrypto crates — no proprietary or non-standard crypto, no FIPS
+         module claimed — which qualifies for mass-market/exempt treatment
+         under the Note to Category 5 Part 2 (5D992-type).
+         Owner decision 2026-10-19: declare NO, superseding the earlier
+         conservative YES. The App Store Connect questionnaire is answered
+         accordingly, backed by the compliance packet (crypto description +
+         BIS mass-market self-classification draft) tracked as Phase 1 A3
+         in .clinerules/pro-ship-schedule.md.
          The community edition's Info.plist keeps <false/> with its own
          reasoning; do not "sync" this key between the two files. -->
     <key>ITSAppUsesNonExemptEncryption</key>
-    <true/>
+    <false/>
 
     <!-- iOS only; inert on macOS. Exposes Documents in the Files app. -->
     <key>UIFileSharingEnabled</key>
