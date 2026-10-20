@@ -60,7 +60,7 @@ forfaitaires** et vos disponibilités.
 
 Cordialement,
 [Prénom Nom] — Miradata SASU
-[téléphone] · kghemari@yahoo.com · [adresse postale]
+[téléphone] · [email]· [adresse postale]
 
 ---
 
@@ -117,7 +117,7 @@ your disposal for any further information.
 
 Kind regards,
 [First Name Last Name] — Miradata SASU
-[phone] · kghemari@yahoo.com · [postal address]
+[phone] · [email@yahoo.com] · [postal address]
 
 ---
 
