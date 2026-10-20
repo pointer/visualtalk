@@ -86,6 +86,8 @@ ExportOptions.plist
 # PII-dense filing drafts (owner's private store, NOT for public repo).
 # Placed AFTER the !docs/**/*.md whitelist above — last match wins.
 docs/anssi-*
+# BIS self-classification drafts (PII-dense, on HOLD — see docs/bis-self-classification-email.md).
+docs/bis-*
 !src-tauri/Cargo.lock
 !pnpm-lock.yaml
 # Local LiveKit stack: the template must be tracked, the real .env must not.

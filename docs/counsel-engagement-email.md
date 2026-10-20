@@ -29,14 +29,22 @@ formalités applicables — c'est l'objet de cette consultation.
 
 **Périmètre souhaité (devis à prix forfaitaire) :**
 
-1. **Avis écrit de classification** : (a) droit américain — ECCN 5D002
-   « mass market », éligibilité à la License Exception ENC §740.17(b)(1) ;
-   (b) droit UE/français — Règlement 2021/821 Cat. 5 Part 2 et régime des
-   moyens de cryptologie : déclaration ANSSI requise ou exemption.
-2. **Rapport de self-classification BIS** : préparation ou relecture, et
-   dépôt (rapport unique).
-3. **Formalité française** : dépôt de la déclaration ANSSI si requise, ou
-   note d'exemption motivée.
+1. **Avis écrit de classification** : (a) droit américain — **le produit
+   est-il soumis à l'EAR** (15 CFR §734.3(b)(3) : logiciel d'origine
+   française, cryptographie issue exclusivement d'open source publié) et,
+   si oui, ECCN 5D002 « mass market » / éligibilité à la License Exception
+   ENC §740.17(b)(1) ; (b) droit UE/français — Règlement 2021/821 Cat. 5
+   Part 2 : formalités d'**exportation hors UE** (voir point 3).
+2. **BIS self-classification — uniquement si soumis à l'EAR** : relecture
+   du rapport d'auto-classification (Supp. No. 8 to Part 742, CSV annuel
+   avant le 1er février, rétrospectif) ; brouillons déjà préparés et en
+   attente de votre décision de compétence.
+3. **Formalité française : déjà accomplie** — déclaration ANSSI déposée,
+   **attestation reçue** (dossier n° 34842510, du 2026-10-20). Question
+   restante : la distribution mondiale via les stores (hors UE) exige-t-elle
+   une formalité auprès du **SBDU** (DG Trésor) au titre du Règlement
+   2021/821, ou relève-t-elle de la note générale logiciel / du traitement
+   grand public ? À défaut, note motivée.
 4. **Recommandation App Store Connect** : réponse à la déclaration de
    chiffrement (`ITSAppUsesNonExemptEncryption` YES/NO), avec justification.
 5. **Exclusions territoriales** : confirmation du périmètre de mise à
@@ -44,10 +52,15 @@ formalités applicables — c'est l'objet de cette consultation.
    la cryptographie, exigence de dépôt ICP depuis 2023) ; décision pour
    Russie/Biélorussie au vu des restrictions ENC depuis 2022.
 
-**Deux questions préalables** (pour cadrer rapidement) :
+**Trois questions préalables** (pour cadrer rapidement) :
+- Pouvez-vous rendre un avis de **compétence EAR** (§734.3) pour un logiciel
+  grand public d'origine française construit à partir de cryptographie open
+  source publiée ?
 - Avez-vous déjà déposé des rapports de self-classification BIS
   « mass market » (§740.17) pour des applications grand public ?
-- Traitez-vous les déclarations ANSSI relatives aux moyens de cryptologie ?
+- Traitez-vous les questions **SBDU / double usage UE** (Règlement 2021/821)
+  pour l'exportation de logiciels de cryptologie grand public ? (La
+  déclaration ANSSI est déjà déposée et attestée — dossier n° 34842510.)
 
 **Échéancier :** formalités engagées **avant fin novembre 2026** ; la date
 de mise à disposition mondiale en dépend directement.
@@ -86,15 +99,22 @@ is the purpose of this consultation.
 
 **Requested scope (fixed-fee quote):**
 
-1. **Written classification opinion**: (a) US — ECCN 5D002 mass-market
-   eligibility under License Exception ENC §740.17(b)(1); (b) EU/French —
-   Regulation 2021/821 Category 5 Part 2 and the French crypto-means
-   regime: whether an ANSSI declaration is required or an exemption
-   applies.
-2. **BIS self-classification report**: preparation or review, and filing
-   (one-time report).
-3. **French formality**: filing the ANSSI declaration if required, or a
-   reasoned exemption memo.
+1. **Written classification opinion**: (a) US — **is the product subject to
+   the EAR at all** (15 CFR §734.3(b)(3): French-origin software built
+   solely from published open-source crypto) and, if so, ECCN 5D002
+   mass-market eligibility under License Exception ENC §740.17(b)(1);
+   (b) EU/French — Regulation 2021/821 Category 5 Part 2: **extra-EU
+   export** formalities (see item 3).
+2. **BIS self-classification — only if subject to the EAR**: review of the
+   self-classification report (Supp. No. 8 to Part 742, annual CSV due
+   Feb 1, retrospective); drafts already prepared and on hold pending your
+   jurisdiction call.
+3. **French formality: already completed** — ANSSI declaration filed,
+   **attestation received** (dossier n° 34842510, dated 2026-10-20).
+   Remaining question: does worldwide store distribution (outside the EU)
+   require any formality with the **SBDU** (DG Trésor) under Regulation
+   2021/821, or is it covered by the general software note / mass-market
+   treatment? Otherwise, a reasoned memo.
 4. **App Store Connect recommendation**: the encryption declaration answer
    (`ITSAppUsesNonExemptEncryption` YES/NO), with rationale.
 5. **Territory exclusions**: confirmation of the initial-release territory
@@ -102,10 +122,14 @@ is the purpose of this consultation.
    ICP filing requirement since 2023); Russia/Belarus decision in light of
    the post-2022 ENC restrictions.
 
-**Two screening questions:**
+**Three screening questions:**
+- Can you issue an **EAR-jurisdiction opinion** (§734.3) for French-origin
+  consumer software built from published open-source cryptography?
 - Have you filed BIS mass-market self-classification reports (§740.17) for
   consumer applications before?
-- Do you handle ANSSI declarations for cryptologie means?
+- Do you handle **SBDU / EU dual-use** matters (Regulation 2021/821) for
+  exports of mass-market cryptology software? (The ANSSI declaration is
+  already filed and attested — dossier n° 34842510.)
 
 **Timeline:** filings must be in motion **before the end of November 2026**;
 the worldwide availability date depends directly on this.

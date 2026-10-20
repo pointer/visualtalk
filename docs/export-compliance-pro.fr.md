@@ -6,9 +6,10 @@
 >
 > **Statut : brouillon interne pour le dossier Pro Edition (E2EE).** Ceci
 > n'est pas un avis juridique. Les éléments marqués **TBD** attendent la
-> fiche d'informations du dirigeant ; l'auto-classification BIS et toute
-> déclaration française/UE de biens à double usage doivent être revues par
-> un conseil qualifié en contrôle des exportations avant dépôt.
+> fiche d'informations du dirigeant ; la conclusion de compétence EAR (§3)
+> et la position UE/SBDU (§4) doivent être confirmées par un conseil
+> qualifié en contrôle des exportations. La déclaration ANSSI française est
+> **déposée et attestée** (2026-10-20, dossier n° 34842510).
 >
 > Périmètre : VisualTalk **Pro Edition** uniquement
 > (`com.katebg.visualtalk.pro`). La Community Edition ne contient **aucune**
@@ -64,34 +65,78 @@ Notes pour l'argumentaire de classification :
 
 ## 3. Analyse EAR américaine (brouillon — à confirmer par le conseil)
 
-- ECCN probable : **5D002** (logiciel de sécurité de l'information),
-  éligibilité grand public au titre de la **License Exception ENC,
-  §740.17(b)(1)** : code objet, cryptographie standard publiquement
-  disponible, vente au détail, sans obligations de support post-exportation
-  au-delà des mises à jour consommateurs ordinaires.
-- Étape requise : **rapport d'auto-classification unique** au BIS
-  (bisencryption@bis.doc.gov selon les directives BIS en vigueur) lorsqu'on
-  s'appuie sur le §740.17 grand public pour du 5D002 ; conserver le rapport
-  et toute réponse du BIS au dossier. **TBD :** confirmer l'adresse/le
-  format de dépôt en vigueur au moment du dépôt.
-- Contenu d'origine américaine : le code cryptographique est de l'open
-  source public d'origine américaine (RustCrypto). **TBD :** analyse
-  de minimis / « publiquement disponible » pour le produit assemblé, par le
-  conseil.
+**D'abord la compétence — conclusion probable : PAS soumis à l'EAR**
+(analyse du 2026-10-20, après réception de l'attestation ANSSI) :
+
+- VisualTalk Pro est un logiciel **d'origine française**, développé et
+  compilé en France par Miradata SASU. Sa fonction cryptographique provient
+  exclusivement de crates open source **publiées** (RustCrypto, publiques
+  sur crates.io). En vertu du **15 CFR §734.3(b)(3)**, les logiciels
+  publiés ne sont **pas** « soumis à l'EAR » ; aucune règle de produit
+  direct étranger (FDPR) relative au chiffrement n'atteint un produit
+  fabriqué en France à partir de sources publiées ; et sans contenu
+  américain *contrôlé*, la question du de minimis est sans objet.
+- Conséquence si le conseil confirme : pas d'attribution d'ECCN, pas de
+  recours à la License Exception ENC, **pas de rapport
+  d'auto-classification BIS**, pas d'enregistrement SNAP-R — l'appareil
+  déclaratif américain ne s'applique pas du tout. Cette confirmation écrite
+  devient alors l'unique condition pour la bascule Apple vers NO (§6).
+- **Conclusion fragile face aux changements** : elle tombe si le produit
+  intègre un jour des composants cryptographiques américains non publiés,
+  si le développement/la compilation est transféré aux États-Unis, ou en
+  cas d'usage de technologie américaine contrôlée. Refaire cette analyse à
+  chaque changement de ce type (même esprit que la clause « cryptologie
+  inchangée » de l'attestation ANSSI).
+
+**Repli si le conseil juge le produit soumis à l'EAR :**
+
+- Classification probable : **5D002** (logiciel de sécurité de
+  l'information), éligibilité grand public au titre de la **License
+  Exception ENC, §740.17(b)(1)** : code objet, cryptographie standard
+  publiquement disponible, vente au détail, sans obligations de support
+  post-exportation au-delà des mises à jour consommateurs ordinaires.
+  L'auto-classification aboutit à **ECCN 5D992 / autorisation MMKT**.
+- Mécanique du rapport — **corrigée le 2026-10-20** (les brouillons
+  antérieurs de ce dossier décrivaient à tort un dépôt unique avant sortie,
+  à `bisencryption@bis.doc.gov`) : selon le **Supplement No. 8 to Part
+  742**, le rapport d'auto-classification grand public est un **CSV envoyé
+  par e-mail à `crypt-supp8@bis.doc.gov` et `enc@nsa.gov`**, soumis
+  **annuellement avant le 1er février** pour l'année civile précédente. Il
+  est **rétrospectif — ce n'est PAS une condition préalable à la sortie** :
+  pour un lancement en décembre 2026, le premier rapport serait dû le
+  2027-02-01. Vérifier adresses/format auprès des directives BIS en vigueur
+  au moment du dépôt.
+- Pièces pré-rédigées, **EN ATTENTE / ne pas envoyer** tant que le conseil
+  n'a pas levé l'attente (ignorées par git, riches en données
+  personnelles) : `docs/bis-self-classification-report.csv` et
+  `docs/bis-self-classification-email.md` (conditions d'envoi documentées
+  dans le brouillon d'e-mail).
 - Criblage sanctions : la conformité OFAC standard s'applique à la
   distribution via les stores (les plateformes gèrent la disponibilité
   territoriale). **TBD :** confirmer l'absence de canaux de distribution
   directe supplémentaires.
 
-## 4. Biens à double usage — France / UE (brouillon — à confirmer par le conseil)
+## 4. Biens à double usage — France / UE
 
-- Règlement UE **2021/821**, Catégorie 5 Partie 2 (équivalents 5A002/5D002).
-- Les logiciels de cryptographie grand public / « publiquement disponible »
-  relèvent en général de la procédure nationale française (déclaration à
-  l'ANSSI / DG Trésor via le processus Cerfa pour les moyens de
-  cryptologie). **TBD :** confirmer si la déclaration générale de logiciel
-  ou une exemption s'applique ; déposer avant toute première distribution
-  si requis.
+- **Déclaration française : ACCOMPLIE.** La déclaration de moyen de
+  cryptologie a été déposée auprès de l'ANSSI le 2026-10-20, qui a délivré
+  l'**attestation de dépôt — dossier n° 34842510, du 20 octobre 2026**
+  (PDF : `~/Downloads/attestation-dossier-34842510.pdf` ; à archiver dans
+  `~/Backups/` puis hors machine). L'obligation française de « fourniture
+  en France » est acquittée. Réserve : les versions futures ne restent
+  couvertes **que tant que les caractéristiques cryptologiques sont
+  inchangées** — toute modification de la pile cryptographique impose une
+  nouvelle déclaration avant distribution (règle reprise dans
+  `src-tauri/e2ee-pro/README` et
+  `docs/anssi-declaration-visualtalk-pro.md`).
+- **Export double usage UE — le point français/UE restant.** L'attestation
+  renvoie explicitement la distribution hors UE au **SBDU** (Service des
+  biens à double usage, DG Trésor) au titre du **Règlement UE 2021/821**,
+  Catégorie 5 Partie 2. **TBD (conseil) :** la distribution mondiale via
+  les stores de ce logiciel de cryptologie grand public requiert-elle une
+  formalité/autorisation SBDU, ou relève-t-elle de la note générale
+  logiciel / du traitement grand public ? C'est là — et non côté BIS (§3) —
+  que se situe la question déclarative ouverte avant sortie.
 - Date de première mise à disposition et liste des territoires de
   distribution (décision du dirigeant, 2026-10-19) : **mise à disposition
   mondiale simultanée** sur tous les territoires des stores, cible : la
@@ -150,8 +195,7 @@ du dirigeant du 2026-10-19, revenant sur le passage à NO du même jour).
 Justification : cette clé affirme une position juridique. YES est toujours
 véridique et ne bloque jamais l'approbation — il n'ajoute que des questions
 de questionnaire. NO est une *revendication* d'exemption qui doit s'appuyer
-sur l'avis de classification et le rapport d'auto-classification BIS —
-aucun des deux n'existe encore.
+sur l'avis écrit de classification du conseil, qui n'existe pas encore.
 
 Questionnaire ASC (App Encryption Declaration) tant que YES :
 1. « Votre application utilise-t-elle du chiffrement ? » → **Oui.**
@@ -161,14 +205,21 @@ Questionnaire ASC (App Encryption Declaration) tant que YES :
    **Non** (algorithmes standard uniquement, cf. §2).
 
 Chemin pour basculer à **NO** avant soumission (review la plus rapide) —
-les **deux** éléments sont requis :
-1. Le conseil confirme l'éligibilité grand public/exempte (Note de la
-   Catégorie 5 Partie 2 / type 5D992 — issue attendue, l'application
-   n'utilisant que des algorithmes standard publiés, cf. §2).
-2. Le rapport d'auto-classification BIS (unique) est déposé.
+**un seul** élément est requis (mis à jour le 2026-10-20) :
+1. Le conseil confirme **par écrit** soit (a) que le produit n'est **pas
+   soumis à l'EAR** (conclusion de compétence du §3 — issue attendue pour
+   un logiciel d'origine française construit à partir de cryptographie open
+   source publiée), soit (b) l'éligibilité grand public/exempte (Note de la
+   Catégorie 5 Partie 2 / type 5D992).
+
+   *L'ancienne seconde condition — « rapport d'auto-classification BIS
+   déposé » — est SUPPRIMÉE : selon le §3, ce rapport est rétrospectif, ne
+   s'applique que si le produit est soumis à l'EAR, et ne conditionne ni la
+   sortie ni la déclaration Apple.*
+
 Alors : mettre `Info-pro.plist` à NO, répondre « Oui — exempt grand
-public » à la Q2, et recompiler. **Ne pas basculer sans ces deux
-éléments.** Si la soumission intervient avant l'avis du conseil,
+public » à la Q2, et recompiler. **Ne pas basculer sans la confirmation
+écrite du conseil.** Si la soumission intervient avant l'avis du conseil,
 soumettre avec YES — état parfaitement livrable en l'état.
 
 Dossier Community Edition : conserver `ITSAppUsesNonExemptEncryption = NO`
@@ -184,9 +235,17 @@ limité au chiffrement de l'OS / usage exempt).
       Phase 3 de décembre 2026), **sous réserve des exclusions
       territoriales du §5** (Chine continentale recommandée exclue ;
       Russie/Biélorussie TBD via le conseil). Condition bloquante :
-      auto-classification BIS et formalité française/UE (ou exemption
-      confirmée) accomplies avant la première mise à disposition dans
-      TOUT territoire.
+      la formalité française est **accomplie** (attestation ANSSI,
+      dossier n° 34842510, 2026-10-20) ; les conditions restantes avant
+      la première mise à disposition dans TOUT territoire sont la
+      confirmation par le conseil de la position EAR (§3) et de la
+      position UE/SBDU (§4).
+- [x] Déclaration de moyen de cryptologie ANSSI déposée et **attestation
+      reçue** (dossier n° 34842510, du 2026-10-20). Ne couvre les versions
+      futures que tant que les caractéristiques cryptologiques sont
+      inchangées ; distribution hors UE renvoyée au SBDU (§4). À faire
+      (dirigeant) : archiver le PDF de l'attestation dans `~/Backups/`
+      puis hors machine.
 - [ ] Exclusions territoriales confirmées à la soumission :
       désélectionner la Chine continentale dans la disponibilité ASC
       (recommandation §5 — à confirmer par le dirigeant) ; décision
@@ -197,23 +256,28 @@ limité au chiffrement de l'OS / usage exempt).
 - [ ] Prévisions annuelles de volumes/chiffre d'affaires (certains
       formulaires le demandent ; les plateformes fournissent aussi les
       données de ventes).
-- [ ] Engagement d'un conseil pour l'auto-classification BIS + la
-      déclaration française. E-mails prêts à envoyer (FR + EN) avec le
-      périmètre à prix forfaitaire, les questions de filtrage, l'échéance
-      de fin novembre et la checklist d'envoi :
-      `docs/counsel-engagement-email.md`. Premiers contacts : CCI /
+- [ ] Engagement d'un conseil pour : la confirmation de la compétence EAR
+      (§3), la position export UE/SBDU (§4) et la bascule Apple vers NO
+      (§6). La déclaration française est déjà déposée et attestée ; les
+      pièces d'auto-classification BIS sont pré-rédigées et EN ATTENTE
+      (§3) dans l'attente de la décision du conseil sur la compétence.
+      E-mails prêts à envoyer (FR + EN) avec le périmètre à prix
+      forfaitaire, les questions de filtrage, l'échéance de fin novembre
+      et la checklist d'envoi : `docs/counsel-engagement-email.md`
+      (périmètre mis à jour le 2026-10-20). Premiers contacts : CCI /
       guichet Team France Export, puis 2–3 cabinets spécialisés en
       contrôle des exportations.
 - [x] Point de décision YES vs NO : **YES pour l'instant** (dirigeant,
       2026-10-19, retour sur le NO du même jour). Bascule vers NO avant
-      soumission uniquement avec les deux éléments en main —
-      confirmation du conseil + rapport d'auto-classification BIS déposé
+      soumission uniquement avec la confirmation écrite du conseil en main
       (chemin au §6) ; sinon soumettre avec YES.
 
 ## 8. Références
 
-- 15 CFR §740.17 (License Exception ENC, grand public), §742.15, Supp. 1
-  to Part 740.
+- 15 CFR §734.3(b)(3) (logiciels publiés non soumis à l'EAR), §740.17
+  (License Exception ENC, grand public), §742.15, Supplement No. 8 to
+  Part 742 (rapport d'auto-classification grand public), Supp. 1 to
+  Part 740.
 - Règlement UE 2021/821 (biens à double usage), Catégorie 5 Partie 2.
 - Apple : documentation développeur « Export Compliance — App Encryption
   Declaration ».
