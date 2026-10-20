@@ -82,6 +82,10 @@ ExportOptions.plist
 !NOTICE
 !NOTICE.txt
 !docs/**/*.md
+
+# PII-dense filing drafts (owner's private store, NOT for public repo).
+# Placed AFTER the !docs/**/*.md whitelist above — last match wins.
+docs/anssi-declaration-visualtalk-pro.md
 !src-tauri/Cargo.lock
 !pnpm-lock.yaml
 # Local LiveKit stack: the template must be tracked, the real .env must not.
