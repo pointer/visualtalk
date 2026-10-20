@@ -22,7 +22,7 @@
   propre serveur », desktop et mobile (Tauri v2 ; backend Rust, frontend
   web).
 - Éditeur : Miradata SASU, RCS Bobigny 849 735 311, TVA FR64849735311,
-  12 rue Jacques Catric, 93260 Les Lilas, France.
+  [address], France.
 - Fonction cryptographique : **chiffrement de bout en bout des messages de
   conversation et des transferts de fichiers** entre participants d'une
   réunion. L'audio/vidéo est transporté par le serveur LiveKit exploité par
