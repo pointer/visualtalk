@@ -26,8 +26,9 @@ check() {
   fi
   if [ ! -f "$PRO_SRC" ]; then
     echo "❌ Pro E2EE source not found at: $PRO_SRC"
-    echo "   Ensure the private e2ee-pro submodule is initialized:"
-    echo "     git submodule update --init --recursive"
+    echo "   This directory is private and NOT in the public repo."
+    echo "   Restore it from your encrypted backup — see the runbook:"
+    echo "   src-tauri/e2ee-pro/README §2-§3 (source store & restore)."
     exit 1
   fi
   if ! grep -q "^\[features\]" "$REPO_ROOT/src-tauri/Cargo.toml"; then
