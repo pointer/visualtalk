@@ -3,6 +3,9 @@
   "version": "3.3.33",
   "description": "Video conferencing application",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

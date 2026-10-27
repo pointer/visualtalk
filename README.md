@@ -189,18 +189,20 @@ writes recordings to `docker/recordings/<room>-<timestamp>.mp4` — the same pat
 choice and troubleshooting: [`docker/README.md`](./docker/README.md).
 
 ### Development
+Requires Node 24 (`.nvmrc`) and pnpm; there is no npm lockfile.
+
 ```bash
 # Install frontend dependencies
 pnpm install
 
 # Run the app in development mode
-pnpm tauri dev
+pnpm desktop
 ```
 
 ### Build for Production
 ```bash
 # Build the native release package
-pnpm tauri build
+pnpm desktop:build
 ```
 
 ---
