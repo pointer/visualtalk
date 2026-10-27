@@ -62,23 +62,24 @@ export async function sendChatMessage(room, text, senderName, e2eeActive) {
   if (!room?.localParticipant) throw new Error("Not connected to room");
 
   // ── E2EE path ──
+  // Fail CLOSED: if encryption fails while E2EE is active we must never
+  // silently fall back to plaintext — the user chose confidentiality.
+  // The error propagates so the caller can show it and keep the draft.
   if (e2eeActive) {
-    try {
-      const encrypted = await invoke("e2ee_encrypt_chat", {
-        text,
-        sender: room.localParticipant.identity,
-        senderName: senderName || room.localParticipant.identity,
-      });
+    const encrypted = await invoke("e2ee_encrypt_chat", {
+      text,
+      sender: room.localParticipant.identity,
+      senderName: senderName || room.localParticipant.identity,
+    });
 
-      const encoder = new TextEncoder();
-      room.localParticipant.publishData(
-        encoder.encode(JSON.stringify(encrypted)),
-        { reliable: true, topic: CHAT_TOPIC }
-      );
-      return encrypted;
-    } catch (err) {
-      console.warn("E2EE chat failed, falling back to plaintext:", err);
-    }
+    const encoder = new TextEncoder();
+    room.localParticipant.publishData(
+      encoder.encode(JSON.stringify(encrypted)),
+      { reliable: true, topic: CHAT_TOPIC }
+    );
+    // EncryptedChatPayload has no `text` field — attach the local plaintext
+    // so the sender's own transcript bubble renders instead of staying blank.
+    return { ...encrypted, text };
   }
 
   // ── Plaintext path (community or fallback) ──
@@ -121,18 +122,18 @@ export async function sendFileStart(room, fileInfo, senderName, e2eeActive) {
   };
 
   // ── E2EE: generate file key & wrap for each peer via Rust ──
+  // Fail CLOSED: if the key cannot be prepared (no peers yet, crypto error)
+  // the transfer is aborted. Sending an "unencrypted" file-start while the
+  // chunks below are still encrypted would make receivers save ciphertext.
   if (e2eeActive) {
-    try {
-      const wrappedKeys = await invoke("e2ee_prepare_file", {
-        fileId: fileInfo.id,
-      });
-      if (Object.keys(wrappedKeys).length > 0) {
-        message.encrypted = true;
-        message.wrappedKeys = wrappedKeys;
-      }
-    } catch (err) {
-      console.warn("E2EE file-start failed, sending plaintext:", err);
+    const wrappedKeys = await invoke("e2ee_prepare_file", {
+      fileId: fileInfo.id,
+    });
+    if (Object.keys(wrappedKeys).length === 0) {
+      throw new Error("E2EE file key not wrapped for any peer — transfer aborted");
     }
+    message.encrypted = true;
+    message.wrappedKeys = wrappedKeys;
   }
 
   const encoder = new TextEncoder();
@@ -154,25 +155,23 @@ export async function sendFileChunk(room, chunk, fileId, sequence, e2eeActive) {
   let payloadData;
 
   // ── E2EE: encrypt the chunk data via Rust ──
+  // Fail CLOSED: a plaintext fallback here would leak file contents while
+  // the UI still claims "End-to-end encrypted". Let the error abort the
+  // transfer (handleFileSelect surfaces it and no file-complete is sent).
   if (e2eeActive) {
-    try {
-      const dataB64 = toBase64(new Uint8Array(chunk));
-      const result = await invoke("e2ee_encrypt_chunk", {
-        fileId,
-        data: dataB64,
-      });
-      // Result: { iv: base64, ciphertext: base64 }
-      const iv = fromBase64(result.iv);
-      const ciphertext = fromBase64(result.ciphertext);
-      // Payload = [12 bytes IV][ciphertext]
-      const combined = new Uint8Array(iv.length + ciphertext.length);
-      combined.set(iv, 0);
-      combined.set(ciphertext, iv.length);
-      payloadData = combined;
-    } catch (err) {
-      console.warn("E2EE chunk encryption failed, sending plaintext:", err);
-      payloadData = new Uint8Array(chunk);
-    }
+    const dataB64 = toBase64(new Uint8Array(chunk));
+    const result = await invoke("e2ee_encrypt_chunk", {
+      fileId,
+      data: dataB64,
+    });
+    // Result: { iv: base64, ciphertext: base64 }
+    const iv = fromBase64(result.iv);
+    const ciphertext = fromBase64(result.ciphertext);
+    // Payload = [12 bytes IV][ciphertext]
+    const combined = new Uint8Array(iv.length + ciphertext.length);
+    combined.set(iv, 0);
+    combined.set(ciphertext, iv.length);
+    payloadData = combined;
   } else {
     payloadData = new Uint8Array(chunk);
   }
@@ -232,17 +231,42 @@ export function setupChatListener(room, handlers, e2eeActive) {
   if (!room) return () => {};
 
   const handleData = async (payload, participant, kind, topic) => {
+    // The SFU-asserted publisher identity. All crypto trust decisions bind to
+    // THIS value, never to the self-claimed `sender` field inside a payload —
+    // a malicious client could claim to be anyone there.
+    const transportIdentity = participant?.identity || "";
+
     // ── E2EE key exchange ──
     if (topic === "vt-e2ee" && e2eeActive) {
       try {
         const text = new TextDecoder().decode(payload);
         const data = JSON.parse(text);
-        if (data.type === "e2ee-key" && data.sender && data.publicKey) {
-          await invoke("e2ee_import_peer", {
-            identity: data.sender,
-            publicKeyB64: data.publicKey,
-          });
-          if (handlers.onKeyExchange) handlers.onKeyExchange(data);
+        if (data.type === "e2ee-key" && data.publicKey) {
+          if (!transportIdentity || data.sender !== transportIdentity) {
+            console.warn(
+              "E2EE key message rejected: claimed sender does not match transport identity",
+              { claimed: data.sender, transport: transportIdentity }
+            );
+            return;
+          }
+          try {
+            await invoke("e2ee_import_peer", {
+              identity: transportIdentity,
+              publicKeyB64: data.publicKey,
+            });
+            if (handlers.onKeyExchange) handlers.onKeyExchange(data);
+          } catch (err) {
+            if (String(err).includes("E2EE_KEY_CHANGED")) {
+              // TOFU violation — the pinned key was replaced mid-session.
+              // Loud warning instead of silent trust; Rust kept the old key.
+              console.warn("E2EE peer key change refused:", err);
+              if (handlers.onKeyChanged) {
+                handlers.onKeyChanged({ identity: transportIdentity, error: String(err) });
+              }
+            } else {
+              console.warn("Failed to import E2EE peer key:", err);
+            }
+          }
         }
       } catch (err) {
         console.warn("Failed to process E2EE key exchange:", err);
@@ -255,22 +279,33 @@ export function setupChatListener(room, handlers, e2eeActive) {
       const text = new TextDecoder().decode(payload);
       const data = JSON.parse(text);
 
-      // Encrypted chat message — decrypt via Rust
+      // Encrypted chat message — decrypt via Rust.
+      // `sender` is the TRANSPORT identity: Rust selects the unwrap key with
+      // it and cross-checks the sender inside the ciphertext against it.
       if (data.type === "chat" && data.encrypted && e2eeActive) {
         try {
           const decrypted = await invoke("e2ee_decrypt_chat", {
             ciphertextB64: data.ciphertext,
             ivB64: data.iv,
             wrappedKeys: data.wrappedKeys,
-            sender: data.sender,
+            sender: transportIdentity || data.sender,
           });
           if (handlers.onChatMessage) handlers.onChatMessage(decrypted);
         } catch (err) {
+          const errMsg = String(err);
+          if (errMsg.includes("E2EE_REPLAY")) {
+            // Captured payload replayed — drop silently, no UI noise.
+            console.debug("Dropped replayed E2EE chat message:", errMsg);
+            return;
+          }
           console.warn("Failed to decrypt chat message:", err);
           if (handlers.onChatMessage) {
             handlers.onChatMessage({
               ...data,
-              text: "⚠️ [Failed to decrypt message]",
+              sender: transportIdentity || data.sender,
+              text: errMsg.includes("E2EE_SENDER_MISMATCH")
+                ? "⚠️ [Rejected: sender identity mismatch]"
+                : "⚠️ [Failed to decrypt message]",
             });
           }
         }
@@ -283,17 +318,19 @@ export function setupChatListener(room, handlers, e2eeActive) {
         return;
       }
 
-      // Encrypted file-start — unwrap file key via Rust
+      // Encrypted file-start — unwrap file key via Rust.
+      // Bind the unwrap to the transport identity, not the claimed sender.
       if (data.type === "file-start" && data.encrypted && e2eeActive) {
         try {
           const myIdentity = room.localParticipant.identity;
           const wrapped = data.wrappedKeys?.[myIdentity];
-          if (wrapped && data.sender) {
+          const fileSender = transportIdentity || data.sender;
+          if (wrapped && fileSender) {
             await invoke("e2ee_unwrap_file_key", {
               fileId: data.id,
               wrappedB64: wrapped.wrapped,
               ivB64: wrapped.iv,
-              sender: data.sender,
+              sender: fileSender,
             });
           }
         } catch (err) {

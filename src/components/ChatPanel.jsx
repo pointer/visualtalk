@@ -172,6 +172,22 @@ export function ChatPanel(props) {
           onKeyExchange: () => {
             // Peer key imported in Rust — nothing extra needed in UI
           },
+          onKeyChanged: ({ identity }) => {
+            // TOFU violation: a peer re-published a DIFFERENT key mid-meeting.
+            // Rust refused the overwrite; make the attempt visible so users
+            // know to verify out-of-band instead of trusting silently.
+            setMessages((prev) => [
+              ...prev,
+              {
+                kind: "chat",
+                id: `keywarn-${identity}-${Date.now()}`,
+                sender: "",
+                senderName: "System",
+                text: `⚠️ [Security] ${identity} published a different encryption key mid-meeting — it was REJECTED. Possible spoofing; verify out-of-band.`,
+                timestamp: Date.now(),
+              },
+            ]);
+          },
           onFileStart: (data) => {
         setActiveTransfers((prev) => ({
           ...prev,
@@ -296,9 +312,28 @@ export function ChatPanel(props) {
       return;
     }
 
-    const msg = await chat.sendChatMessage(props.room, text, props.displayName, e2eeActive());
-    setMessages((prev) => [...prev, { ...msg, kind: "chat", isLocal: true }]);
-    setInputText("");
+    // Fail-closed send: with E2EE active, sendChatMessage throws rather than
+    // leaking plaintext. On failure the message was NOT sent — keep the draft
+    // in the input and surface a visible error bubble instead.
+    try {
+      const msg = await chat.sendChatMessage(props.room, text, props.displayName, e2eeActive());
+      setMessages((prev) => [...prev, { ...msg, kind: "chat", isLocal: true }]);
+      setInputText("");
+    } catch (err) {
+      console.error("Chat send failed (message NOT sent):", err);
+      setMessages((prev) => [
+        ...prev,
+        {
+          kind: "chat",
+          id: `senderr-${Date.now()}`,
+          isLocal: true,
+          sender: props.room?.localParticipant?.identity || "",
+          senderName: props.displayName || "",
+          text: `⚠️ [Message NOT sent — encryption failed: ${err}]`,
+          timestamp: Date.now(),
+        },
+      ]);
+    }
   };
 
   /** True when the AI endpoint is remote (not localhost). */
