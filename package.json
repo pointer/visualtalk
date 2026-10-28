@@ -1,6 +1,6 @@
 {
   "name": "visualtalk",
-  "version": "3.3.33",
+  "version": "3.3.42",
   "description": "Video conferencing application",
   "type": "module",
   "engines": {
@@ -25,6 +25,13 @@
     "win:build:arm": "tauri build --target aarch64-pc-windows-msvc",
     "linux:build": "tauri build --target x86_64-unknown-linux-gnu",
     "linux:build:arm": "tauri build --target aarch64-unknown-linux-gnu",
+    "release:mac": "python3 scripts/build_release.py mac:build",
+    "release:mac:intel": "python3 scripts/build_release.py mac:build:intel",
+    "release:mac:universal": "python3 scripts/build_release.py mac:build:universal",
+    "release:win": "python3 scripts/build_release.py win:build",
+    "release:win:arm": "python3 scripts/build_release.py win:build:arm",
+    "release:linux": "python3 scripts/build_release.py linux:build",
+    "release:linux:arm": "python3 scripts/build_release.py linux:build:arm",
     "android:init": "tauri android init && ./scripts/fix-android-project.sh",
     "android:fix": "./scripts/fix-android-project.sh",
     "android:fix:check": "./scripts/fix-android-project.sh --check",
@@ -77,5 +84,6 @@
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.1",
     "vite-plugin-solid": "^2.11.14"
-  }
+  },
+    "packageManager": "pnpm@12.15.0"
 }
