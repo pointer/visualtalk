@@ -30,7 +30,7 @@ use meeting::{MeetingRecord, ScheduledMeeting};
 use participant::Participant;
 use session::{create_session, MeetingSession};
 use settings::{UserProfile, UserSettings};
-use state::AppState;
+use state::{AppState, MediaState};
 
 /// Detect the OS system locale.
 ///
@@ -385,7 +385,7 @@ fn get_meeting_history(state: State<'_, AppState>) -> Result<Vec<MeetingRecord>,
 // ===== PARTICIPANT MANAGEMENT =====
 
 #[tauri::command]
-fn get_all_participants(state: State<'_, AppState>) -> Result<Vec<Participant>, String> {
+fn get_all_participants(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
     let manager = state
         .participant_manager
         .lock()
@@ -397,7 +397,7 @@ fn get_all_participants(state: State<'_, AppState>) -> Result<Vec<Participant>, 
 fn add_participant(
     app: AppHandle,
     participant: Participant,
-    state: State<'_, AppState>,
+    state: State<'_, MediaState>,
 ) -> Result<bool, String> {
     let mut manager = state
         .participant_manager
@@ -428,7 +428,7 @@ fn add_participant(
 fn remove_participant(
     app: AppHandle,
     participant_id: String,
-    state: State<'_, AppState>,
+    state: State<'_, MediaState>,
 ) -> Result<bool, String> {
     let mut manager = state
         .participant_manager
@@ -457,7 +457,7 @@ fn remove_participant(
 #[tauri::command]
 fn get_participant(
     participant_id: String,
-    state: State<'_, AppState>,
+    state: State<'_, MediaState>,
 ) -> Result<Option<Participant>, String> {
     let manager = state
         .participant_manager
@@ -471,7 +471,7 @@ fn set_participant_muted(
     app: AppHandle,
     participant_id: String,
     muted: bool,
-    state: State<'_, AppState>,
+    state: State<'_, MediaState>,
 ) -> Result<bool, String> {
     let mut manager = state
         .participant_manager
@@ -503,7 +503,7 @@ fn set_participant_video_enabled(
     app: AppHandle,
     participant_id: String,
     enabled: bool,
-    state: State<'_, AppState>,
+    state: State<'_, MediaState>,
 ) -> Result<bool, String> {
     let mut manager = state
         .participant_manager
@@ -526,7 +526,7 @@ fn set_participant_video_enabled(
 }
 
 #[tauri::command]
-fn filter_remote_participants(state: State<'_, AppState>) -> Result<Vec<Participant>, String> {
+fn filter_remote_participants(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
     let manager = state
         .participant_manager
         .lock()
@@ -535,7 +535,7 @@ fn filter_remote_participants(state: State<'_, AppState>) -> Result<Vec<Particip
 }
 
 #[tauri::command]
-fn get_screen_shares(state: State<'_, AppState>) -> Result<Vec<Participant>, String> {
+fn get_screen_shares(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
     let manager = state
         .participant_manager
         .lock()
@@ -544,7 +544,7 @@ fn get_screen_shares(state: State<'_, AppState>) -> Result<Vec<Participant>, Str
 }
 
 #[tauri::command]
-fn get_active_screen_share(state: State<'_, AppState>) -> Result<Option<Participant>, String> {
+fn get_active_screen_share(state: State<'_, MediaState>) -> Result<Option<Participant>, String> {
     let manager = state
         .participant_manager
         .lock()
@@ -553,7 +553,7 @@ fn get_active_screen_share(state: State<'_, AppState>) -> Result<Option<Particip
 }
 
 #[tauri::command]
-fn get_participant_count(state: State<'_, AppState>) -> Result<usize, String> {
+fn get_participant_count(state: State<'_, MediaState>) -> Result<usize, String> {
     let manager = state
         .participant_manager
         .lock()
@@ -562,7 +562,7 @@ fn get_participant_count(state: State<'_, AppState>) -> Result<usize, String> {
 }
 
 #[tauri::command]
-fn participant_exists(participant_id: String, state: State<'_, AppState>) -> Result<bool, String> {
+fn participant_exists(participant_id: String, state: State<'_, MediaState>) -> Result<bool, String> {
     let manager = state
         .participant_manager
         .lock()
@@ -571,7 +571,7 @@ fn participant_exists(participant_id: String, state: State<'_, AppState>) -> Res
 }
 
 #[tauri::command]
-fn get_sorted_participants(state: State<'_, AppState>) -> Result<Vec<Participant>, String> {
+fn get_sorted_participants(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
     let manager = state
         .participant_manager
         .lock()
@@ -580,7 +580,7 @@ fn get_sorted_participants(state: State<'_, AppState>) -> Result<Vec<Participant
 }
 
 #[tauri::command]
-fn clear_participants(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+fn clear_participants(app: AppHandle, state: State<'_, MediaState>) -> Result<(), String> {
     let mut manager = state
         .participant_manager
         .lock()
@@ -606,7 +606,7 @@ fn clear_participants(app: AppHandle, state: State<'_, AppState>) -> Result<(), 
 fn remove_screen_share(
     app: AppHandle,
     participant_id: String,
-    state: State<'_, AppState>,
+    state: State<'_, MediaState>,
 ) -> Result<(), String> {
     let mut manager = state
         .participant_manager
@@ -633,7 +633,7 @@ fn remove_screen_share(
 // ===== DEVICE MANAGEMENT =====
 
 #[tauri::command]
-fn set_devices(devices: Vec<MediaDevice>, state: State<'_, AppState>) -> Result<(), String> {
+fn set_devices(devices: Vec<MediaDevice>, state: State<'_, MediaState>) -> Result<(), String> {
     let mut manager = state
         .device_manager
         .lock()
@@ -645,7 +645,7 @@ fn set_devices(devices: Vec<MediaDevice>, state: State<'_, AppState>) -> Result<
 #[tauri::command]
 fn set_device_preferences(
     preferences: DevicePreferences,
-    state: State<'_, AppState>,
+    state: State<'_, MediaState>,
 ) -> Result<(), String> {
     let mut manager = state
         .device_manager
@@ -656,7 +656,7 @@ fn set_device_preferences(
 }
 
 #[tauri::command]
-fn get_audio_inputs(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, String> {
+fn get_audio_inputs(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
     let manager = state
         .device_manager
         .lock()
@@ -665,7 +665,7 @@ fn get_audio_inputs(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, Stri
 }
 
 #[tauri::command]
-fn get_video_inputs(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, String> {
+fn get_video_inputs(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
     let manager = state
         .device_manager
         .lock()
@@ -674,7 +674,7 @@ fn get_video_inputs(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, Stri
 }
 
 #[tauri::command]
-fn get_audio_outputs(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, String> {
+fn get_audio_outputs(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
     let manager = state
         .device_manager
         .lock()
@@ -683,7 +683,7 @@ fn get_audio_outputs(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, Str
 }
 
 #[tauri::command]
-fn get_preferred_mic(state: State<'_, AppState>) -> Result<Option<MediaDevice>, String> {
+fn get_preferred_mic(state: State<'_, MediaState>) -> Result<Option<MediaDevice>, String> {
     let manager = state
         .device_manager
         .lock()
@@ -692,7 +692,7 @@ fn get_preferred_mic(state: State<'_, AppState>) -> Result<Option<MediaDevice>, 
 }
 
 #[tauri::command]
-fn get_preferred_camera(state: State<'_, AppState>) -> Result<Option<MediaDevice>, String> {
+fn get_preferred_camera(state: State<'_, MediaState>) -> Result<Option<MediaDevice>, String> {
     let manager = state
         .device_manager
         .lock()
@@ -701,7 +701,7 @@ fn get_preferred_camera(state: State<'_, AppState>) -> Result<Option<MediaDevice
 }
 
 #[tauri::command]
-fn get_preferred_speaker(state: State<'_, AppState>) -> Result<Option<MediaDevice>, String> {
+fn get_preferred_speaker(state: State<'_, MediaState>) -> Result<Option<MediaDevice>, String> {
     let manager = state
         .device_manager
         .lock()
@@ -712,7 +712,7 @@ fn get_preferred_speaker(state: State<'_, AppState>) -> Result<Option<MediaDevic
 #[tauri::command]
 fn get_device(
     device_id: String,
-    state: State<'_, AppState>,
+    state: State<'_, MediaState>,
 ) -> Result<Option<MediaDevice>, String> {
     let manager = state
         .device_manager
@@ -722,7 +722,7 @@ fn get_device(
 }
 
 #[tauri::command]
-fn get_all_devices(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, String> {
+fn get_all_devices(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
     let manager = state
         .device_manager
         .lock()
@@ -732,7 +732,7 @@ fn get_all_devices(state: State<'_, AppState>) -> Result<Vec<MediaDevice>, Strin
 
 #[tauri::command]
 fn get_device_groups(
-    state: State<'_, AppState>,
+    state: State<'_, MediaState>,
 ) -> Result<Vec<crate::device::DeviceGroup>, String> {
     let manager = state
         .device_manager
@@ -745,7 +745,7 @@ fn get_device_groups(
 fn validate_device(
     device_id: String,
     kind: crate::device::DeviceKind,
-    state: State<'_, AppState>,
+    state: State<'_, MediaState>,
 ) -> Result<bool, String> {
     let manager = state
         .device_manager
@@ -989,6 +989,7 @@ pub fn run() {
                 .ok()
                 .and_then(|data| data.settings.recordings_dir.clone());
             app.manage(app_state);
+            app.manage(MediaState::new());
             app.manage(recording::RecordingState::new(
                 recordings_default,
                 recordings_override,
