@@ -1,6 +1,6 @@
+use crate::persistence;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -30,23 +30,11 @@ pub struct MeetingStore {
 
 impl MeetingStore {
     pub fn load_or_default(config_dir: &PathBuf) -> Self {
-        let file_path = config_dir.join("meetings.json");
-        if file_path.exists() {
-            if let Ok(content) = fs::read_to_string(&file_path) {
-                if let Ok(data) = serde_json::from_str::<MeetingStore>(&content) {
-                    return data;
-                }
-            }
-        }
-        MeetingStore::default()
+        persistence::load_json::<MeetingStore>(config_dir, "meetings.json").unwrap_or_default()
     }
 
     pub fn save(&self, config_dir: &PathBuf) -> Result<(), String> {
-        let _ = fs::create_dir_all(config_dir);
-        let file_path = config_dir.join("meetings.json");
-        let json = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
-        fs::write(file_path, json).map_err(|e| e.to_string())?;
-        Ok(())
+        persistence::save_json(config_dir, "meetings.json", self)
     }
 
     pub fn add_scheduled(

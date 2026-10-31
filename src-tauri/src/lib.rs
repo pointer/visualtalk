@@ -1,9 +1,9 @@
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_store::StoreExt;
 
+mod ai;
 mod backgrounds;
 mod chat;
-mod ai;
 mod commands;
 mod demo;
 mod device;
@@ -13,6 +13,7 @@ mod events;
 mod layout;
 mod meeting;
 mod participant;
+mod persistence;
 mod recording;
 mod session;
 mod settings;

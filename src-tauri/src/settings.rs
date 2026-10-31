@@ -1,6 +1,6 @@
 use crate::ai::AiSettings;
+use crate::persistence;
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::PathBuf;
 
 /// Publisher support contact, surfaced in Settings → About.
@@ -134,27 +134,20 @@ pub struct AppData {
 
 impl AppData {
     pub fn load_or_default(config_dir: &PathBuf) -> Self {
-        let file_path = config_dir.join("settings.json");
-        if file_path.exists() {
-            if let Ok(content) = fs::read_to_string(&file_path) {
-                if let Ok(mut data) = serde_json::from_str::<AppData>(&content) {
-                    // If the stored identity was generic "User1", generate a unique one
-                    if data.profile.identity == "User1" || data.profile.identity.is_empty() {
-                        let rand_suffix = (chrono::Utc::now().timestamp_millis() % 9000) + 1000;
-                        data.profile.identity = format!("User-{}", rand_suffix);
-                        if data.profile.display_name == "You"
-                            || data.profile.display_name == "User1"
-                        {
-                            data.profile.display_name = data.profile.identity.clone();
-                        }
-                        let _ = data.save(config_dir);
-                    }
-                    // An empty `report_email` is meaningful ("route reports to
-                    // the organizer"), so nothing is backfilled here — see
-                    // `UserProfile::effective_report_email`.
-                    return data;
+        if let Some(mut data) = persistence::load_json::<AppData>(config_dir, "settings.json") {
+            // If the stored identity was generic "User1", generate a unique one
+            if data.profile.identity == "User1" || data.profile.identity.is_empty() {
+                let rand_suffix = (chrono::Utc::now().timestamp_millis() % 9000) + 1000;
+                data.profile.identity = format!("User-{}", rand_suffix);
+                if data.profile.display_name == "You" || data.profile.display_name == "User1" {
+                    data.profile.display_name = data.profile.identity.clone();
                 }
+                let _ = data.save(config_dir);
             }
+            // An empty `report_email` is meaningful ("route reports to
+            // the organizer"), so nothing is backfilled here — see
+            // `UserProfile::effective_report_email`.
+            return data;
         }
         let default_data = AppData::default();
         let _ = default_data.save(config_dir);
@@ -162,11 +155,7 @@ impl AppData {
     }
 
     pub fn save(&self, config_dir: &PathBuf) -> Result<(), String> {
-        let _ = fs::create_dir_all(config_dir);
-        let file_path = config_dir.join("settings.json");
-        let json = serde_json::to_string_pretty(self).map_err(|e| e.to_string())?;
-        fs::write(file_path, json).map_err(|e| e.to_string())?;
-        Ok(())
+        persistence::save_json(config_dir, "settings.json", self)
     }
 }
 
@@ -251,7 +240,7 @@ mod tests {
             std::process::id(),
             chrono::Utc::now().timestamp_millis()
         ));
-        fs::create_dir_all(&dir).unwrap();
+        std::fs::create_dir_all(&dir).unwrap();
 
         let mut data = AppData::default();
         data.profile.email = "organizer@example.com".to_string();
@@ -265,6 +254,6 @@ mod tests {
             "organizer@example.com"
         );
 
-        let _ = fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
