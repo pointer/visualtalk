@@ -83,6 +83,13 @@ ExportOptions.plist
 !NOTICE.txt
 !docs/**/*.md
 
+# Agent workflow is part of the repo: keep AGENTS.md, Guidance.md, and the
+# .opencode markdown files in a fresh clone. The blanket *.md rule above would
+# otherwise drop them silently. Verified with: git check-ignore -v <path>.
+!AGENTS.md
+!Guidance.md
+!.opencode/**/*.md
+
 # PII-dense filing drafts (owner's private store, NOT for public repo).
 # Placed AFTER the !docs/**/*.md whitelist above — last match wins.
 docs/anssi-*
