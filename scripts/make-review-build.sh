@@ -27,13 +27,14 @@
 # Usage:
 #   ./scripts/make-review-build.sh                 # App Store Connect IPA
 #   ./scripts/make-review-build.sh --check         # resolve creds, build nothing
-#   ./scripts/make-review-build.sh --features e2ee
+#   ./scripts/make-review-build.sh --features pro
 #   ./scripts/make-review-build.sh --pro           # Pro Edition review IPA
 #
 # --pro mirrors `pnpm ios:build:store:pro`: it installs and verifies the Pro
 # E2EE implementation (setup-pro.sh), merges src-tauri/tauri.pro.conf.json
-# (bundle id com.katebg.visualtalk.pro), sets VITE_ENABLE_E2EE=true, and adds
-# `--features e2ee` unless you passed it yourself.
+# (bundle id com.katebg.visualtalk.pro), sets VITE_EDITION=pro and
+# VITE_ENABLE_E2EE=true, and adds `--features pro` unless you passed a Pro
+# feature yourself.
 #
 # Credentials come from the environment if set, otherwise from the LiveKit
 # config already saved in Settings → LiveKit:
@@ -75,12 +76,13 @@ if [ "$PRO" -eq 1 ]; then
   if [ "$CHECK_ONLY" -eq 0 ]; then
     ./scripts/setup-pro.sh
   fi
-  export VITE_ENABLE_E2EE=true
+  export VITE_EDITION=pro VITE_ENABLE_E2EE=true
   TAURI_EXTRA+=(--config src-tauri/tauri.pro.conf.json)
-  # Pro always ships E2EE; add the cargo feature unless the caller passed it.
+  # Pro always ships E2EE (and therefore the edition flag); add the cargo
+  # feature unless the caller passed one of the features that imply it.
   case " ${PASSTHROUGH[*]-} " in
-    *" e2ee "*) : ;;
-    *) PASSTHROUGH+=(-- --features e2ee) ;;
+    *" e2ee "*|*" pro "*) : ;;
+    *) PASSTHROUGH+=(-- --features pro) ;;
   esac
 fi
 

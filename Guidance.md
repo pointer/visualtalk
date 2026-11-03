@@ -20,7 +20,7 @@ VisualTalk is a lightweight desktop video-conferencing client: a thin **SolidJS*
 | Package mgr  | pnpm — `pnpm-lock.yaml` is the only lockfile |
 | Runtime      | Node.js v24                                   |
 | OS / env     | macOS, Homebrew, Git, Xcode CLT               |
-| Editions     | Community (default) / Pro (`--features e2ee`) |
+| Editions     | Community (default) / Pro (`--features pro`)  |
 
 ## 3. How to run, build, test
 
@@ -31,8 +31,8 @@ pnpm desktop              # run the full desktop app in dev mode (tauri dev)
 pnpm desktop:build        # production bundle (Community Edition)
 pnpm build                # build the SolidJS frontend only
 
-# Pro Edition (E2EE) — requires the private src-tauri/e2ee-pro/ sources
-pnpm desktop:pro          # ./scripts/setup-pro.sh && tauri dev --features e2ee
+# Pro Edition (E2EE + streaming) — requires the private src-tauri/e2ee-pro/ sources
+pnpm desktop:pro          # ./scripts/setup-pro.sh && tauri dev --features pro
 pnpm desktop:build:pro    # production Pro bundle
 
 # Rust — run from src-tauri/ (there is no root Cargo.toml)
@@ -69,7 +69,7 @@ src-tauri/
     chat.rs  meeting.rs  participant.rs  session.rs  token.rs
     recording.rs  egress.rs  device.rs  backgrounds.rs  layout.rs
     window.rs  settings.rs  state.rs  events.rs  demo.rs
-    e2ee.rs               # Pro only — gated behind the `e2ee` feature
+    e2ee.rs               # Pro implementation; CE ships a stub that setup-pro.sh swaps
   Cargo.toml
   tauri.conf.json         # base config: bundle, window, CSP (source of truth)
   tauri.pro.conf.json     # Pro Edition config overlay
@@ -80,6 +80,16 @@ src-tauri/
 scripts/                  # setup-pro.sh, platform fixers, notices generator
 docs/                     # compliance/export packet (ANSSI, BIS, EULA-adjacent)
 ```
+
+**Edition gating — two separate switches.** `e2ee` is the *crypto* switch: the Pro
+implementation lands in `src-tauri/src/e2ee.rs` by file swap
+(`scripts/setup-pro.sh`), while the public repo ships a stub. `pro` is the
+*edition* switch (`pro = ["e2ee"]` in `Cargo.toml`), and it is what paid-only
+features such as RTMP streaming gate on: `#[cfg(feature = "pro")]` in Rust,
+`__PRO_EDITION__` in JSX (set from `VITE_EDITION=pro` in `vite.config.js`).
+Never gate a paid feature on `e2ee` — a build can carry the crypto without being
+the Pro edition, and `#[cfg]` is preferred over a runtime check so a Community
+binary contains no reachable code path for the feature.
 
 State lives in Solid signals/stores owned by `App.jsx` / `MainWindow.jsx` / `MeetingView.jsx` and passed down as props — there is no `src/stores/` directory. Don't create one for a single feature.
 

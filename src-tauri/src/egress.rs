@@ -11,12 +11,18 @@
 
 use crate::commands::{LiveKitSettings, SETTINGS_KEY, STORE_FILE};
 use livekit_api::services::egress::{
-    encoding::{self, EncodingOptions},
     EgressClient, EgressListFilter, EgressListOptions, EgressOutput, RoomCompositeOptions,
 };
+// `encoding` and `StreamOutput` are only reachable from the streaming arm,
+// which is a Pro feature (docs/decisions/0002) — importing them unconditionally
+// makes a Community build warn about unused imports.
+#[cfg(feature = "pro")]
+use livekit_api::services::egress::encoding::{self, EncodingOptions};
 use livekit_protocol::{
-    EncodedFileOutput, EncodedFileType, EgressInfo as ProtoEgressInfo, EgressStatus, StreamOutput,
+    EncodedFileOutput, EncodedFileType, EgressInfo as ProtoEgressInfo, EgressStatus,
 };
+#[cfg(feature = "pro")]
+use livekit_protocol::StreamOutput;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
@@ -143,6 +149,12 @@ pub async fn start_room_egress(
                 },
             )
         }
+        // RTMP streaming is a paid Pro feature (docs/decisions/0002). The gate
+        // is compile-time on purpose: a Community binary carries no streaming
+        // code path at all, so the feature cannot be reached by driving IPC
+        // directly. Server-side *file* recording above stays available in both
+        // editions — only the broadcast is gated.
+        #[cfg(feature = "pro")]
         EgressOutputType::Stream => {
             let cfg = request.stream_config.unwrap_or(StreamOutputConfig {
                 urls: vec![],
@@ -163,6 +175,14 @@ pub async fn start_room_egress(
                     ..Default::default()
                 },
             )
+        }
+        #[cfg(not(feature = "pro"))]
+        EgressOutputType::Stream => {
+            return Err(
+                "Streaming is available in VisualTalk Pro only. This Community Edition can \
+                 record meetings to a file, but it cannot broadcast them to an RTMP endpoint."
+                    .to_string(),
+            );
         }
     };
 
@@ -272,6 +292,7 @@ fn file_type_from_str(s: &str) -> EncodedFileType {
 
 /// Map a stream preset name from the frontend ("FULL_HD_1080" by default) to
 /// the SDK's built-in encoding presets.
+#[cfg(feature = "pro")]
 fn encoding_for_preset(preset: &str) -> EncodingOptions {
     match preset {
         "HD_720" | "H264_720P_30" => encoding::H264_720P_30,

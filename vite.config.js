@@ -8,8 +8,11 @@ import tailwindcss from "@tailwindcss/vite"; // Add this
 export default defineConfig(async () => ({
   plugins: [tailwindcss(), solid()],
 
-  // Compile-time constants for edition gating
+  // Compile-time constants for edition gating.
+  //  * __PRO_EDITION__ is the edition flag (streaming and other paid features).
+  //  * __E2EE_ENABLED__ is the crypto flag (chat/file encryption only).
   define: {
+    __PRO_EDITION__: JSON.stringify(process.env.VITE_EDITION === "pro"),
     __E2EE_ENABLED__: JSON.stringify(process.env.VITE_ENABLE_E2EE === "true"),
   },
 

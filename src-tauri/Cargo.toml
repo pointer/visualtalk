@@ -61,4 +61,8 @@ openssl = { version = "0.10", features = ["vendored"] }
 
 [features]
 default = []
+# `e2ee` enables the Pro cryptography module; `pro` is the edition flag. Keep
+# them separate: streaming and other paid-only features gate on `pro`, not on
+# whether chat/files happen to be encrypted in this build.
 e2ee = ["p256", "aes-gcm"]
+pro = ["e2ee"]
