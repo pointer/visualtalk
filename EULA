@@ -125,13 +125,23 @@ termination, you must cease all use of the Software and destroy
 all copies.
 
 
-11. COMMERCIAL LICENSE
+11. NO PAID FEATURES; COMMERCIAL LICENSE
 
-To use VisualTalk for commercial purposes, you must obtain a
-commercial license or purchase the VisualTalk Pro Edition through
-the Apple App Store or the Google Play Store.
+  a) This Community Edition application is provided free of charge.
+     It contains no paid features, no subscriptions, no In-App
+     Purchase, and no mechanism that unlocks functionality in
+     exchange for payment.
+  b) VisualTalk Pro Edition is a separate application, distributed
+     through app stores under its own license (EULA-PRO) with the
+     store acting as merchant of record. It is not an upgrade of,
+     an entitlement in, or a component of this Software, and nothing
+     in this Software changes if you obtain it.
+  c) Commercial use of the underlying source code requires a separate
+     commercial license from the Licensor. That license concerns the
+     source code, not any feature or content of this application.
 
-Contact for commercial licensing: <kghemari@yahoo.com>
+Contact for commercial licensing of the source code:
+<kghemari@yahoo.com>
 
 
 12. GOVERNING LAW AND JURISDICTION

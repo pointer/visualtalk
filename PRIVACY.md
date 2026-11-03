@@ -163,9 +163,15 @@ Community Edition — no E2EE. Chat messages are not end-to-end
 encrypted and are processable by the operator of the server you chose.
 
 
-8. APP STORES AND PURCHASES
+8. APP STORES AND PURCHASES (VISUALTALK PRO ONLY)
 
-When you buy VisualTalk Pro through the Apple App Store or Google Play:
+The VisualTalk Community Edition application is free of charge and
+contains no purchases, no subscriptions and no In-App Purchase.
+This section applies only to the separate VisualTalk Pro
+application.
+
+When you download or buy VisualTalk Pro through the Apple App Store
+or Google Play:
 
   - Apple and Google act as merchant of record. They process your
     payment, handle billing and issue refunds under their own terms and

@@ -9,19 +9,43 @@ import PRIVACY_POLICY from "../../PRIVACY.md?raw";
 import COMMUNITY_EULA from "../../EULA?raw";
 import PRO_EULA from "../../EULA-PRO?raw";
 
-// Compile-time edition detection
+// Compile-time edition detection.
+// `__PRO_EDITION__` is the edition flag and the one that should decide which
+// legal text is shown; `__E2EE_ENABLED__` is kept as a fallback so that no
+// build can ever carry the Pro cryptography while displaying the Community
+// EULA. A Pro build sets both.
 const IS_PRO =
-  typeof __E2EE_ENABLED__ !== "undefined" && __E2EE_ENABLED__ === true;
+  (typeof __PRO_EDITION__ !== "undefined" && __PRO_EDITION__ === true) ||
+  (typeof __E2EE_ENABLED__ !== "undefined" && __E2EE_ENABLED__ === true);
 
-const SOURCE_LICENSE =
+// Source-code licence summary. Edition-aware on purpose:
+//  * the Community build must not read as an advertisement for a paid tier or
+//    as a pointer to an external purchase channel (App Review 2.1(b) / 3.1.1),
+//  * the Pro build must still state that the store — not this app — is the
+//    merchant of record.
+// The publisher's contact address is intentionally not repeated here; it is
+// already reachable in Settings → About.
+const SOURCE_LICENSE_SUMMARY =
   "POLYFORM NONCOMMERCIAL LICENSE 1.0.0\n\n" +
   "Source: https://polyformproject.org/licenses/noncommercial/1.0.0/\n\n" +
-  "Summary:\n" +
+  "This license governs the VisualTalk source code published in the community\n" +
+  "repository. The application you are running is licensed to you under the\n" +
+  "EULA shown in the EULA tab.\n\n" +
+  "Summary of the source-code license:\n" +
   "  \u2705 Free for personal, educational, non-profit, and community use\n" +
   "  \u2705 Free for evaluation and testing\n" +
-  "  \u274C Commercial use requires a VisualTalk Pro Edition license\n" +
-  "  \u274C No sublicensing or redistribution for commercial purposes\n\n" +
-  "For commercial licensing: contact Miradata SASU at <kghemari@yahoo.com>.";
+  "  \u274C Commercial use of the source code requires a separate license\n" +
+  "  \u274C No sublicensing or redistribution for commercial purposes\n";
+
+const SOURCE_LICENSE =
+  SOURCE_LICENSE_SUMMARY +
+  (IS_PRO
+    ? "\nThis Pro application is sold by the app store, which acts as merchant of\n" +
+      "record. It contains no in-app purchases, and no feature inside it is\n" +
+      "unlocked by payment.\n"
+    : "\nThis Community Edition application is free of charge. It contains no\n" +
+      "in-app purchases, no subscriptions, no account requirement, and no\n" +
+      "feature that is unlocked by payment.\n");
 
 /**
  * LicenseScreen component — displays EULA and source license

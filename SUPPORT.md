@@ -51,6 +51,10 @@ list of supported platforms and versions. The iOS build requires iOS 15.0 or lat
 
 ## Commercial licensing and paid support
 
-VisualTalk Pro and commercial licensing (including paid support agreements) are
-described in the `EULA-PRO` file in the repository; contact
-<kghemari@yahoo.com>.
+The VisualTalk app distributed through app stores is the free Community
+Edition: it has no In-App Purchase, no subscription and no paid features, and
+no account is required to use it.
+
+VisualTalk Pro is a separate application, and commercial licensing of the source
+code (including paid support agreements) is described in the `EULA-PRO` file in
+the repository; contact <kghemari@yahoo.com>.
