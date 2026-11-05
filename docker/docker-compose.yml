@@ -126,6 +126,20 @@ services:
         condition: service_healthy
     logging: *container-logging
 
+  whisper:
+    image: fedirz/faster-whisper-server:latest-cpu
+    profiles: [translation]
+    container_name: visualtalk-whisper
+    restart: unless-stopped
+    expose: ["8000"]
+    ports:
+      - "${WHISPER_BIND_ADDR:-127.0.0.1}:${WHISPER_PORT:-8080}:8000"
+    environment:
+      - WHISPER_MODEL=${WHISPER_MODEL:-small}
+      - WHISPER_DEVICE=cpu
+    networks: [livekit]
+    logging: *container-logging
+
 networks:
   livekit:
     name: visualtalk-livekit

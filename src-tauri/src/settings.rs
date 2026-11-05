@@ -75,6 +75,43 @@ impl Default for UserProfile {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum TranslationStrategy {
+    Cloud,
+    Docker,
+    ServerAgent,
+}
+
+impl Default for TranslationStrategy {
+    fn default() -> Self {
+        Self::Cloud
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TranslationSettings {
+    pub enabled: bool,
+    pub strategy: TranslationStrategy,
+    pub target_language: String,
+    pub api_key: Option<String>,
+    pub custom_url: Option<String>,
+}
+
+impl Default for TranslationSettings {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            strategy: TranslationStrategy::default(),
+            target_language: "en".to_string(),
+            api_key: None,
+            custom_url: None,
+        }
+    }
+}
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserSettings {
     pub start_with_video: bool,
@@ -91,6 +128,9 @@ pub struct UserSettings {
     /// control to relocate it and to reveal the current folder.
     #[serde(default)]
     pub recordings_dir: Option<String>,
+    /// Pro-only live translation settings.
+    #[serde(default)]
+    pub translation: TranslationSettings,
     /// Use the build-time demo LiveKit project instead of the user's own
     /// credentials. Only ever functional in a build compiled with
     /// `VISUALTALK_DEMO_*`; see `demo.rs`. Off by default and never consulted
@@ -109,6 +149,7 @@ impl Default for UserSettings {
             preferred_mic_id: None,
             preferred_cam_id: None,
             recordings_dir: None,
+            translation: TranslationSettings::default(),
             demo_mode: false,
         }
     }

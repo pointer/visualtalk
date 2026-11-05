@@ -11,7 +11,7 @@ import { LicenseScreen } from "./LicenseScreen";
 // recordings folder is a desktop-only control.
 import { IS_MOBILE } from "../lib/platform";
 
-export function SettingsTab(props) {
+export function SettingsPanel(props) {
   const { t, locale, changeLocale, availableLocales } = useI18n();
   const [activeSection, setActiveSection] = createSignal("audio-video");
   const [loading, setLoading] = createSignal(true);
@@ -162,7 +162,28 @@ export function SettingsTab(props) {
     }
   });
 
-  // ── Recordings ──
+  // ── Translation ──
+  const [transSettings, setTransSettings] = createSignal({
+    enabled: false,
+    strategy: "cloud",
+    targetLanguage: "en",
+    apiKey: "",
+    customUrl: "",
+  });
+  const [transSaving, setTransSaving] = createSignal(false);
+
+  const saveTranslationSettings = async () => {
+    setTransSaving(true);
+    try {
+      await invoke("update_translation_settings", { settings: transSettings() });
+      alert(t("settings.savedSuccessfully"));
+    } catch (err) {
+      alert(`❌ Error: ${err}`);
+    } finally {
+      setTransSaving(false);
+    }
+  };
+
 
   const loadRecordings = async () => {
     const [dir, files] = await Promise.all([
@@ -273,6 +294,9 @@ export function SettingsTab(props) {
 
       const sett = await invoke("get_user_settings");
       setSettings(sett);
+
+      const trans = await invoke("get_translation_settings").catch(() => null);
+      if (trans) setTransSettings(trans);
 
       const ai = await invoke("get_ai_settings").catch(() => null);
       if (ai) setAiCfg(ai);

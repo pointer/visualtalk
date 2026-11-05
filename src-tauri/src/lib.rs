@@ -21,6 +21,8 @@ mod state;
 mod token;
 mod window;
 
+use settings::TranslationSettings;
+
 use backgrounds::{get_background, set_background, BackgroundState};
 use commands::*;
 use device::{DevicePreferences, MediaDevice};
@@ -38,6 +40,33 @@ use state::{AppState, MediaState};
 /// and returns the language tag (e.g. "en_US.UTF-8" → "en").
 /// Returns an empty string if no locale can be detected — the frontend falls
 /// back to `navigator.language` and then to "en".
+// ===== TRANSLATION =====
+
+#[tauri::command]
+fn update_translation_settings(
+    settings: TranslationSettings,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    data.settings.translation = settings;
+    data.save(&state.config_dir)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_translation_settings(state: State<'_, AppState>) -> Result<TranslationSettings, String> {
+    let data = state
+        .data
+        .lock()
+        .map_err(|_| "Failed to lock app data".to_string())?;
+    Ok(data.settings.translation.clone())
+}
+
+
 #[tauri::command]
 fn get_system_locale() -> String {
     for var in &["LC_ALL", "LANG", "LANGUAGE"] {
@@ -1103,6 +1132,9 @@ pub fn run() {
             ai::get_ai_settings,
             ai::update_ai_settings,
             ai::test_ai_connection,
+            // Translation
+            update_translation_settings,
+            get_translation_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,5 +1,5 @@
 import { createSignal, Show } from "solid-js";
-import { SettingsTab } from "./components/SettingsTab";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { NotesTab } from "./components/NotesTab";
 import { HomeTab } from "./components/HomeTab";
 import { MeetingsTab } from "./components/MeetingsTab";
@@ -8,7 +8,7 @@ import { useI18n } from "./i18n/I18nProvider";
 /**
  * Main-window shell: sidebar + bottom tab bar and tab routing only.
  * Every feature lives in its own component (HomeTab, MeetingsTab, NotesTab,
- * SettingsTab) and owns its own backend state / event subscriptions.
+ * SettingsPanel) and owns its own backend state / event subscriptions.
  */
 export function MainWindow(props) {
   const { t } = useI18n();
@@ -155,7 +155,7 @@ export function MainWindow(props) {
             </Show>
           }
         >
-          <SettingsTab />
+          <SettingsPanel />
         </Show>
       </main>
 
