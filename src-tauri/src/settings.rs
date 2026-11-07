@@ -232,6 +232,62 @@ mod tests {
         assert_eq!(settings.source_language, "auto");
     }
 
+    /// The strategy selector in `SettingsPanel.jsx` switches on the literal
+    /// string, so the wire spelling is part of the contract with the frontend.
+    ///
+    /// `rename_all = "camelCase"` lowercases the first letter and preserves the
+    /// internal word boundary: `ServerAgent` becomes `serverAgent`, **not**
+    /// `serveragent`. A UI comparison against the all-lowercase spelling can
+    /// never match, and fails silently (the conditional block just never
+    /// renders).
+    #[cfg(feature = "pro")]
+    #[test]
+    fn translation_strategy_wire_spelling_is_camel_case() {
+        assert_eq!(
+            serde_json::to_string(&TranslationStrategy::Cloud).unwrap(),
+            "\"cloud\""
+        );
+        assert_eq!(
+            serde_json::to_string(&TranslationStrategy::Docker).unwrap(),
+            "\"docker\""
+        );
+        assert_eq!(
+            serde_json::to_string(&TranslationStrategy::ServerAgent).unwrap(),
+            "\"serverAgent\""
+        );
+    }
+
+    /// Round-trip the whole settings block through JSON to pin every field name
+    /// the frontend reads. `src/models/index.js` documents these shapes; this
+    /// test is what keeps that documentation true.
+    #[cfg(feature = "pro")]
+    #[test]
+    fn translation_settings_field_names_on_the_wire() {
+        let json = serde_json::to_value(TranslationSettings::default()).unwrap();
+        let mut keys: Vec<&str> = json
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        keys.sort_unstable();
+        // serde_json's Map is a BTreeMap without the `preserve_order` feature,
+        // so compare sorted: this pins the field *names*, not their order.
+        let mut expected = vec![
+            "apiKey",
+            "customUrl",
+            "enabled",
+            "sourceLanguage",
+            "strategy",
+            "targetLanguage",
+        ];
+        expected.sort_unstable();
+        assert_eq!(
+            keys, expected,
+            "camelCase field names are what the frontend must use"
+        );
+    }
+
     /// A `settings.json` written before `report_email` existed must still load,
     /// and reports must route to the organizer (the user's own email) rather
     /// than to some hardcoded third party.

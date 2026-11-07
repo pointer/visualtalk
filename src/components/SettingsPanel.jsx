@@ -7,9 +7,7 @@ import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { requestMediaPermissions } from "./Permissions";
 import { LicenseScreen } from "./LicenseScreen";
 import { IS_MOBILE } from "../lib/platform";
-
-const IS_PRO_EDITION =
-  typeof __PRO_EDITION__ !== "undefined" && __PRO_EDITION__ === true;
+import { IS_PRO_EDITION } from "../lib/edition";
 
 export function SettingsPanel(props) {
   const { t, locale, changeLocale, availableLocales } = useI18n();
@@ -1205,7 +1203,7 @@ onMount(async () => {
                     <div class="flex flex-wrap gap-2">
                       <StrategyOption value="cloud" label="Cloud API" />
                       <StrategyOption value="docker" label="Local Docker" />
-                      <StrategyOption value="serveragent" label="Server Agent" />
+                      <StrategyOption value="serverAgent" label="Server Agent" />
                     </div>
                     <p class="text-xs text-gray-500">Choose how translation is performed.</p>
                   </div>
@@ -1273,7 +1271,11 @@ onMount(async () => {
                     </div>
                   </Show>
 
-                  <Show when={transSettings().strategy === "docker" || transSettings().strategy === "serveragent"}>
+                  {/* The strategy value is the *serde wire spelling*, not a display
+                      label: TranslationStrategy is `rename_all = "camelCase"`, so
+                      ServerAgent arrives as "serverAgent". Pinned by the Rust test
+                      `translation_strategy_wire_spelling_is_camel_case`. */}
+                  <Show when={transSettings().strategy === "docker" || transSettings().strategy === "serverAgent"}>
                     <div class="flex flex-col gap-2">
                       <label class="text-sm font-semibold text-gray-500">Custom Server URL (Optional)</label>
                       <input

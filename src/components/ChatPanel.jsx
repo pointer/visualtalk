@@ -1,4 +1,5 @@
 import { createSignal, createEffect, onMount, For, Show } from "solid-js";
+import { IS_E2EE_ENABLED } from "../lib/edition";
 import { invoke } from "@tauri-apps/api/core";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { RoomEvent } from "livekit-client";
@@ -6,7 +7,6 @@ import * as chat from "./chat";
 import { useI18n } from "../i18n/I18nProvider";
 
 // Compile-time feature flag — tree-shaken out in community builds
-const E2EE_ENABLED = typeof __E2EE_ENABLED__ !== "undefined" && __E2EE_ENABLED__ === true;
 
 export function ChatPanel(props) {
   const { t, locale } = useI18n();
@@ -136,7 +136,7 @@ export function ChatPanel(props) {
 
     const setup = async () => {
       // Initialize E2EE via Rust backend if enabled
-      if (E2EE_ENABLED) {
+      if (IS_E2EE_ENABLED) {
         try {
           storedPublicKeyB64 = await invoke("e2ee_init", {
             localIdentity: room.localParticipant.identity,
@@ -294,7 +294,7 @@ export function ChatPanel(props) {
       if (cleanupListener) cleanupListener();
       if (cleanupParticipant) cleanupParticipant();
       // Clean up Rust E2EE session when room changes
-      if (E2EE_ENABLED) {
+      if (IS_E2EE_ENABLED) {
         invoke("e2ee_destroy").catch(() => {});
       }
     };
@@ -570,7 +570,7 @@ export function ChatPanel(props) {
           <span class="text-[10px] text-emerald-300 font-medium">End-to-end encrypted</span>
         </div>
       </Show>
-      <Show when={E2EE_ENABLED && !e2eeActive()}>
+      <Show when={IS_E2EE_ENABLED && !e2eeActive()}>
         <div class="px-4 py-1.5 bg-amber-900/20 border-b border-amber-800/30 flex items-center gap-1.5">
           <svg class="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />

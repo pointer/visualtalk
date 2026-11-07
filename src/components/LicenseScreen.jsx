@@ -8,15 +8,13 @@ import { createSignal, createResource } from "solid-js";
 import PRIVACY_POLICY from "../../PRIVACY.md?raw";
 import COMMUNITY_EULA from "../../EULA?raw";
 import PRO_EULA from "../../EULA-PRO?raw";
+import { IS_PRO_EDITION, IS_E2EE_ENABLED } from "../lib/edition";
 
-// Compile-time edition detection.
-// `__PRO_EDITION__` is the edition flag and the one that should decide which
-// legal text is shown; `__E2EE_ENABLED__` is kept as a fallback so that no
-// build can ever carry the Pro cryptography while displaying the Community
-// EULA. A Pro build sets both.
-const IS_PRO =
-  (typeof __PRO_EDITION__ !== "undefined" && __PRO_EDITION__ === true) ||
-  (typeof __E2EE_ENABLED__ !== "undefined" && __E2EE_ENABLED__ === true);
+// Compile-time edition detection — see src/lib/edition.js.
+// The edition flag is what should decide which legal text is shown; the crypto
+// flag is kept as a fallback so that no build can ever carry the Pro
+// cryptography while displaying the Community EULA. A Pro build sets both.
+const IS_PRO = IS_PRO_EDITION || IS_E2EE_ENABLED;
 
 // Source-code licence summary. Edition-aware on purpose:
 //  * the Community build must not read as an advertisement for a paid tier or
