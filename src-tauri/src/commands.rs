@@ -8,6 +8,25 @@ use chrono::{Local, NaiveDate, NaiveTime, TimeZone, Utc};
 use icalendar::{Calendar, Component, Event, EventLike, Property};
 use std::fs;
 
+// ── Command modules ──────────────────────────────────────────────
+//
+// The #[tauri::command] wrappers used to live in lib.rs next to the app
+// setup. They are grouped here by domain; lib.rs keeps one
+// `generate_handler!` table because Tauri v2 overwrites (not extends)
+// `Builder::invoke_handler`, so it can only be installed once.
+pub mod devices;
+pub mod layout;
+pub mod meeting;
+pub mod participants;
+pub mod profile;
+pub mod safety;
+pub mod schedule;
+pub mod system;
+// Pro-only: a Community build must contain no translation code path at all
+// (Guidance.md, two-switch convention; ADR 0003).
+#[cfg(feature = "pro")]
+pub mod translation;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LiveKitSettings {
     pub url: String,
@@ -249,10 +268,7 @@ pub fn parse_invite_link(invite_link: String) -> Result<ParsedInvite, String> {
 }
 
 #[tauri::command]
-pub async fn create_icalendar_event(
-    app: AppHandle,
-    ics: ICalendarEvent,
-) -> Result<String, String> {
+pub async fn create_icalendar_event(app: AppHandle, ics: ICalendarEvent) -> Result<String, String> {
     use chrono::Duration;
 
     let start_date = NaiveDate::parse_from_str(&ics.ics_start_date, "%Y-%m-%d")

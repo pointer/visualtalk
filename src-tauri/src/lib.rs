@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 use tauri_plugin_store::StoreExt;
 
 mod ai;
@@ -21,760 +21,24 @@ mod state;
 mod token;
 mod window;
 
-#[cfg(feature = "pro")]
-use settings::TranslationSettings;
-
-use backgrounds::{get_background, set_background, BackgroundState};
-use commands::*;
-use device::{DevicePreferences, MediaDevice};
-use events::{emit as emit_event, VtEvent};
-use layout::{LayoutCalculator, LayoutConfig};
-use meeting::{MeetingRecord, ScheduledMeeting};
-use participant::Participant;
-use session::{create_session, MeetingSession};
-use settings::{UserProfile, UserSettings};
+use backgrounds::BackgroundState;
 use state::{AppState, MediaState};
 
-/// Detect the OS system locale.
-///
-/// Reads LANG / LC_ALL / LANGUAGE environment variables (set by macOS and Linux)
-/// and returns the language tag (e.g. "en_US.UTF-8" → "en").
-/// Returns an empty string if no locale can be detected — the frontend falls
-/// back to `navigator.language` and then to "en".
-// ===== TRANSLATION =====
-
-#[cfg(feature = "pro")]
-#[tauri::command]
-fn update_translation_settings(
-    settings: TranslationSettings,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
-    state.update_data(|data| data.settings.translation = settings)?;
-    Ok(())
-}
-
-#[cfg(feature = "pro")]
-#[tauri::command]
-fn get_translation_settings(state: State<'_, AppState>) -> Result<TranslationSettings, String> {
-    state.read_data(|data| data.settings.translation.clone())
-}
-
-#[tauri::command]
-fn get_system_locale() -> String {
-    for var in &["LC_ALL", "LANG", "LANGUAGE"] {
-        if let Ok(val) = std::env::var(var) {
-            if !val.is_empty() && val != "C" && val != "POSIX" {
-                return val;
-            }
-        }
-    }
-    String::new()
-}
-
-#[tauri::command]
-fn get_meeting_session(
-    room: String,
-    app: AppHandle,
-    state: State<'_, AppState>,
-) -> Result<MeetingSession, String> {
-    let data = state.read_data(|data| data.clone())?;
-
-    // Record in history. A failure here (an unwritable meetings.json) must not
-    // stop the user joining, so — as before — it is deliberately ignored.
-    let _ = state.with_meetings(|meetings| meetings.add_history(room.clone(), &state.config_dir));
-
-    create_session(room, &data, &app)
-}
-
-#[tauri::command]
-fn open_meeting_window(
-    app: AppHandle,
-    room: String,
-    token: Option<String>,
-    url: Option<String>,
-    identity: Option<String>,
-    width: Option<f64>,
-    height: Option<f64>,
-) -> Result<String, String> {
-    // Pass the new arguments down to the spawn function
-    let result =
-        window::spawn_meeting_window(&app, room.clone(), token, url, identity, width, height);
-
-    // [CONCERN: We emit MeetingStarted only if the window was created
-    //  successfully.  If spawn fails, no event is emitted — correct
-    //  behavior.  But the main window has no way to know the meeting
-    //  window *failed* to open other than the invoke rejection.]
-    if result.is_ok() {
-        emit_event(&app, VtEvent::MeetingStarted { room });
-    }
-
-    result
-}
-
-#[tauri::command]
-fn get_user_profile(state: State<'_, AppState>) -> Result<UserProfile, String> {
-    state.read_data(|data| data.profile.clone())
-}
-
-#[tauri::command]
-fn update_user_profile(
-    app: AppHandle,
-    profile: UserProfile,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
-    state.update_data(|data| data.profile = profile.clone())?;
-
-    // [CONCERN: The invoking window already received the updated profile
-    //  via the invoke response.  This event will fire in ALL windows
-    //  including the one that initiated the update.  The JS handler
-    //  must be idempotent — setting the same profile twice is harmless
-    //  but the re-render is wasted work.]
-    emit_event(&app, VtEvent::ProfileUpdated { profile });
-    Ok(())
-}
-
-#[tauri::command]
-fn get_user_settings(state: State<'_, AppState>) -> Result<UserSettings, String> {
-    state.read_data(|data| data.settings.clone())
-}
-
-#[tauri::command]
-fn update_user_settings(
-    app: AppHandle,
-    settings: UserSettings,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
-    state.update_data(|data| data.settings = settings.clone())?;
-
-    // [CONCERN: Same idempotency concern as ProfileUpdated.  The JS
-    //  SettingsTab currently calls `setSettings(updated)` locally AND
-    //  awaits invoke().  The event will re-set it from the parent.
-    //  This is safe (same value) but causes a redundant SolidJS
-    //  re-evaluation.  Consider removing the local set in the child
-    //  and relying solely on the event for cross-window sync.]
-    emit_event(&app, VtEvent::SettingsUpdated { settings });
-    Ok(())
-}
-
-// ── Recordings folder ────────────────────────────────────────────────────────
+// ── Command layout ───────────────────────────────────────────────────────────
 //
-// Local recordings land in `<app_config_dir>/recordings` by default, which on
-// macOS is `~/Library/Application Support/<bundle-id>/recordings`. That path is
-// correct but undiscoverable — users finish a meeting and cannot find the file.
-// These commands let Settings show the path, reveal it, and relocate it.
-
-#[derive(serde::Serialize)]
-struct RecordingsDirInfo {
-    path: String,
-    /// True when the user has not chosen their own folder.
-    is_default: bool,
-    exists: bool,
-}
-
-fn recordings_dir_info(rec: &recording::RecordingState) -> RecordingsDirInfo {
-    let dir = rec.dir();
-    RecordingsDirInfo {
-        is_default: dir == rec.default_dir,
-        exists: dir.is_dir(),
-        path: dir.to_string_lossy().to_string(),
-    }
-}
-
-#[tauri::command]
-fn get_recordings_dir(rec: State<'_, recording::RecordingState>) -> RecordingsDirInfo {
-    recordings_dir_info(&rec)
-}
-
-/// Point local recordings at `path`, or back at the built-in folder when
-/// `path` is `None`.
-#[tauri::command]
-fn set_recordings_dir(
-    app: AppHandle,
-    state: State<'_, AppState>,
-    rec: State<'_, recording::RecordingState>,
-    path: Option<String>,
-) -> Result<RecordingsDirInfo, String> {
-    // Apply first. If the folder cannot be created we must not persist a
-    // setting that would silently break every subsequent recording.
-    let requested = recording::resolve_recordings_dir(&rec.default_dir, path.as_deref());
-    let effective = rec.set_dir(requested)?;
-
-    let settings = state.update_data(|data| {
-        // Store `None` for the built-in location so the default keeps tracking
-        // the platform folder if it ever moves (portable installs, renamed id).
-        data.settings.recordings_dir = if effective == rec.default_dir {
-            None
-        } else {
-            Some(effective.to_string_lossy().to_string())
-        };
-        data.settings.clone()
-    })?;
-
-    emit_event(&app, VtEvent::SettingsUpdated { settings });
-    Ok(recordings_dir_info(&rec))
-}
-
-// ── Reporting & blocking (App Store Review Guideline 1.2) ────────────────────
-
-#[derive(serde::Serialize)]
-struct ReportContact {
-    /// Meeting organizer's address — the destination for in-meeting reports
-    /// about objectionable content. The licensor never sees meeting content, so
-    /// it cannot moderate it; the organizer can.
-    organizer: String,
-    /// Publisher support address, shown in Settings → About.
-    support: String,
-}
-
-#[tauri::command]
-fn get_report_contact(state: State<'_, AppState>) -> Result<ReportContact, String> {
-    state.read_data(|data| ReportContact {
-        organizer: data.profile.effective_report_email(),
-        support: crate::settings::SUPPORT_EMAIL.to_string(),
-    })
-}
-
-#[tauri::command]
-fn get_blocked_participants(state: State<'_, AppState>) -> Result<Vec<String>, String> {
-    state.read_data(|data| data.blocked_identities.clone())
-}
-
-/// Block or unblock a participant locally, by LiveKit identity.
-///
-/// Blocking is a client-side filter only: it hides that participant's chat,
-/// files and video for this user. It cannot remove them from the room, because
-/// only the organizer holds that authority on the LiveKit server. Returns the
-/// updated block list so the UI can apply it without a second round-trip.
-#[tauri::command]
-fn set_participant_blocked(
-    state: State<'_, AppState>,
-    identity: String,
-    blocked: bool,
-) -> Result<Vec<String>, String> {
-    let id = identity.trim();
-    if id.is_empty() {
-        return Err("No participant selected".to_string());
-    }
-    state.update_data(|data| {
-        if blocked {
-            if !data.blocked_identities.iter().any(|b| b == id) {
-                data.blocked_identities.push(id.to_string());
-            }
-        } else {
-            data.blocked_identities.retain(|b| b != id);
-        }
-        data.blocked_identities.clone()
-    })
-}
-
-/// Whether this build carries demo credentials, so Settings can hide the
-/// Demo-mode toggle in normal builds.
-#[tauri::command]
-fn get_demo_available() -> bool {
-    demo::is_available()
-}
-
-#[tauri::command]
-fn get_scheduled_meetings(state: State<'_, AppState>) -> Result<Vec<ScheduledMeeting>, String> {
-    state.read_meetings(|meetings| meetings.scheduled.clone())
-}
-
-#[tauri::command]
-fn schedule_meeting(
-    app: AppHandle,
-    title: String,
-    room_id: String,
-    start_time: String,
-    duration_minutes: u32,
-    state: State<'_, AppState>,
-) -> Result<ScheduledMeeting, String> {
-    // Load LiveKit settings to generate the invite link
-    let store = app.store(commands::STORE_FILE).map_err(|e| e.to_string())?;
-    let value = store
-        .get(commands::SETTINGS_KEY)
-        .ok_or("LiveKit settings not configured. Please set your API keys in Settings first.")?;
-    let settings: LiveKitSettings = serde_json::from_value(value).map_err(|e| e.to_string())?;
-    let invite_link = commands::generate_magic_link(&settings, &room_id)?;
-
-    // Two `?`: the outer is the lock, the inner is the meetings.json write
-    // that `add_scheduled` performs.
-    let meeting = state.with_meetings(|meetings| {
-        meetings.add_scheduled(
-            title,
-            room_id,
-            invite_link,
-            start_time,
-            duration_minutes,
-            &state.config_dir,
-        )
-    })??;
-
-    // [CONCERN: schedule_meeting already has AppHandle from the store
-    //  lookup above, so reusing it here is fine.  But note that the
-    //  invoke response already returns the ScheduledMeeting to the
-    //  caller.  The event is for OTHER windows that didn't initiate
-    //  the schedule.  The caller's local `setScheduledMeetings(prev =>
-    //  [...prev, newMeeting])` and this event will both add it.
-    //  Must ensure the JS handler checks for duplicates or is
-    //  idempotent.]
-    emit_event(
-        &app,
-        VtEvent::MeetingScheduled {
-            meeting: meeting.clone(),
-        },
-    );
-    Ok(meeting)
-}
-
-#[tauri::command]
-fn delete_scheduled_meeting(
-    app: AppHandle,
-    id: String,
-    state: State<'_, AppState>,
-) -> Result<bool, String> {
-    // Two `?`: the outer is the lock, the inner is the meetings.json write.
-    let removed =
-        state.with_meetings(|meetings| meetings.remove_scheduled(&id, &state.config_dir))??;
-
-    // [CONCERN: The caller's JS already does `setScheduledMeetings(prev =>
-    //  prev.filter(m => m.id !== id))` locally.  The event will trigger
-    //  the same filter again in ALL windows.  Double-filtering is
-    //  harmless (idempotent) but the redundant re-render is wasteful.
-    //  This is the trade-off of global broadcast vs. targeted emit.]
-    if removed {
-        emit_event(&app, VtEvent::MeetingDeleted { id });
-    }
-
-    Ok(removed)
-}
-
-#[tauri::command]
-fn get_meeting_history(state: State<'_, AppState>) -> Result<Vec<MeetingRecord>, String> {
-    state.read_meetings(|meetings| meetings.history.clone())
-}
-
-// ===== PARTICIPANT MANAGEMENT =====
-
-#[tauri::command]
-fn get_all_participants(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
-    state.read_participants(|manager| manager.get_all())
-}
-
-#[tauri::command]
-fn add_participant(
-    app: AppHandle,
-    participant: Participant,
-    state: State<'_, MediaState>,
-) -> Result<bool, String> {
-    let added = state.with_participants(|manager| manager.add_participant(participant.clone()))?;
-
-    // [CONCERN: During a meeting join burst, 10-20 participants may be
-    //  added in quick succession.  Each emit triggers JSON serialization
-    //  of the full Participant struct.  The LiveKit-driven video grid
-    //  already coalesces its participant writes within a 100ms window on
-    //  the JS side (`updateParticipants` in useLiveKitRoom.js); if this
-    //  Rust-side roster ever grows a JS consumer, debounce it the same way.]
-    if added {
-        emit_event(
-            &app,
-            VtEvent::ParticipantChanged {
-                action: "added".to_string(),
-                participant: Some(participant),
-            },
-        );
-    }
-
-    Ok(added)
-}
-
-#[tauri::command]
-fn remove_participant(
-    app: AppHandle,
-    participant_id: String,
-    state: State<'_, MediaState>,
-) -> Result<bool, String> {
-    // [CONCERN: We need to grab the participant *before* removal so we
-    //  can include it in the event.  This is a minor extra lookup but
-    //  keeps the event payload self-contained for the JS listener.]
-    let (removed, removed_participant) = state.with_participants(|manager| {
-        let removed_participant = manager.get_participant(&participant_id);
-        let removed = manager.remove_participant(&participant_id);
-        (removed, removed_participant)
-    })?;
-
-    if removed {
-        emit_event(
-            &app,
-            VtEvent::ParticipantChanged {
-                action: "removed".to_string(),
-                participant: removed_participant,
-            },
-        );
-    }
-
-    Ok(removed)
-}
-
-#[tauri::command]
-fn get_participant(
-    participant_id: String,
-    state: State<'_, MediaState>,
-) -> Result<Option<Participant>, String> {
-    state.read_participants(|manager| manager.get_participant(&participant_id))
-}
-
-#[tauri::command]
-fn set_participant_muted(
-    app: AppHandle,
-    participant_id: String,
-    muted: bool,
-    state: State<'_, MediaState>,
-) -> Result<bool, String> {
-    // Snapshot the participant inside the lock and emit outside it: the roster
-    // mutex must not be held across IPC to every window.
-    let (updated, participant) = state.with_participants(|manager| {
-        let updated = manager.set_participant_muted(&participant_id, muted);
-        let participant = if updated {
-            manager.get_participant(&participant_id)
-        } else {
-            None
-        };
-        (updated, participant)
-    })?;
-
-    // [CONCERN: Mute toggles can happen rapidly (e.g. push-to-talk).
-    //  Each toggle emits immediately.  On the JS side this may cause
-    //  rapid icon flicker.  Consider only emitting when the state
-    //  actually changed, which `set_participant_muted` already
-    //  guarantees (returns true only on actual mutation).]
-    if updated {
-        emit_event(
-            &app,
-            VtEvent::ParticipantChanged {
-                action: if muted { "muted" } else { "unmuted" }.to_string(),
-                participant,
-            },
-        );
-    }
-
-    Ok(updated)
-}
-
-#[tauri::command]
-fn set_participant_video_enabled(
-    app: AppHandle,
-    participant_id: String,
-    enabled: bool,
-    state: State<'_, MediaState>,
-) -> Result<bool, String> {
-    // Snapshot inside the lock, emit outside it - see `set_participant_muted`.
-    let (updated, participant) = state.with_participants(|manager| {
-        let updated = manager.set_participant_video_enabled(&participant_id, enabled);
-        let participant = if updated {
-            manager.get_participant(&participant_id)
-        } else {
-            None
-        };
-        (updated, participant)
-    })?;
-
-    if updated {
-        emit_event(
-            &app,
-            VtEvent::ParticipantChanged {
-                action: if enabled { "video-on" } else { "video-off" }.to_string(),
-                participant,
-            },
-        );
-    }
-
-    Ok(updated)
-}
-
-#[tauri::command]
-fn filter_remote_participants(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
-    state.read_participants(|manager| manager.get_remote_participants())
-}
-
-#[tauri::command]
-fn get_screen_shares(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
-    state.read_participants(|manager| manager.get_screen_shares())
-}
-
-#[tauri::command]
-fn get_active_screen_share(state: State<'_, MediaState>) -> Result<Option<Participant>, String> {
-    state.read_participants(|manager| manager.get_active_screen_share())
-}
-
-#[tauri::command]
-fn get_participant_count(state: State<'_, MediaState>) -> Result<usize, String> {
-    state.read_participants(|manager| manager.count())
-}
-
-#[tauri::command]
-fn participant_exists(participant_id: String, state: State<'_, MediaState>) -> Result<bool, String> {
-    state.read_participants(|manager| manager.exists(&participant_id))
-}
-
-#[tauri::command]
-fn get_sorted_participants(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
-    state.read_participants(|manager| manager.get_sorted())
-}
-
-#[tauri::command]
-fn clear_participants(app: AppHandle, state: State<'_, MediaState>) -> Result<(), String> {
-    state.with_participants(|manager| manager.clear())?;
-
-    // [CONCERN: Clearing emits a single "cleared" event with no participant.
-    //  The JS side must treat this as "drop all participants", not "one
-    //  participant changed".  This is a slightly different semantic from
-    //  the other ParticipantChanged events — document this contract.]
-    emit_event(
-        &app,
-        VtEvent::ParticipantChanged {
-            action: "cleared".to_string(),
-            participant: None,
-        },
-    );
-
-    Ok(())
-}
-
-#[tauri::command]
-fn remove_screen_share(
-    app: AppHandle,
-    participant_id: String,
-    state: State<'_, MediaState>,
-) -> Result<(), String> {
-    state.with_participants(|manager| manager.remove_screen_share(&participant_id))?;
-
-    // [CONCERN: The removed screen-share participant object isn't included
-    //  in the event (it's gone).  The JS listener gets only the ID via
-    //  the action string.  If the UI needs the full participant to animate
-    //  a removal, capture it before `remove_screen_share` like we do in
-    //  `remove_participant`.]
-    emit_event(
-        &app,
-        VtEvent::ParticipantChanged {
-            action: format!("screen-share-removed:{}", participant_id),
-            participant: None,
-        },
-    );
-
-    Ok(())
-}
-
-// ===== DEVICE MANAGEMENT =====
-
-#[tauri::command]
-fn set_devices(devices: Vec<MediaDevice>, state: State<'_, MediaState>) -> Result<(), String> {
-    state.with_devices(|manager| manager.set_devices(devices))
-}
-
-#[tauri::command]
-fn set_device_preferences(
-    preferences: DevicePreferences,
-    state: State<'_, MediaState>,
-) -> Result<(), String> {
-    state.with_devices(|manager| manager.set_preferences(preferences))
-}
-
-#[tauri::command]
-fn get_audio_inputs(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
-    state.read_devices(|manager| manager.get_audio_inputs())
-}
-
-#[tauri::command]
-fn get_video_inputs(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
-    state.read_devices(|manager| manager.get_video_inputs())
-}
-
-#[tauri::command]
-fn get_audio_outputs(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
-    state.read_devices(|manager| manager.get_audio_outputs())
-}
-
-#[tauri::command]
-fn get_preferred_mic(state: State<'_, MediaState>) -> Result<Option<MediaDevice>, String> {
-    state.read_devices(|manager| manager.get_preferred_mic())
-}
-
-#[tauri::command]
-fn get_preferred_camera(state: State<'_, MediaState>) -> Result<Option<MediaDevice>, String> {
-    state.read_devices(|manager| manager.get_preferred_camera())
-}
-
-#[tauri::command]
-fn get_preferred_speaker(state: State<'_, MediaState>) -> Result<Option<MediaDevice>, String> {
-    state.read_devices(|manager| manager.get_preferred_speaker())
-}
-
-#[tauri::command]
-fn get_device(
-    device_id: String,
-    state: State<'_, MediaState>,
-) -> Result<Option<MediaDevice>, String> {
-    state.read_devices(|manager| manager.get_device(&device_id))
-}
-
-#[tauri::command]
-fn get_all_devices(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
-    state.read_devices(|manager| manager.get_all_devices())
-}
-
-#[tauri::command]
-fn get_device_groups(
-    state: State<'_, MediaState>,
-) -> Result<Vec<crate::device::DeviceGroup>, String> {
-    state.read_devices(|manager| manager.get_device_groups())
-}
-
-#[tauri::command]
-fn validate_device(
-    device_id: String,
-    kind: crate::device::DeviceKind,
-    state: State<'_, MediaState>,
-) -> Result<bool, String> {
-    state.read_devices(|manager| manager.validate_device(&device_id, kind))
-}
-
-// ===== LAYOUT CALCULATIONS =====
-
-#[tauri::command]
-fn calculate_grid_dimensions(participant_count: usize) -> Result<(usize, usize), String> {
-    Ok(LayoutCalculator::calculate_grid_dimensions(
-        participant_count,
-    ))
-}
-
-#[tauri::command]
-fn calculate_optimal_layout(
-    participant_count: usize,
-    has_active_screen_share: bool,
-    pinned_participant_id: Option<String>,
-) -> Result<LayoutConfig, String> {
-    Ok(LayoutCalculator::calculate_optimal_layout(
-        participant_count,
-        has_active_screen_share,
-        pinned_participant_id,
-    ))
-}
-
-#[tauri::command]
-fn get_grid_class(columns: usize) -> Result<String, String> {
-    Ok(LayoutCalculator::get_grid_class(columns))
-}
-
-#[tauri::command]
-fn should_use_featured_layout(
-    participant_count: usize,
-    has_active_screen_share: bool,
-) -> Result<bool, String> {
-    Ok(LayoutCalculator::should_use_featured_layout(
-        participant_count,
-        has_active_screen_share,
-    ))
-}
-
-#[tauri::command]
-fn calculate_aspect_ratio(width: u32, height: u32) -> Result<f64, String> {
-    Ok(LayoutCalculator::calculate_aspect_ratio(width, height))
-}
-
-#[tauri::command]
-fn calculate_tile_size(
-    container_width: u32,
-    container_height: u32,
-    grid_width: usize,
-    grid_height: usize,
-    padding: u32,
-) -> Result<crate::layout::TileSize, String> {
-    Ok(LayoutCalculator::calculate_tile_size(
-        container_width,
-        container_height,
-        grid_width,
-        grid_height,
-        padding,
-    ))
-}
-
-#[tauri::command]
-fn should_feature_screen_share(
-    active_screen_shares: usize,
-    has_pinned_participant: bool,
-) -> Result<bool, String> {
-    Ok(LayoutCalculator::should_feature_screen_share(
-        active_screen_shares,
-        has_pinned_participant,
-    ))
-}
-
-#[tauri::command]
-fn calculate_filmstrip_dimensions(
-    container_width: u32,
-    container_height: u32,
-    position: crate::layout::FilmstripPosition,
-    filmstrip_width_ratio: f32,
-) -> Result<crate::layout::FilmstripDimensions, String> {
-    Ok(LayoutCalculator::calculate_filmstrip_dimensions(
-        container_width,
-        container_height,
-        &position,
-        filmstrip_width_ratio,
-    ))
-}
-
-#[tauri::command]
-fn get_user_notes(state: State<'_, AppState>) -> Result<String, String> {
-    state.read_data(|data| data.notes.clone())
-}
-
-#[tauri::command]
-fn update_user_notes(
-    app: AppHandle,
-    notes: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
-    state.update_data(|data| data.notes = notes.clone())?;
-
-    // [CONCERN: Notes can be large (multi-paragraph text).  Emitting the
-    //  full notes string on every keystroke-save would be wasteful.
-    //  Currently NotesTab only saves on explicit action (not on every
-    //  keystroke), so this is acceptable.  If a live-collaborative
-    //  notes feature is added, switch to debounced saves or a Channel.]
-    emit_event(&app, VtEvent::NotesUpdated { notes });
-    Ok(())
-}
-
-// ===================
-// ===== MEETING LIFECYCLE EVENTS =====
-// ===================
-
-/// Called from the meeting window's JS (`useLiveKitRoom.js`) when the meeting
-/// is ending, *before* the window closes.  Emits `MeetingEnded` so the main
-/// window can update its state without polling.
-///
-/// Force-quits and crashes are covered too: `window::spawn_meeting_window`
-/// registers a native `Destroyed` hook that emits `MeetingEnded` whenever this
-/// command never ran.  The ended-labels registry in `window.rs` guarantees the
-/// event is emitted exactly once per meeting window.
-///
-/// The `window` parameter is injected by Tauri (the *calling* window), so the
-/// JS side keeps invoking this with just `{ room }`.
-#[tauri::command]
-fn notify_meeting_ended(
-    app: AppHandle,
-    window: tauri::WebviewWindow,
-    room: String,
-) -> Result<(), String> {
-    if window::mark_meeting_ended(&window.label()) {
-        emit_event(&app, VtEvent::MeetingEnded { room });
-    }
-    Ok(())
-}
-
-// ===================
-// ==========
+// Every `#[tauri::command]` lives in a domain module, not here: the invite /
+// LiveKit-store commands are in `commands.rs` itself and the rest are grouped
+// under `commands/` (meeting, profile, schedule, safety, participants, devices,
+// layout, translation, system), alongside the non-command modules that already
+// held the domain logic they wrap (`ai`, `chat`, `recording`, `egress`, `e2ee`,
+// `backgrounds`).
+//
+// The `generate_handler!` table below is deliberately the ONE place commands are
+// registered. Tauri v2's `Builder::invoke_handler` assigns rather than extends
+// (see tauri/src/app.rs), so a per-module `register(builder)` would silently
+// discard every earlier module's commands; and `generate_handler!` is a proc
+// macro, so it cannot be fed a `macro_rules!` list either. Adding a command means
+// adding it to the domain module and to this table.
 
 /// One-time migration for the user's LiveKit server configuration.
 ///
@@ -872,71 +136,71 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             // Meeting & Session
-            get_meeting_session,
-            open_meeting_window,
-            notify_meeting_ended,
-            parse_invite_link,
-            create_meeting_invite,
-            create_icalendar_event,
+            commands::meeting::get_meeting_session,
+            commands::meeting::open_meeting_window,
+            commands::meeting::notify_meeting_ended,
+            commands::parse_invite_link,
+            commands::create_meeting_invite,
+            commands::create_icalendar_event,
             // User Management
-            get_user_profile,
-            update_user_profile,
-            get_user_settings,
-            update_user_settings,
-            get_user_notes,
-            update_user_notes,
+            commands::profile::get_user_profile,
+            commands::profile::update_user_profile,
+            commands::profile::get_user_settings,
+            commands::profile::update_user_settings,
+            commands::profile::get_user_notes,
+            commands::profile::update_user_notes,
             // Meetings History & Scheduling
-            get_scheduled_meetings,
-            schedule_meeting,
-            delete_scheduled_meeting,
-            get_meeting_history,
-            get_meeting_invite,
+            commands::schedule::get_scheduled_meetings,
+            commands::schedule::schedule_meeting,
+            commands::schedule::delete_scheduled_meeting,
+            commands::schedule::get_meeting_history,
+            commands::get_meeting_invite,
             // Participant Management
-            get_all_participants,
-            add_participant,
-            remove_participant,
-            get_participant,
-            set_participant_muted,
-            set_participant_video_enabled,
-            filter_remote_participants,
-            get_screen_shares,
-            get_active_screen_share,
-            get_participant_count,
-            participant_exists,
-            get_sorted_participants,
-            clear_participants,
-            remove_screen_share,
+            commands::participants::get_all_participants,
+            commands::participants::add_participant,
+            commands::participants::remove_participant,
+            commands::participants::get_participant,
+            commands::participants::set_participant_muted,
+            commands::participants::set_participant_video_enabled,
+            commands::participants::filter_remote_participants,
+            commands::participants::get_screen_shares,
+            commands::participants::get_active_screen_share,
+            commands::participants::get_participant_count,
+            commands::participants::participant_exists,
+            commands::participants::get_sorted_participants,
+            commands::participants::clear_participants,
+            commands::participants::remove_screen_share,
             // Device Management
-            set_devices,
-            set_device_preferences,
-            get_audio_inputs,
-            get_video_inputs,
-            get_audio_outputs,
-            get_preferred_mic,
-            get_preferred_camera,
-            get_preferred_speaker,
-            get_device,
-            get_all_devices,
-            get_device_groups,
-            validate_device,
+            commands::devices::set_devices,
+            commands::devices::set_device_preferences,
+            commands::devices::get_audio_inputs,
+            commands::devices::get_video_inputs,
+            commands::devices::get_audio_outputs,
+            commands::devices::get_preferred_mic,
+            commands::devices::get_preferred_camera,
+            commands::devices::get_preferred_speaker,
+            commands::devices::get_device,
+            commands::devices::get_all_devices,
+            commands::devices::get_device_groups,
+            commands::devices::validate_device,
             // Layout Calculations
-            calculate_grid_dimensions,
-            calculate_optimal_layout,
-            get_grid_class,
-            should_use_featured_layout,
-            calculate_aspect_ratio,
-            calculate_tile_size,
-            should_feature_screen_share,
-            calculate_filmstrip_dimensions,
+            commands::layout::calculate_grid_dimensions,
+            commands::layout::calculate_optimal_layout,
+            commands::layout::get_grid_class,
+            commands::layout::should_use_featured_layout,
+            commands::layout::calculate_aspect_ratio,
+            commands::layout::calculate_tile_size,
+            commands::layout::should_feature_screen_share,
+            commands::layout::calculate_filmstrip_dimensions,
             // Locale
-            get_system_locale,
+            commands::system::get_system_locale,
             // Backgrounds
-            get_background,
-            set_background,
-            get_host_meeting_data,
+            backgrounds::get_background,
+            backgrounds::set_background,
+            commands::get_host_meeting_data,
             //Settings
-            load_settings,
-            save_settings,
+            commands::load_settings,
+            commands::save_settings,
             // Chat & File Transfer
             chat::pick_file,
             chat::read_file_chunk,
@@ -966,12 +230,12 @@ pub fn run() {
             recording::ffmpeg_stream_to_rtmp,
             recording::delete_recording,
             // Recordings folder, reporting & blocking
-            get_recordings_dir,
-            set_recordings_dir,
-            get_report_contact,
-            get_blocked_participants,
-            set_participant_blocked,
-            get_demo_available,
+            commands::safety::get_recordings_dir,
+            commands::safety::set_recordings_dir,
+            commands::safety::get_report_contact,
+            commands::safety::get_blocked_participants,
+            commands::safety::set_participant_blocked,
+            commands::safety::get_demo_available,
             // AI Assistant (OpenAI-compatible endpoint)
             ai::ask_ai,
             ai::get_ai_settings,
@@ -980,9 +244,9 @@ pub fn run() {
             ai::get_available_models,
             // Translation
             #[cfg(feature = "pro")]
-            update_translation_settings,
+            commands::translation::update_translation_settings,
             #[cfg(feature = "pro")]
-            get_translation_settings,
+            commands::translation::get_translation_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

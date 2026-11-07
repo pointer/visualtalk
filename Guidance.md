@@ -63,8 +63,11 @@ src/                      # SolidJS frontend — plain JSX, no TypeScript build 
 src-tauri/
   src/
     main.rs               # thin binary entry
-    lib.rs                # app setup, plugins, command registration
-    commands.rs           # shared #[tauri::command] helpers
+    lib.rs                # app setup, plugins, the ONE generate_handler! table
+    commands.rs           # invite / LiveKit-store commands + declares commands/
+    commands/             # #[tauri::command] wrappers grouped by domain:
+                          #   meeting profile schedule safety participants
+                          #   devices layout translation(Pro) system
     ai.rs                 # OpenAI-compatible LLM client (ask_ai)
     chat.rs  meeting.rs  participant.rs  session.rs  token.rs
     recording.rs  egress.rs  device.rs  backgrounds.rs  layout.rs
@@ -106,6 +109,8 @@ State lives in Solid signals/stores owned by `App.jsx` / `MainWindow.jsx` / `Mee
 **Backend (Rust / Tauri)**
 
 - Expose functionality through typed `#[tauri::command]` functions; call them from the frontend via `invoke`.
+- Put new commands in the matching `src-tauri/src/commands/<domain>.rs` module (or the existing non-command module if it already owns that domain, e.g. `ai.rs`, `chat.rs`, `recording.rs`, `egress.rs`) and register them in the single `generate_handler!` table in `lib.rs`. **Do not add a per-module `register(builder)`:** Tauri v2's `Builder::invoke_handler` assigns rather than extends, so a second call silently discards the first module's commands, and `generate_handler!` is a proc macro so it cannot be fed a `macro_rules!` list.
+- Reach shared state through the `AppState` / `MediaState` accessors (`read_data`, `with_data`, `update_data`, `read_meetings`, `with_meetings`, `read_devices`, `with_devices`, `read_participants`, `with_participants`) — never `.lock()` directly. They confine the `MutexGuard` to the closure, which keeps it out of `.await` points and out of `emit_event`. Use `update_data` for anything that must be persisted: it saves and rolls the mutation back if the write fails.
 - Keep commands small and pure where possible; do heavy work off the main thread.
 - Handle errors with `Result`; return typed errors the frontend can react to.
 - Use Tauri v2 APIs and plugin patterns (do not copy Tauri v1 patterns).
