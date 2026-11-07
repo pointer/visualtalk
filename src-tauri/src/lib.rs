@@ -49,26 +49,15 @@ fn update_translation_settings(
     settings: TranslationSettings,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let mut data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    data.settings.translation = settings;
-    data.save(&state.config_dir)
-        .map_err(|e| e.to_string())?;
+    state.update_data(|data| data.settings.translation = settings)?;
     Ok(())
 }
 
 #[cfg(feature = "pro")]
 #[tauri::command]
 fn get_translation_settings(state: State<'_, AppState>) -> Result<TranslationSettings, String> {
-    let data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    Ok(data.settings.translation.clone())
+    state.read_data(|data| data.settings.translation.clone())
 }
-
 
 #[tauri::command]
 fn get_system_locale() -> String {
@@ -88,16 +77,11 @@ fn get_meeting_session(
     app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<MeetingSession, String> {
-    let data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to acquire lock on app data".to_string())?
-        .clone();
+    let data = state.read_data(|data| data.clone())?;
 
-    // Record in history
-    if let Ok(mut meetings) = state.meetings.lock() {
-        let _ = meetings.add_history(room.clone(), &state.config_dir);
-    }
+    // Record in history. A failure here (an unwritable meetings.json) must not
+    // stop the user joining, so — as before — it is deliberately ignored.
+    let _ = state.with_meetings(|meetings| meetings.add_history(room.clone(), &state.config_dir));
 
     create_session(room, &data, &app)
 }
@@ -129,11 +113,7 @@ fn open_meeting_window(
 
 #[tauri::command]
 fn get_user_profile(state: State<'_, AppState>) -> Result<UserProfile, String> {
-    let data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    Ok(data.profile.clone())
+    state.read_data(|data| data.profile.clone())
 }
 
 #[tauri::command]
@@ -142,12 +122,7 @@ fn update_user_profile(
     profile: UserProfile,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let mut data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    data.profile = profile.clone();
-    data.save(&state.config_dir)?;
+    state.update_data(|data| data.profile = profile.clone())?;
 
     // [CONCERN: The invoking window already received the updated profile
     //  via the invoke response.  This event will fire in ALL windows
@@ -160,11 +135,7 @@ fn update_user_profile(
 
 #[tauri::command]
 fn get_user_settings(state: State<'_, AppState>) -> Result<UserSettings, String> {
-    let data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    Ok(data.settings.clone())
+    state.read_data(|data| data.settings.clone())
 }
 
 #[tauri::command]
@@ -173,12 +144,7 @@ fn update_user_settings(
     settings: UserSettings,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let mut data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    data.settings = settings.clone();
-    data.save(&state.config_dir)?;
+    state.update_data(|data| data.settings = settings.clone())?;
 
     // [CONCERN: Same idempotency concern as ProfileUpdated.  The JS
     //  SettingsTab currently calls `setSettings(updated)` locally AND
@@ -233,11 +199,7 @@ fn set_recordings_dir(
     let requested = recording::resolve_recordings_dir(&rec.default_dir, path.as_deref());
     let effective = rec.set_dir(requested)?;
 
-    let settings = {
-        let mut data = state
-            .data
-            .lock()
-            .map_err(|_| "Failed to lock app data".to_string())?;
+    let settings = state.update_data(|data| {
         // Store `None` for the built-in location so the default keeps tracking
         // the platform folder if it ever moves (portable installs, renamed id).
         data.settings.recordings_dir = if effective == rec.default_dir {
@@ -245,9 +207,8 @@ fn set_recordings_dir(
         } else {
             Some(effective.to_string_lossy().to_string())
         };
-        data.save(&state.config_dir)?;
         data.settings.clone()
-    };
+    })?;
 
     emit_event(&app, VtEvent::SettingsUpdated { settings });
     Ok(recordings_dir_info(&rec))
@@ -267,11 +228,7 @@ struct ReportContact {
 
 #[tauri::command]
 fn get_report_contact(state: State<'_, AppState>) -> Result<ReportContact, String> {
-    let data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    Ok(ReportContact {
+    state.read_data(|data| ReportContact {
         organizer: data.profile.effective_report_email(),
         support: crate::settings::SUPPORT_EMAIL.to_string(),
     })
@@ -279,11 +236,7 @@ fn get_report_contact(state: State<'_, AppState>) -> Result<ReportContact, Strin
 
 #[tauri::command]
 fn get_blocked_participants(state: State<'_, AppState>) -> Result<Vec<String>, String> {
-    let data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    Ok(data.blocked_identities.clone())
+    state.read_data(|data| data.blocked_identities.clone())
 }
 
 /// Block or unblock a participant locally, by LiveKit identity.
@@ -302,20 +255,16 @@ fn set_participant_blocked(
     if id.is_empty() {
         return Err("No participant selected".to_string());
     }
-    let mut data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-
-    if blocked {
-        if !data.blocked_identities.iter().any(|b| b == id) {
-            data.blocked_identities.push(id.to_string());
+    state.update_data(|data| {
+        if blocked {
+            if !data.blocked_identities.iter().any(|b| b == id) {
+                data.blocked_identities.push(id.to_string());
+            }
+        } else {
+            data.blocked_identities.retain(|b| b != id);
         }
-    } else {
-        data.blocked_identities.retain(|b| b != id);
-    }
-    data.save(&state.config_dir)?;
-    Ok(data.blocked_identities.clone())
+        data.blocked_identities.clone()
+    })
 }
 
 /// Whether this build carries demo credentials, so Settings can hide the
@@ -327,11 +276,7 @@ fn get_demo_available() -> bool {
 
 #[tauri::command]
 fn get_scheduled_meetings(state: State<'_, AppState>) -> Result<Vec<ScheduledMeeting>, String> {
-    let meetings = state
-        .meetings
-        .lock()
-        .map_err(|_| "Failed to lock meetings".to_string())?;
-    Ok(meetings.scheduled.clone())
+    state.read_meetings(|meetings| meetings.scheduled.clone())
 }
 
 #[tauri::command]
@@ -351,18 +296,18 @@ fn schedule_meeting(
     let settings: LiveKitSettings = serde_json::from_value(value).map_err(|e| e.to_string())?;
     let invite_link = commands::generate_magic_link(&settings, &room_id)?;
 
-    let mut meetings = state
-        .meetings
-        .lock()
-        .map_err(|_| "Failed to lock meetings".to_string())?;
-    let meeting = meetings.add_scheduled(
-        title,
-        room_id,
-        invite_link,
-        start_time,
-        duration_minutes,
-        &state.config_dir,
-    )?;
+    // Two `?`: the outer is the lock, the inner is the meetings.json write
+    // that `add_scheduled` performs.
+    let meeting = state.with_meetings(|meetings| {
+        meetings.add_scheduled(
+            title,
+            room_id,
+            invite_link,
+            start_time,
+            duration_minutes,
+            &state.config_dir,
+        )
+    })??;
 
     // [CONCERN: schedule_meeting already has AppHandle from the store
     //  lookup above, so reusing it here is fine.  But note that the
@@ -387,11 +332,9 @@ fn delete_scheduled_meeting(
     id: String,
     state: State<'_, AppState>,
 ) -> Result<bool, String> {
-    let mut meetings = state
-        .meetings
-        .lock()
-        .map_err(|_| "Failed to lock meetings".to_string())?;
-    let removed = meetings.remove_scheduled(&id, &state.config_dir)?;
+    // Two `?`: the outer is the lock, the inner is the meetings.json write.
+    let removed =
+        state.with_meetings(|meetings| meetings.remove_scheduled(&id, &state.config_dir))??;
 
     // [CONCERN: The caller's JS already does `setScheduledMeetings(prev =>
     //  prev.filter(m => m.id !== id))` locally.  The event will trigger
@@ -407,22 +350,14 @@ fn delete_scheduled_meeting(
 
 #[tauri::command]
 fn get_meeting_history(state: State<'_, AppState>) -> Result<Vec<MeetingRecord>, String> {
-    let meetings = state
-        .meetings
-        .lock()
-        .map_err(|_| "Failed to lock meetings".to_string())?;
-    Ok(meetings.history.clone())
+    state.read_meetings(|meetings| meetings.history.clone())
 }
 
 // ===== PARTICIPANT MANAGEMENT =====
 
 #[tauri::command]
 fn get_all_participants(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
-    let manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.get_all())
+    state.read_participants(|manager| manager.get_all())
 }
 
 #[tauri::command]
@@ -431,11 +366,7 @@ fn add_participant(
     participant: Participant,
     state: State<'_, MediaState>,
 ) -> Result<bool, String> {
-    let mut manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    let added = manager.add_participant(participant.clone());
+    let added = state.with_participants(|manager| manager.add_participant(participant.clone()))?;
 
     // [CONCERN: During a meeting join burst, 10-20 participants may be
     //  added in quick succession.  Each emit triggers JSON serialization
@@ -462,16 +393,14 @@ fn remove_participant(
     participant_id: String,
     state: State<'_, MediaState>,
 ) -> Result<bool, String> {
-    let mut manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-
     // [CONCERN: We need to grab the participant *before* removal so we
     //  can include it in the event.  This is a minor extra lookup but
     //  keeps the event payload self-contained for the JS listener.]
-    let removed_participant = manager.get_participant(&participant_id);
-    let removed = manager.remove_participant(&participant_id);
+    let (removed, removed_participant) = state.with_participants(|manager| {
+        let removed_participant = manager.get_participant(&participant_id);
+        let removed = manager.remove_participant(&participant_id);
+        (removed, removed_participant)
+    })?;
 
     if removed {
         emit_event(
@@ -491,11 +420,7 @@ fn get_participant(
     participant_id: String,
     state: State<'_, MediaState>,
 ) -> Result<Option<Participant>, String> {
-    let manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.get_participant(&participant_id))
+    state.read_participants(|manager| manager.get_participant(&participant_id))
 }
 
 #[tauri::command]
@@ -505,11 +430,17 @@ fn set_participant_muted(
     muted: bool,
     state: State<'_, MediaState>,
 ) -> Result<bool, String> {
-    let mut manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    let updated = manager.set_participant_muted(&participant_id, muted);
+    // Snapshot the participant inside the lock and emit outside it: the roster
+    // mutex must not be held across IPC to every window.
+    let (updated, participant) = state.with_participants(|manager| {
+        let updated = manager.set_participant_muted(&participant_id, muted);
+        let participant = if updated {
+            manager.get_participant(&participant_id)
+        } else {
+            None
+        };
+        (updated, participant)
+    })?;
 
     // [CONCERN: Mute toggles can happen rapidly (e.g. push-to-talk).
     //  Each toggle emits immediately.  On the JS side this may cause
@@ -517,7 +448,6 @@ fn set_participant_muted(
     //  actually changed, which `set_participant_muted` already
     //  guarantees (returns true only on actual mutation).]
     if updated {
-        let participant = manager.get_participant(&participant_id);
         emit_event(
             &app,
             VtEvent::ParticipantChanged {
@@ -537,14 +467,18 @@ fn set_participant_video_enabled(
     enabled: bool,
     state: State<'_, MediaState>,
 ) -> Result<bool, String> {
-    let mut manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    let updated = manager.set_participant_video_enabled(&participant_id, enabled);
+    // Snapshot inside the lock, emit outside it - see `set_participant_muted`.
+    let (updated, participant) = state.with_participants(|manager| {
+        let updated = manager.set_participant_video_enabled(&participant_id, enabled);
+        let participant = if updated {
+            manager.get_participant(&participant_id)
+        } else {
+            None
+        };
+        (updated, participant)
+    })?;
 
     if updated {
-        let participant = manager.get_participant(&participant_id);
         emit_event(
             &app,
             VtEvent::ParticipantChanged {
@@ -559,65 +493,37 @@ fn set_participant_video_enabled(
 
 #[tauri::command]
 fn filter_remote_participants(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
-    let manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.get_remote_participants())
+    state.read_participants(|manager| manager.get_remote_participants())
 }
 
 #[tauri::command]
 fn get_screen_shares(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
-    let manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.get_screen_shares())
+    state.read_participants(|manager| manager.get_screen_shares())
 }
 
 #[tauri::command]
 fn get_active_screen_share(state: State<'_, MediaState>) -> Result<Option<Participant>, String> {
-    let manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.get_active_screen_share())
+    state.read_participants(|manager| manager.get_active_screen_share())
 }
 
 #[tauri::command]
 fn get_participant_count(state: State<'_, MediaState>) -> Result<usize, String> {
-    let manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.count())
+    state.read_participants(|manager| manager.count())
 }
 
 #[tauri::command]
 fn participant_exists(participant_id: String, state: State<'_, MediaState>) -> Result<bool, String> {
-    let manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.exists(&participant_id))
+    state.read_participants(|manager| manager.exists(&participant_id))
 }
 
 #[tauri::command]
 fn get_sorted_participants(state: State<'_, MediaState>) -> Result<Vec<Participant>, String> {
-    let manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    Ok(manager.get_sorted())
+    state.read_participants(|manager| manager.get_sorted())
 }
 
 #[tauri::command]
 fn clear_participants(app: AppHandle, state: State<'_, MediaState>) -> Result<(), String> {
-    let mut manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    manager.clear();
+    state.with_participants(|manager| manager.clear())?;
 
     // [CONCERN: Clearing emits a single "cleared" event with no participant.
     //  The JS side must treat this as "drop all participants", not "one
@@ -640,11 +546,7 @@ fn remove_screen_share(
     participant_id: String,
     state: State<'_, MediaState>,
 ) -> Result<(), String> {
-    let mut manager = state
-        .participant_manager
-        .lock()
-        .map_err(|_| "Failed to lock participant manager".to_string())?;
-    manager.remove_screen_share(&participant_id);
+    state.with_participants(|manager| manager.remove_screen_share(&participant_id))?;
 
     // [CONCERN: The removed screen-share participant object isn't included
     //  in the event (it's gone).  The JS listener gets only the ID via
@@ -666,12 +568,7 @@ fn remove_screen_share(
 
 #[tauri::command]
 fn set_devices(devices: Vec<MediaDevice>, state: State<'_, MediaState>) -> Result<(), String> {
-    let mut manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    manager.set_devices(devices);
-    Ok(())
+    state.with_devices(|manager| manager.set_devices(devices))
 }
 
 #[tauri::command]
@@ -679,66 +576,37 @@ fn set_device_preferences(
     preferences: DevicePreferences,
     state: State<'_, MediaState>,
 ) -> Result<(), String> {
-    let mut manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    manager.set_preferences(preferences);
-    Ok(())
+    state.with_devices(|manager| manager.set_preferences(preferences))
 }
 
 #[tauri::command]
 fn get_audio_inputs(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
-    let manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    Ok(manager.get_audio_inputs())
+    state.read_devices(|manager| manager.get_audio_inputs())
 }
 
 #[tauri::command]
 fn get_video_inputs(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
-    let manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    Ok(manager.get_video_inputs())
+    state.read_devices(|manager| manager.get_video_inputs())
 }
 
 #[tauri::command]
 fn get_audio_outputs(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
-    let manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    Ok(manager.get_audio_outputs())
+    state.read_devices(|manager| manager.get_audio_outputs())
 }
 
 #[tauri::command]
 fn get_preferred_mic(state: State<'_, MediaState>) -> Result<Option<MediaDevice>, String> {
-    let manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    Ok(manager.get_preferred_mic())
+    state.read_devices(|manager| manager.get_preferred_mic())
 }
 
 #[tauri::command]
 fn get_preferred_camera(state: State<'_, MediaState>) -> Result<Option<MediaDevice>, String> {
-    let manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    Ok(manager.get_preferred_camera())
+    state.read_devices(|manager| manager.get_preferred_camera())
 }
 
 #[tauri::command]
 fn get_preferred_speaker(state: State<'_, MediaState>) -> Result<Option<MediaDevice>, String> {
-    let manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    Ok(manager.get_preferred_speaker())
+    state.read_devices(|manager| manager.get_preferred_speaker())
 }
 
 #[tauri::command]
@@ -746,31 +614,19 @@ fn get_device(
     device_id: String,
     state: State<'_, MediaState>,
 ) -> Result<Option<MediaDevice>, String> {
-    let manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    Ok(manager.get_device(&device_id))
+    state.read_devices(|manager| manager.get_device(&device_id))
 }
 
 #[tauri::command]
 fn get_all_devices(state: State<'_, MediaState>) -> Result<Vec<MediaDevice>, String> {
-    let manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    Ok(manager.get_all_devices())
+    state.read_devices(|manager| manager.get_all_devices())
 }
 
 #[tauri::command]
 fn get_device_groups(
     state: State<'_, MediaState>,
 ) -> Result<Vec<crate::device::DeviceGroup>, String> {
-    let manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    Ok(manager.get_device_groups())
+    state.read_devices(|manager| manager.get_device_groups())
 }
 
 #[tauri::command]
@@ -779,11 +635,7 @@ fn validate_device(
     kind: crate::device::DeviceKind,
     state: State<'_, MediaState>,
 ) -> Result<bool, String> {
-    let manager = state
-        .device_manager
-        .lock()
-        .map_err(|_| "Failed to lock device manager".to_string())?;
-    Ok(manager.validate_device(&device_id, kind))
+    state.read_devices(|manager| manager.validate_device(&device_id, kind))
 }
 
 // ===== LAYOUT CALCULATIONS =====
@@ -874,11 +726,7 @@ fn calculate_filmstrip_dimensions(
 
 #[tauri::command]
 fn get_user_notes(state: State<'_, AppState>) -> Result<String, String> {
-    let data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    Ok(data.notes.clone())
+    state.read_data(|data| data.notes.clone())
 }
 
 #[tauri::command]
@@ -887,12 +735,7 @@ fn update_user_notes(
     notes: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let mut data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    data.notes = notes.clone();
-    data.save(&state.config_dir)?;
+    state.update_data(|data| data.notes = notes.clone())?;
 
     // [CONCERN: Notes can be large (multi-paragraph text).  Emitting the
     //  full notes string on every keystroke-save would be wasteful.
@@ -1016,10 +859,9 @@ pub fn run() {
             // Honour a previously chosen recordings folder. Read before the
             // state is moved into `manage`, since `RecordingState` needs it.
             let recordings_override = app_state
-                .data
-                .lock()
+                .read_data(|data| data.settings.recordings_dir.clone())
                 .ok()
-                .and_then(|data| data.settings.recordings_dir.clone());
+                .flatten();
             app.manage(app_state);
             app.manage(MediaState::new());
             app.manage(recording::RecordingState::new(

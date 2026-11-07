@@ -108,15 +108,10 @@ pub async fn ask_ai(
     history: Vec<ChatTurn>,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
-    // Clone settings and drop the mutex guard BEFORE any .await —
-    // std MutexGuard is not Send and would break the async command.
-    let ai = {
-        let data = state
-            .data
-            .lock()
-            .map_err(|_| "Failed to lock app data".to_string())?;
-        data.ai.clone()
-    };
+    // Clone the settings out: `read_data` drops the guard when the closure
+    // returns, so nothing is held across the `.await` below (a std MutexGuard
+    // is not Send and would make this async command fail to compile).
+    let ai = state.read_data(|data| data.ai.clone())?;
 
     if !ai.enabled {
         return Err(
@@ -198,11 +193,7 @@ pub fn update_ai_settings(
     settings: AiSettings,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let save_res = state.with_data(|data| {
-        data.ai = settings;
-        data.save(&state.config_dir)
-    })?;
-    save_res
+    state.update_data(|data| data.ai = settings)
 }
 
 /// Verify the endpoint is reachable and credentials work by listing models.
@@ -256,13 +247,7 @@ pub async fn test_ai_connection(state: State<'_, AppState>) -> Result<String, St
 /// List available models by querying the configured endpoint.
 #[tauri::command]
 pub async fn get_available_models(state: State<'_, AppState>) -> Result<Vec<String>, String> {
-    let ai = {
-        let data = state
-            .data
-            .lock()
-            .map_err(|_| "Failed to lock app data".to_string())?;
-        data.ai.clone()
-    };
+    let ai = state.read_data(|data| data.ai.clone())?;
 
     let client = build_client()?;
     let url = format!("{}/models", ai.base_url.trim_end_matches('/'));
