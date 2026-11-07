@@ -1,13 +1,14 @@
 import { createSignal, onMount, onCleanup, For, Show } from 'solid-js';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '../lib/ipc';
 import { useI18n } from '../i18n/I18nProvider';
 import { getVersion } from "@tauri-apps/api/app";
-import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
-import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { requestMediaPermissions } from "./Permissions";
 import { LicenseScreen } from "./LicenseScreen";
-import { IS_MOBILE } from "../lib/platform";
 import { IS_PRO_EDITION } from "../lib/edition";
+import { TranslationSection } from "./settings/TranslationSection";
+import { AiSection } from "./settings/AiSection";
+import { RecordingsSection } from "./settings/RecordingsSection";
 
 export function SettingsPanel(props) {
   const { t, locale, changeLocale, availableLocales } = useI18n();
@@ -54,39 +55,6 @@ export function SettingsPanel(props) {
     recordings_dir: null,
     demo_mode: false,
   });
-
-  // AI Assistant settings
-  const [aiCfg, setAiCfg] = createSignal({
-    enabled: false,
-    base_url: "http://localhost:11434/v1",
-    api_key: "",
-    model: "llama3.2",
-    system_prompt: "",
-  });
-const [availableModels, setAvailableModels] = createSignal([]);
-
-// Fetch available models when the component mounts
-onMount(async () => {
-    try {
-        const models = await invoke('get_available_models');
-        setAvailableModels(models);
-    } catch (err) {
-        console.error('Failed to fetch available models:', err);
-    }
-});
-
-  const [aiStatus, setAiStatus] = createSignal("");
-  const [aiSaving, setAiSaving] = createSignal(false);
-  const [aiTesting, setAiTesting] = createSignal(false);
-
-  // ── Recordings folder ──
-  // Recordings default to <app_config_dir>/recordings, which is real but
-  // undiscoverable — the folder lives under ~/Library/Application Support on
-  // macOS. Surfacing the path here (plus reveal / relocate) is what makes a
-  // finished recording findable.
-  const [recDir, setRecDir] = createSignal({ path: "", is_default: true, exists: false });
-  const [recFiles, setRecFiles] = createSignal([]);
-  const [recBusy, setRecBusy] = createSignal(false);
 
   // ── Support & demo ──
   // `support` is the publisher's address (Settings → About); `organizer` is
@@ -172,129 +140,12 @@ onMount(async () => {
     }
   });
 
-  // ── Translation ──
-  const [transSettings, setTransSettings] = createSignal({
-    enabled: false,
-    strategy: "cloud",
-    sourceLanguage: "auto",
-    targetLanguage: "en",
-    apiKey: "",
-    customUrl: "",
-  });
-  const [transSaving, setTransSaving] = createSignal(false);
-  const [transLoadError, setTransLoadError] = createSignal("");
-
-  const saveTranslationSettings = async () => {
-    setTransSaving(true);
-    try {
-      await invoke("update_translation_settings", { settings: transSettings() });
-      alert(t("settings.savedSuccessfully"));
-    } catch (err) {
-      alert(`❌ Error: ${err}`);
-    } finally {
-      setTransSaving(false);
-    }
-  };
-
-  // ── Translation Settings UI ──
-  const StrategyOption = (props) => (
-    <button
-      onClick={() => setTransSettings({ ...transSettings(), strategy: props.value })}
-      class={`px-4 py-2 rounded-lg border text-sm transition-all ${transSettings().strategy === props.value
-          ? "bg-blue-600 border-blue-500 text-white"
-          : "bg-[#0f0f0f] border-[#2a2a2a] text-gray-400 hover:border-gray-600"
-        }`}
-    >
-      {props.label}
-    </button>
-  );
-
-
-  const loadRecordings = async () => {
-    const [dir, files] = await Promise.all([
-      invoke("get_recordings_dir").catch(() => null),
-      invoke("get_local_recordings").catch(() => []),
-    ]);
-    if (dir) setRecDir(dir);
-    setRecFiles(Array.isArray(files) ? files : []);
-  };
-
-  // Native folder picker. Handled in Rust's dialog plugin (already a
-  // dependency) rather than `<input type="file" webkitdirectory>`, which
-  // WKWebView does not support for directories.
-  const chooseRecordingsDir = async () => {
-    setRecBusy(true);
-    try {
-      const picked = await dialogOpen({ directory: true, multiple: false });
-      if (!picked) return; // cancelled
-      setRecDir(await invoke("set_recordings_dir", { path: picked }));
-      await loadRecordings();
-    } catch (err) {
-      console.error("Failed to change recordings folder:", err);
-      alert(`${t("settings.recordings.changeFailed")}: ${err}`);
-    } finally {
-      setRecBusy(false);
-    }
-  };
-
-  const resetRecordingsDir = async () => {
-    setRecBusy(true);
-    try {
-      setRecDir(await invoke("set_recordings_dir", { path: null }));
-      await loadRecordings();
-    } catch (err) {
-      console.error("Failed to reset recordings folder:", err);
-      alert(`${t("settings.recordings.changeFailed")}: ${err}`);
-    } finally {
-      setRecBusy(false);
-    }
-  };
-
-  // Reveal a recording in the file manager. Uses `revealItemInDir` rather than
-  // `openPath` on purpose: the opener capability scopes `open-path` to
-  // $APPCONFIG/*, which would reject any user-relocated folder, whereas
-  // `reveal-item-in-dir` is granted unrestricted by `opener:default`.
-  const revealRecording = async (path) => {
-    try {
-      await revealItemInDir(path);
-    } catch (err) {
-      console.error("Failed to reveal recording:", err);
-      alert(`${t("settings.recordings.revealFailed")}: ${err}`);
-    }
-  };
-
-  const revealRecordingsDir = async () => {
-    // Reveal the newest file when there is one: that opens the folder *and*
-    // selects the recording the user is looking for. Falling back to the folder
-    // itself still lands them in the right place.
-    const newest = recFiles()[0];
-    await revealRecording(newest ? newest.path : recDir().path);
-  };
-
-  const deleteRecording = async (path) => {
-    if (!confirm(t("settings.recordings.deleteConfirm"))) return;
-    try {
-      await invoke("delete_recording", { filePath: path });
-      await loadRecordings();
-    } catch (err) {
-      console.error("Failed to delete recording:", err);
-      alert(`${t("settings.recordings.deleteFailed")}: ${err}`);
-    }
-  };
-
   const unblockParticipant = async (identity) => {
     try {
       setBlocked(await invoke("set_participant_blocked", { identity, blocked: false }));
     } catch (err) {
       console.error("Failed to unblock participant:", err);
     }
-  };
-
-  const formatBytes = (n) => {
-    if (!n && n !== 0) return "";
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
-    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   // Load all settings on mount
@@ -320,24 +171,10 @@ onMount(async () => {
       const sett = await invoke("get_user_settings");
       setSettings(sett);
 
-      if (IS_PRO_EDITION) {
-        try {
-          setTransSettings(await invoke("get_translation_settings"));
-        } catch (err) {
-          console.error("Failed to load translation settings:", err);
-          setTransLoadError(`Failed to load translation settings: ${err}`);
-        }
-      }
-
-      const ai = await invoke("get_ai_settings").catch(() => null);
-      if (ai) setAiCfg(ai);
-
-      // Recordings, support contact, demo availability and the block list.
-      // Each is independently non-fatal: if one fails the rest of Settings must
-      // still render, so these are caught rather than allowed to reject the
-      // whole onMount.
-      await loadRecordings().catch((err) => console.warn("Recordings unavailable:", err));
-
+      // Support contact, demo availability and the block list. Each is
+      // independently non-fatal: if one fails the rest of Settings must still
+      // render, so these are caught rather than allowed to reject the whole
+      // onMount.
       const contact = await invoke("get_report_contact").catch(() => null);
       if (contact) setSupportEmail(contact.support || "");
 
@@ -434,36 +271,6 @@ onMount(async () => {
 
   const toggleSetting = (key) => {
     setSettings({ ...settings(), [key]: !settings()[key] });
-  };
-
-  // ── AI Assistant ──
-  const saveAiSettings = async () => {
-    setAiSaving(true);
-    setAiStatus("");
-    try {
-      await invoke("update_ai_settings", { settings: aiCfg() });
-      setAiStatus(`✅ ${t("settings.savedSecurely")}`);
-      setTimeout(() => setAiStatus(""), 3000);
-    } catch (err) {
-      setAiStatus(`❌ Error: ${err}`);
-    } finally {
-      setAiSaving(false);
-    }
-  };
-
-  const testAiConnection = async () => {
-    setAiTesting(true);
-    setAiStatus("");
-    try {
-      // Persist current form values first so the test uses what's on screen.
-      await invoke("update_ai_settings", { settings: aiCfg() });
-      const result = await invoke("test_ai_connection");
-      setAiStatus(`✅ ${result}`);
-    } catch (err) {
-      setAiStatus(`❌ Error: ${err}`);
-    } finally {
-      setAiTesting(false);
-    }
   };
 
   // Refs for the section nav buttons, used to keep the active tab visible
@@ -975,348 +782,17 @@ onMount(async () => {
             </div>
           </Show>
 
-          {/* AI Assistant */}
           <Show when={activeSection() === "ai"}>
-            <div class="space-y-6">
-              <div>
-                <h3 class="text-lg font-semibold mb-3 md:mb-4">{t("settings.ai.title")}</h3>
-                <p class="text-sm text-gray-400 mb-4">{t("settings.ai.description")}</p>
-
-                <div class="bg-[#1a1a1a] rounded-lg p-6 space-y-4">
-                  {/* Enable toggle */}
-                  <label class="flex items-center justify-between cursor-pointer">
-                    <span class="text-sm text-gray-300">{t("settings.ai.enable")}</span>
-                    <input
-                      type="checkbox"
-                      checked={aiCfg().enabled}
-                      onChange={(e) => setAiCfg({ ...aiCfg(), enabled: e.currentTarget.checked })}
-                      class="w-5 h-5 accent-blue-600"
-                    />
-                  </label>
-
-                  {/* Base URL */}
-                  <div class="flex flex-col gap-1">
-                    <label class="text-sm text-gray-400">{t("settings.ai.baseUrl")}</label>
-                    <input
-                      type="url"
-                      value={aiCfg().base_url}
-                      onInput={(e) => setAiCfg({ ...aiCfg(), base_url: e.currentTarget.value })}
-                      class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
-                      placeholder="http://localhost:11434/v1"
-                    />
-                  </div>
-
-                  {/* API key */}
-                  <div class="flex flex-col gap-1">
-                    <label class="text-sm text-gray-400">{t("settings.ai.apiKey")}</label>
-                    <input
-                      type="password"
-                      value={aiCfg().api_key}
-                      onInput={(e) => setAiCfg({ ...aiCfg(), api_key: e.currentTarget.value })}
-                      class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
-                      placeholder="••••••••••••"
-                    />
-                    <span class="text-xs text-gray-500">{t("settings.ai.apiKeyHint")}</span>
-                  </div>
-  <div class="flex flex-col gap-1">
-    <label class="text-sm text-gray-400">{t("settings.ai.availableModels")}</label>
-    <select
-      value={aiCfg().model}
-      onChange={(e) => setAiCfg({ ...aiCfg(), model: e.currentTarget.value })}
-      class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
-    >
-      <option value="" disabled selected>{t("settings.ai.selectModel")}</option>
-      <For each={availableModels()}>
-        {(model) => (
-          <option value={model} selected={model === aiCfg().model}>
-            {model}
-          </option>
-        )}
-      </For>
-    </select>
-  </div>
-
-
-
-                  {/* System prompt */}
-                  <div class="flex flex-col gap-1">
-                    <label class="text-sm text-gray-400">{t("settings.ai.systemPrompt")}</label>
-                    <textarea
-                      rows={3}
-                      value={aiCfg().system_prompt}
-                      onInput={(e) => setAiCfg({ ...aiCfg(), system_prompt: e.currentTarget.value })}
-                      class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors text-sm resize-y"
-                      placeholder={t("settings.ai.systemPromptPlaceholder")}
-                    />
-                  </div>
-
-                  {/* Status */}
-                  <Show when={aiStatus()}>
-                    <div class={`text-sm text-center mt-2 ${aiStatus().startsWith("❌") ? "text-red-400" : "text-green-400"}`}>
-                      {aiStatus()}
-                    </div>
-                  </Show>
-
-                  {/* Actions */}
-                  <div class="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={saveAiSettings}
-                      disabled={aiSaving()}
-                      class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all active:scale-95"
-                    >
-                      {aiSaving() ? t("settings.saving") : t("settings.saveConfig")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={testAiConnection}
-                      disabled={aiTesting()}
-                      class="flex-1 bg-[#2a2a2a] hover:bg-[#333333] disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all active:scale-95"
-                    >
-                      {aiTesting() ? t("settings.ai.testing") : t("settings.ai.test")}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <AiSection />
           </Show>
 
-          {/* Recordings — where local recordings are saved.
-              The default folder is real but undiscoverable (it sits under
-              ~/Library/Application Support on macOS), so the path is shown
-              verbatim with a reveal button, and can be relocated. */}
-          <Show when={activeSection() === "recordings"}>
-            <div class="w-full max-w-2xl bg-[#1c1c1c] rounded-2xl p-4 sm:p-6 shadow-xl border border-[#2a2a2a]">
-              <h3 class="text-lg font-semibold mb-4">{t("settings.recordings.title")}</h3>
-
-              <div class="bg-[#1a1a1a] rounded-lg p-4 mb-4">
-                <label class="block text-sm font-medium text-gray-300 mb-2">
-                  {t("settings.recordings.folder")}
-                </label>
-                <p class="font-mono text-xs text-gray-400 break-all bg-[#0f0f0f] rounded px-3 py-2 border border-[#2a2a2a]">
-                  {recDir().path || "…"}
-                </p>
-                {/* defaultHint invites the user to relocate the folder, but the
-                    Change button below is desktop-only — so don't advertise an
-                    action this platform cannot perform. */}
-                <Show when={recDir().is_default && !IS_MOBILE}>
-                  <p class="mt-2 text-xs text-gray-500">{t("settings.recordings.defaultHint")}</p>
-                </Show>
-                {/* Local recording needs MediaRecorder, which WKWebView does not
-                    implement, so no iOS build can write a recording yet. Say so
-                    plainly rather than pointing at a folder that will stay empty
-                    (the Documents/Recordings default and the file-sharing plist
-                    keys are provisioned ahead of that feature — see lib.rs). */}
-                <Show when={IS_MOBILE}>
-                  <p class="mt-2 text-xs text-gray-500">{t("settings.recordings.mobileHint")}</p>
-                </Show>
-                <Show when={recDir().path && !recDir().exists}>
-                  <p class="mt-2 text-xs text-amber-400">{t("settings.recordings.missing")}</p>
-                </Show>
-
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <button
-                    onClick={revealRecordingsDir}
-                    class="px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 rounded-lg transition disabled:opacity-50"
-                  >
-                    {t("settings.recordings.open")}
-                  </button>
-                  <Show when={!IS_MOBILE}>
-                    <button
-                      onClick={chooseRecordingsDir}
-                      disabled={recBusy()}
-                      class="px-3 py-2 text-sm bg-[#2a2a2a] hover:bg-[#333] border border-[#3a3a3a] rounded-lg transition disabled:opacity-50"
-                    >
-                      {t("settings.recordings.change")}
-                    </button>
-                    <Show when={!recDir().is_default}>
-                      <button
-                        onClick={resetRecordingsDir}
-                        disabled={recBusy()}
-                        class="px-3 py-2 text-sm text-gray-400 hover:text-white bg-[#2a2a2a] hover:bg-[#333] border border-[#3a3a3a] rounded-lg transition disabled:opacity-50"
-                      >
-                        {t("settings.recordings.reset")}
-                      </button>
-                    </Show>
-                  </Show>
-                </div>
-              </div>
-              {/* Existing recordings, newest first. Listed here because a file
-                  the user cannot find is indistinguishable from a recording
-                  that was never saved. */}
-              <div class="bg-[#1a1a1a] rounded-lg p-4">
-                <div class="flex items-center justify-between mb-3">
-                  <label class="block text-sm font-medium text-gray-300">
-                    {t("settings.recordings.files")}
-                  </label>
-                  <span class="text-xs text-gray-500">{recFiles().length}</span>
-                </div>
-
-                <Show when={recFiles().length === 0}>
-                  <p class="text-sm text-gray-500 py-4 text-center">
-                    {t(IS_MOBILE ? "settings.recordings.noneMobile" : "settings.recordings.none")}
-                  </p>
-                </Show>
-
-                <div class="space-y-2">
-                  <For each={recFiles()}>
-                    {(file) => (
-                      <div class="flex items-center gap-2 bg-[#0f0f0f] rounded px-3 py-2">
-                        <div class="min-w-0 flex-1">
-                          <p class="text-sm text-gray-200 truncate">{file.name}</p>
-                          <p class="text-xs text-gray-500">
-                            {formatBytes(file.size_bytes)}
-                            <Show when={file.created}>
-                              {" · "}
-                              {new Date(file.created * 1000).toLocaleString()}
-                            </Show>
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => revealRecording(file.path)}
-                          class="shrink-0 text-xs text-blue-400 hover:text-blue-300 transition"
-                        >
-                          {t("settings.recordings.reveal")}
-                        </button>
-                        <button
-                          onClick={() => deleteRecording(file.path)}
-                          class="shrink-0 text-xs text-red-400 hover:text-red-300 transition"
-                        >
-                          {t("settings.recordings.delete")}
-                        </button>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              </div>
-            </div>
+<Show when={activeSection() === "recordings"}>
+            <RecordingsSection />
           </Show>
 
           {/* Live Translation */}
           <Show when={IS_PRO_EDITION && activeSection() === "translation"}>
-            <div class="space-y-6">
-              <div>
-                <h3 class="text-lg font-semibold mb-3 md:mb-4">Live Translation Settings</h3>
-                <div class="bg-[#1a1a1a] rounded-lg p-6 space-y-6">
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-gray-300">Translation Strategy</label>
-                    <div class="flex flex-wrap gap-2">
-                      <StrategyOption value="cloud" label="Cloud API" />
-                      <StrategyOption value="docker" label="Local Docker" />
-                      <StrategyOption value="serverAgent" label="Server Agent" />
-                    </div>
-                    <p class="text-xs text-gray-500">Choose how translation is performed.</p>
-                  </div>
-
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-gray-300">Spoken Language</label>
-                    <select
-                      value={transSettings().sourceLanguage || "auto"}
-                      onChange={(e) => setTransSettings({ ...transSettings(), sourceLanguage: e.currentTarget.value })}
-                      class="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors"
-                    >
-                      <option value="auto">Auto-detect</option>
-                      <option value="ar">Arabic</option>
-                      <option value="zh">Chinese</option>
-                      <option value="nl">Dutch</option>
-                      <option value="en">English</option>
-                      <option value="fr">French</option>
-                      <option value="de">German</option>
-                      <option value="hi">Hindi</option>
-                      <option value="it">Italian</option>
-                      <option value="ja">Japanese</option>
-                      <option value="ko">Korean</option>
-                      <option value="pl">Polish</option>
-                      <option value="pt">Portuguese</option>
-                      <option value="ru">Russian</option>
-                      <option value="es">Spanish</option>
-                      <option value="tr">Turkish</option>
-                      <option value="uk">Ukrainian</option>
-                      <option value="vi">Vietnamese</option>
-                    </select>
-                    <p class="text-xs text-gray-500">Language spoken in the meeting. Auto-detect lets the transcription provider identify it.</p>
-                  </div>
-
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-gray-300">Target Language</label>
-                    <select
-                      value={transSettings().targetLanguage}
-                      onChange={(e) => setTransSettings({ ...transSettings(), targetLanguage: e.currentTarget.value })}
-                      class="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors"
-                    >
-                      <option value="en">English</option>
-                      <option value="fr">French</option>
-                      <option value="es">Spanish</option>
-                      <option value="de">German</option>
-                      <option value="zh">Chinese</option>
-                      <option value="ja">Japanese</option>
-                      <option value="ko">Korean</option>
-                      <option value="pt">Portuguese</option>
-                      <option value="it">Italian</option>
-                    </select>
-                  </div>
-
-                  <Show when={transSettings().strategy === "cloud"}>
-                    <div class="flex flex-col gap-2">
-                      <label class="text-sm font-semibold text-gray-500">Cloud API Key (Required)</label>
-                      <input
-                        type="password"
-                        value={transSettings().apiKey || ""}
-                        onInput={(e) => setTransSettings({ ...transSettings(), apiKey: e.currentTarget.value })}
-                        class="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors font-mono text-sm"
-                        placeholder="OpenAI / Gemini / Deepgram API Key"
-                        autocomplete="off"
-                      />
-                      <p class="text-xs text-gray-500">Your API key is stored locally and never sent to VisualTalk servers.</p>
-                    </div>
-                  </Show>
-
-                  {/* The strategy value is the *serde wire spelling*, not a display
-                      label: TranslationStrategy is `rename_all = "camelCase"`, so
-                      ServerAgent arrives as "serverAgent". Pinned by the Rust test
-                      `translation_strategy_wire_spelling_is_camel_case`. */}
-                  <Show when={transSettings().strategy === "docker" || transSettings().strategy === "serverAgent"}>
-                    <div class="flex flex-col gap-2">
-                      <label class="text-sm font-semibold text-gray-500">Custom Server URL (Optional)</label>
-                      <input
-                        type="url"
-                        value={transSettings().customUrl || ""}
-                        onInput={(e) => setTransSettings({ ...transSettings(), customUrl: e.currentTarget.value })}
-                        class="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors font-mono text-sm"
-                        placeholder="http://192.168.1.15:8080 or https://whisper.my-domain.com"
-                      />
-                      <p class="text-xs text-gray-500">If empty, VisualTalk will try to discover the local Docker server.</p>
-                    </div>
-                  </Show>
-
-                  <div class="flex items-center justify-between py-2 border-t border-gray-800">
-                    <label class="text-sm font-semibold text-gray-300">Enable Live Translation</label>
-                    <button
-                      type="button"
-                      onClick={() => setTransSettings({ ...transSettings(), enabled: !transSettings().enabled })}
-                      class={`px-4 py-1 rounded-full text-sm font-medium transition ${transSettings().enabled ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                        }`}
-                    >
-                      {transSettings().enabled ? "ON" : "OFF"}
-                    </button>
-                  </div>
-
-                  <div class="pt-4 border-t border-gray-800">
-                    <Show when={transLoadError()}>
-                      <p role="alert" class="mb-3 text-sm text-red-400">{transLoadError()}</p>
-                    </Show>
-                    <button
-                      type="button"
-                      onClick={saveTranslationSettings}
-                      disabled={transSaving()}
-                      class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all active:scale-95"
-                    >
-                      {transSaving() ? "Saving..." : "Save Translation Settings"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <TranslationSection />
           </Show>
 
           {/* About */}
