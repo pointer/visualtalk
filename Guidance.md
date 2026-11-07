@@ -48,6 +48,8 @@ cargo test                # run Rust tests
 - Formatting/linting: there is **no** `pnpm lint` or `pnpm format`. Use `cargo fmt` for Rust and match the surrounding JSX style; don't add a formatter config without being asked.
 - Platform bundles: `pnpm mac:build` (plus `mac:build:intel` / `mac:build:universal`), `pnpm win:build`, `pnpm linux:build`, `pnpm ios:build` / `ios:build:pro`, `pnpm android:build` / `android:build:pro`. Mobile setup helpers live in `scripts/` (`fix-ios-project.py`, `fix-android-project.py`, `ensure-ios-toolchain.py`).
 - Android toolchain: NDK r23+ dropped the target-prefixed binutils, so the vendored OpenSSL Makefile cannot find `<triple>-ranlib` and dies with `make: *** [install_dev] Error 127`. Every `android:*` script and the CI android job therefore `eval "$(python3 scripts/android-toolchain-env.py)"` first, which exports `RANLIB_<target>` pointing at the NDK's `llvm-ranlib` (resolved from `ANDROID_HOME`, newest NDK). If an android build hits that error, the wiring or `ANDROID_HOME` is missing. `src-tauri/gen/android` is generated, gitignored, and patched by `fix-android-project.py` (upload-key signing + WebView media permissions); regenerate with `pnpm android:init`.
+- **Never build or Run this project from Android Studio.** Studio's Gradle builds the same `gen/android` without Tauri's `custom-protocol` feature, installs a dev-mode APK that points the WebView at `http://localhost:1420` (white/black screen, "Failed to request …"), and writes dev-mode artifacts into the shared `src-tauri/target/<abi>/debug`, which a later CLI build can ship. It has overwritten a good CLI install twice during the 2026-11-07 session. Recovery: quit Studio, `adb uninstall com.katebg.visualtalk`, `cargo clean -p visualtalk`, rebuild via `pnpm android:*`, reinstall.
+- Android/iOS are single-Activity: Tauri cannot spawn a second window there, and the one `spawn_meeting_window` creates never surfaces (ghost behind the dashboard). `App.jsx` therefore renders `MeetingView` **in place** when `IS_MOBILE`, and leaving uses `leaveCall({ keepWindowOpen: true })` plus `onExit` back to the dashboard — closing the only window would quit the app.
 - `pnpm notices` regenerates `THIRD_PARTY_NOTICES.md`; `pnpm license:check` verifies it. Run both after adding or removing a dependency.
 - Minimum macOS version and required Xcode CLT: see `docs/` and `scripts/ensure-ios-toolchain.py`; Tauri v2 requires Xcode CLT for desktop builds.
 
@@ -107,6 +109,10 @@ State lives in Solid signals/stores owned by `App.jsx` / `MainWindow.jsx` / `Mee
 
 - Prefer Solid primitives (`createSignal`, `createStore`, `createMemo`, `createEffect`) over external state libs.
 - Use fine-grained reactivity; avoid React-style patterns (no `useState`, no `useEffect`).
+- A component loaded with Solid `lazy()` must have a **default export**: `lazy`
+  resolves `module.default`, and a named-only export renders nothing at all —
+  a black window, no console error. Cost one regression (c549d8d, fixed in
+  e67a64d). `MeetingView` now exports both; keep it that way.
 - This is plain JSX: there is no `tsconfig.json` and no type-check step. Don't introduce TypeScript — the lone `components/Permissions.ts` predates this rule. Document non-obvious prop shapes with JSDoc comments.
 - Style with Tailwind v4 utilities (configured through `@tailwindcss/vite`; no `tailwind.config.js`). There is no CSS-modules setup — don't add one per component.
 - Wrap LiveKit SDK usage in `src/lib/` hooks; components should not import `livekit-client` directly.
