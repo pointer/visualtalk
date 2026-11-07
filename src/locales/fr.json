@@ -120,6 +120,8 @@
   "settings.ai.apiKey": "Clé API",
   "settings.ai.apiKeyHint": "Facultatif pour les serveurs locaux. Utilise la variable d'environnement AI_API_KEY en secours.",
   "settings.ai.model": "Modèle",
+  "settings.ai.availableModels": "Modèles disponibles",
+  "settings.ai.selectModel": "Sélectionnez un modèle",
   "settings.ai.systemPrompt": "Prompt système",
   "settings.ai.systemPromptPlaceholder": "Vous êtes un assistant IA utile...",
   "settings.ai.test": "Tester la connexion",

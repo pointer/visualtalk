@@ -1,15 +1,15 @@
-import { useI18n } from "../i18n/I18nProvider";
-import { createSignal, onMount, onCleanup, For, Show } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
+import { createSignal, onMount, onCleanup, For, Show } from 'solid-js';
+import { invoke } from '@tauri-apps/api/core';
+import { useI18n } from '../i18n/I18nProvider';
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl, revealItemInDir } from "@tauri-apps/plugin-opener";
 import { open as dialogOpen } from "@tauri-apps/plugin-dialog";
 import { requestMediaPermissions } from "./Permissions";
 import { LicenseScreen } from "./LicenseScreen";
-
-// iOS and Android expose no folder picker to the webview, so relocating the
-// recordings folder is a desktop-only control.
 import { IS_MOBILE } from "../lib/platform";
+
+const IS_PRO_EDITION =
+  typeof __PRO_EDITION__ !== "undefined" && __PRO_EDITION__ === true;
 
 export function SettingsPanel(props) {
   const { t, locale, changeLocale, availableLocales } = useI18n();
@@ -65,6 +65,18 @@ export function SettingsPanel(props) {
     model: "llama3.2",
     system_prompt: "",
   });
+const [availableModels, setAvailableModels] = createSignal([]);
+
+// Fetch available models when the component mounts
+onMount(async () => {
+    try {
+        const models = await invoke('get_available_models');
+        setAvailableModels(models);
+    } catch (err) {
+        console.error('Failed to fetch available models:', err);
+    }
+});
+
   const [aiStatus, setAiStatus] = createSignal("");
   const [aiSaving, setAiSaving] = createSignal(false);
   const [aiTesting, setAiTesting] = createSignal(false);
@@ -87,7 +99,7 @@ export function SettingsPanel(props) {
   const [blocked, setBlocked] = createSignal([]);
   // Read from the bundle rather than hardcoded: the About box used to claim
   // "1.0.0" and a build date of "August 31, 2024" while the app was actually
-  // 3.3.33, which is exactly the kind of thing an App Reviewer notices.
+  // 3.3.42, which is exactly the kind of thing an App Reviewer notices.
   const [appVersion, setAppVersion] = createSignal("");
 
   // Enumerate media devices through the webview (the only source WKWebView
@@ -166,11 +178,13 @@ export function SettingsPanel(props) {
   const [transSettings, setTransSettings] = createSignal({
     enabled: false,
     strategy: "cloud",
+    sourceLanguage: "auto",
     targetLanguage: "en",
     apiKey: "",
     customUrl: "",
   });
   const [transSaving, setTransSaving] = createSignal(false);
+  const [transLoadError, setTransLoadError] = createSignal("");
 
   const saveTranslationSettings = async () => {
     setTransSaving(true);
@@ -183,6 +197,19 @@ export function SettingsPanel(props) {
       setTransSaving(false);
     }
   };
+
+  // ── Translation Settings UI ──
+  const StrategyOption = (props) => (
+    <button
+      onClick={() => setTransSettings({ ...transSettings(), strategy: props.value })}
+      class={`px-4 py-2 rounded-lg border text-sm transition-all ${transSettings().strategy === props.value
+          ? "bg-blue-600 border-blue-500 text-white"
+          : "bg-[#0f0f0f] border-[#2a2a2a] text-gray-400 hover:border-gray-600"
+        }`}
+    >
+      {props.label}
+    </button>
+  );
 
 
   const loadRecordings = async () => {
@@ -295,8 +322,14 @@ export function SettingsPanel(props) {
       const sett = await invoke("get_user_settings");
       setSettings(sett);
 
-      const trans = await invoke("get_translation_settings").catch(() => null);
-      if (trans) setTransSettings(trans);
+      if (IS_PRO_EDITION) {
+        try {
+          setTransSettings(await invoke("get_translation_settings"));
+        } catch (err) {
+          console.error("Failed to load translation settings:", err);
+          setTransLoadError(`Failed to load translation settings: ${err}`);
+        }
+      }
 
       const ai = await invoke("get_ai_settings").catch(() => null);
       if (ai) setAiCfg(ai);
@@ -360,8 +393,8 @@ export function SettingsPanel(props) {
     try {
       await openUrl(
         `mailto:${encodeURIComponent(target)}` +
-          `?subject=${encodeURIComponent(subject)}` +
-          `&body=${encodeURIComponent(body)}`
+        `?subject=${encodeURIComponent(subject)}` +
+        `&body=${encodeURIComponent(body)}`
       );
       return true;
     } catch (err) {
@@ -380,8 +413,8 @@ export function SettingsPanel(props) {
       supportEmail(),
       "VisualTalk support request",
       `${t("settings.supportBodyPrompt")}\n\n` +
-        `App: VisualTalk\n` +
-        `Identity: ${profile().identity || ""}\n`
+      `App: VisualTalk\n` +
+      `Identity: ${profile().identity || ""}\n`
     );
 
   // The organizer address that in-meeting reports are sent to. An empty
@@ -490,6 +523,7 @@ export function SettingsPanel(props) {
               { id: "livekit", label: "LiveKit", icon: "⏚" },
               { id: "recordings", label: "Recordings", icon: "⏺" },
               { id: "ai", label: "AI Assistant", icon: "✨" },
+              ...(IS_PRO_EDITION ? [{ id: "translation", label: "Live Translation", icon: "🌐" }] : []),
               { id: "about", label: "About", icon: "ℹ️" },
             ].map((section) => (
               <button
@@ -986,18 +1020,25 @@ export function SettingsPanel(props) {
                     />
                     <span class="text-xs text-gray-500">{t("settings.ai.apiKeyHint")}</span>
                   </div>
+  <div class="flex flex-col gap-1">
+    <label class="text-sm text-gray-400">{t("settings.ai.availableModels")}</label>
+    <select
+      value={aiCfg().model}
+      onChange={(e) => setAiCfg({ ...aiCfg(), model: e.currentTarget.value })}
+      class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+    >
+      <option value="" disabled selected>{t("settings.ai.selectModel")}</option>
+      <For each={availableModels()}>
+        {(model) => (
+          <option value={model} selected={model === aiCfg().model}>
+            {model}
+          </option>
+        )}
+      </For>
+    </select>
+  </div>
 
-                  {/* Model */}
-                  <div class="flex flex-col gap-1">
-                    <label class="text-sm text-gray-400">{t("settings.ai.model")}</label>
-                    <input
-                      type="text"
-                      value={aiCfg().model}
-                      onInput={(e) => setAiCfg({ ...aiCfg(), model: e.currentTarget.value })}
-                      class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
-                      placeholder="llama3.2 / gpt-4o-mini / ..."
-                    />
-                  </div>
+
 
                   {/* System prompt */}
                   <div class="flex flex-col gap-1">
@@ -1102,7 +1143,6 @@ export function SettingsPanel(props) {
                   </Show>
                 </div>
               </div>
-
               {/* Existing recordings, newest first. Listed here because a file
                   the user cannot find is indistinguishable from a recording
                   that was never saved. */}
@@ -1149,6 +1189,129 @@ export function SettingsPanel(props) {
                       </div>
                     )}
                   </For>
+                </div>
+              </div>
+            </div>
+          </Show>
+
+          {/* Live Translation */}
+          <Show when={IS_PRO_EDITION && activeSection() === "translation"}>
+            <div class="space-y-6">
+              <div>
+                <h3 class="text-lg font-semibold mb-3 md:mb-4">Live Translation Settings</h3>
+                <div class="bg-[#1a1a1a] rounded-lg p-6 space-y-6">
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-gray-300">Translation Strategy</label>
+                    <div class="flex flex-wrap gap-2">
+                      <StrategyOption value="cloud" label="Cloud API" />
+                      <StrategyOption value="docker" label="Local Docker" />
+                      <StrategyOption value="serveragent" label="Server Agent" />
+                    </div>
+                    <p class="text-xs text-gray-500">Choose how translation is performed.</p>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-gray-300">Spoken Language</label>
+                    <select
+                      value={transSettings().sourceLanguage || "auto"}
+                      onChange={(e) => setTransSettings({ ...transSettings(), sourceLanguage: e.currentTarget.value })}
+                      class="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors"
+                    >
+                      <option value="auto">Auto-detect</option>
+                      <option value="ar">Arabic</option>
+                      <option value="zh">Chinese</option>
+                      <option value="nl">Dutch</option>
+                      <option value="en">English</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                      <option value="hi">Hindi</option>
+                      <option value="it">Italian</option>
+                      <option value="ja">Japanese</option>
+                      <option value="ko">Korean</option>
+                      <option value="pl">Polish</option>
+                      <option value="pt">Portuguese</option>
+                      <option value="ru">Russian</option>
+                      <option value="es">Spanish</option>
+                      <option value="tr">Turkish</option>
+                      <option value="uk">Ukrainian</option>
+                      <option value="vi">Vietnamese</option>
+                    </select>
+                    <p class="text-xs text-gray-500">Language spoken in the meeting. Auto-detect lets the transcription provider identify it.</p>
+                  </div>
+
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-gray-300">Target Language</label>
+                    <select
+                      value={transSettings().targetLanguage}
+                      onChange={(e) => setTransSettings({ ...transSettings(), targetLanguage: e.currentTarget.value })}
+                      class="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors"
+                    >
+                      <option value="en">English</option>
+                      <option value="fr">French</option>
+                      <option value="es">Spanish</option>
+                      <option value="de">German</option>
+                      <option value="zh">Chinese</option>
+                      <option value="ja">Japanese</option>
+                      <option value="ko">Korean</option>
+                      <option value="pt">Portuguese</option>
+                      <option value="it">Italian</option>
+                    </select>
+                  </div>
+
+                  <Show when={transSettings().strategy === "cloud"}>
+                    <div class="flex flex-col gap-2">
+                      <label class="text-sm font-semibold text-gray-500">Cloud API Key (Required)</label>
+                      <input
+                        type="password"
+                        value={transSettings().apiKey || ""}
+                        onInput={(e) => setTransSettings({ ...transSettings(), apiKey: e.currentTarget.value })}
+                        class="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+                        placeholder="OpenAI / Gemini / Deepgram API Key"
+                        autocomplete="off"
+                      />
+                      <p class="text-xs text-gray-500">Your API key is stored locally and never sent to VisualTalk servers.</p>
+                    </div>
+                  </Show>
+
+                  <Show when={transSettings().strategy === "docker" || transSettings().strategy === "serveragent"}>
+                    <div class="flex flex-col gap-2">
+                      <label class="text-sm font-semibold text-gray-500">Custom Server URL (Optional)</label>
+                      <input
+                        type="url"
+                        value={transSettings().customUrl || ""}
+                        onInput={(e) => setTransSettings({ ...transSettings(), customUrl: e.currentTarget.value })}
+                        class="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 text-white outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+                        placeholder="http://192.168.1.15:8080 or https://whisper.my-domain.com"
+                      />
+                      <p class="text-xs text-gray-500">If empty, VisualTalk will try to discover the local Docker server.</p>
+                    </div>
+                  </Show>
+
+                  <div class="flex items-center justify-between py-2 border-t border-gray-800">
+                    <label class="text-sm font-semibold text-gray-300">Enable Live Translation</label>
+                    <button
+                      type="button"
+                      onClick={() => setTransSettings({ ...transSettings(), enabled: !transSettings().enabled })}
+                      class={`px-4 py-1 rounded-full text-sm font-medium transition ${transSettings().enabled ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                        }`}
+                    >
+                      {transSettings().enabled ? "ON" : "OFF"}
+                    </button>
+                  </div>
+
+                  <div class="pt-4 border-t border-gray-800">
+                    <Show when={transLoadError()}>
+                      <p role="alert" class="mb-3 text-sm text-red-400">{transLoadError()}</p>
+                    </Show>
+                    <button
+                      type="button"
+                      onClick={saveTranslationSettings}
+                      disabled={transSaving()}
+                      class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all active:scale-95"
+                    >
+                      {transSaving() ? "Saving..." : "Save Translation Settings"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1279,7 +1442,7 @@ export function SettingsPanel(props) {
                     </button>
                   </div>
                   <div class="p-6 overflow-y-auto max-h-[calc(80vh-4rem)]">
-                    <LicenseScreen version="3.3.33" />
+                    <LicenseScreen version="3.3.42" />
                   </div>
                 </div>
               </div>

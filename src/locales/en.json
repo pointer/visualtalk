@@ -120,6 +120,8 @@
   "settings.ai.apiKey": "API Key",
   "settings.ai.apiKeyHint": "Optional for local servers. Falls back to the AI_API_KEY environment variable.",
   "settings.ai.model": "Model",
+  "settings.ai.availableModels": "Available Models",
+  "settings.ai.selectModel": "Select a model",
   "settings.ai.systemPrompt": "System Prompt",
   "settings.ai.systemPromptPlaceholder": "You are a helpful AI assistant...",
   "settings.ai.test": "Test Connection",
