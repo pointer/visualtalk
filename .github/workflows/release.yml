@@ -235,14 +235,14 @@ jobs:
         env:
           RANLIB: llvm-ranlib
           AR: llvm-ar
-        run: pnpm tauri android build --aab
+        run: eval "$(python3 scripts/android-toolchain-env.py)" && pnpm tauri android build --aab
 
       - name: Build Android app (debug APK, branch builds)
         if: "!startsWith(github.ref, 'refs/tags/') && github.event_name != 'workflow_dispatch'"
         env:
           RANLIB: llvm-ranlib
           AR: llvm-ar
-        run: pnpm tauri android build --apk --debug
+        run: eval "$(python3 scripts/android-toolchain-env.py)" && pnpm tauri android build --apk --debug
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4

@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SIGNING_VALUES = """\\
+SIGNING_VALUES = """\
 // Google Play upload-key signing — added by scripts/fix-android-project.py.
 // CI writes ../keystore.properties from repo secrets on tag pushes / manual
 // dispatch; without it the release build stays unsigned, like the stock template.
@@ -23,7 +23,7 @@ val keystoreProperties = Properties().apply {
 }
 
 """
-SIGNING_BLOCK = """\\
+SIGNING_BLOCK = """\
     signingConfigs {
         if (hasUploadKeystore) {
             create("release") {
@@ -35,7 +35,7 @@ SIGNING_BLOCK = """\\
         }
     }
 """
-SIGNING_ASSIGNMENT = """\\
+SIGNING_ASSIGNMENT = """\
             if (hasUploadKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -70,17 +70,23 @@ MEDIA_PERMISSIONS = """
 """
 
 
-def replace_once(source: str, anchor: str, replacement: str, path: Path) -> str:
+def replace_once(source: str, anchor: str, replacement: str, path: Path, after: bool = False) -> str:
     count = source.count(anchor)
     if count != 1:
         raise ValueError(
             f"✗ anchor {anchor!r} found {count}× — the Tauri android template "
             f"drifted; update scripts/fix-android-project.py"
         )
-    return source.replace(anchor, replacement + anchor, 1)
+    # `after=False` inserts the block *above* the anchor (used to open a new
+    # brace level before an existing one); `after=True` inserts *inside* it,
+    # which is what a statement belonging to a block body needs. Getting this
+    # wrong puts e.g. `signingConfig =` in `buildTypes {}` instead of in the
+    # release build type, where the property does not exist.
+    joined = anchor + replacement if after else replacement + anchor
+    return source.replace(anchor, joined, 1)
 
 
-def patch(path: Path, marker: str, edits: list[tuple[str, str]], description: str, check_only: bool) -> bool:
+def patch(path: Path, marker: str, edits: list[tuple[str, str, bool]], description: str, check_only: bool) -> bool:
     source = path.read_text(encoding="utf-8")
     if marker in source:
         print(f"• Android {description} patch already applied")
@@ -88,8 +94,8 @@ def patch(path: Path, marker: str, edits: list[tuple[str, str]], description: st
     if check_only:
         print(f"✗ Android {description} patch NOT applied — {path}", file=sys.stderr)
         return False
-    for anchor, replacement in edits:
-        source = replace_once(source, anchor, replacement, path)
+    for anchor, replacement, after in edits:
+        source = replace_once(source, anchor, replacement, path, after)
     path.write_text(source, encoding="utf-8")
     print(f"✓ Android {description} patch applied to {path}")
     return True
@@ -116,9 +122,10 @@ def main() -> int:
             gradle,
             "keystore.properties",
             (
-                ("android {\n", SIGNING_VALUES),
-                ("    buildTypes {\n", SIGNING_BLOCK),
-                ('        getByName("release") {\n', SIGNING_ASSIGNMENT),
+                ("android {\n", SIGNING_VALUES, False),
+                ("    buildTypes {\n", SIGNING_BLOCK, False),
+                # Inside the release build type, not beside it.
+                ('        getByName("release") {\n', SIGNING_ASSIGNMENT, True),
             ),
             "signing",
             args.check,
@@ -126,7 +133,7 @@ def main() -> int:
         failed |= not patch(
             manifest,
             "android.permission.RECORD_AUDIO",
-            ((INTERNET_PERMISSION, INTERNET_PERMISSION + MEDIA_PERMISSIONS),),
+            ((INTERNET_PERMISSION, INTERNET_PERMISSION + MEDIA_PERMISSIONS, False),),
             "media permission",
             args.check,
         )
