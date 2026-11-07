@@ -1,5 +1,7 @@
 import { createSignal } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
+// Typed pass-through to @tauri-apps/api/core: identical at runtime, but the
+// editor now knows `get_background` resolves to a BackgroundSettings.
+import { invoke } from "./ipc";
 
 /**
  * Composable for background effect state and CSS preview effects.

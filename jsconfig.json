@@ -1,0 +1,21 @@
+{
+  "//": "Editor configuration only — there is no TypeScript build step and this file affects nothing at runtime (AGENTS.md: plain JSX, no TS). It exists so VS Code resolves the JSDoc typedefs in src/models/index.js and the typed invoke in src/lib/ipc.js. checkJs stays false: this is a JavaScript project, and turning it on would surface hundreds of pre-existing implicit-any notes that nobody is going to fix.",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "baseUrl": "."
+  },
+  "include": ["src/**/*", "vite.config.js"],
+  "exclude": ["node_modules", "dist", "src-tauri"]
+}
