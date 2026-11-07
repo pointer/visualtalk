@@ -732,7 +732,11 @@ export function useLiveKitRoom() {
   };
 
   // ---- Leave call: disconnect, stop streams, close window ----
-  const leaveCall = async () => {
+  // `keepWindowOpen` is for the mobile shells (Android/iOS): Tauri has a single
+  // Activity there, so the meeting renders in place inside the one webview and
+  // closing "the window" would quit the app. The caller switches back to the
+  // dashboard itself instead.
+  const leaveCall = async ({ keepWindowOpen = false } = {}) => {
     if (lkRoom()) lkRoom().disconnect().catch(() => {});
     detachAllAudio();
     // Apply (then drop) any still-queued participant updates deterministically —
@@ -763,7 +767,7 @@ export function useLiveKitRoom() {
       }
     }
 
-    getCurrentWindow().close();
+    if (!keepWindowOpen) getCurrentWindow().close();
   };
 
   // ---- Stop all streams (for cleanup without closing window) ----

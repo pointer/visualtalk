@@ -1,6 +1,7 @@
 import { createSignal, onMount, lazy, Suspense, ErrorBoundary } from "solid-js";
 import { MainWindow } from "./MainWindow";
 import { invoke } from "@tauri-apps/api/core";
+import { IS_MOBILE } from "./lib/platform";
 import "./App.css";
 
 const MeetingView = lazy(() => import("./MeetingView"));
@@ -33,6 +34,15 @@ function App() {
 
   // UPDATED: Accepts the rich object from MainWindow
   const joinMeeting = async (data) => {
+    // Android/iOS are single-Activity: Tauri cannot spawn a second window, and
+    // the one spawn_meeting_window creates there never surfaces (it rendered
+    // as a ghost behind the dashboard). Render MeetingView in place instead -
+    // the same component the desktop meeting window loads via ?mode=meeting.
+    if (IS_MOBILE) {
+      setMeetingData(data);
+      setShowMeeting(true);
+      return;
+    }
     try {
       // Pass the whole object to Rust
       await invoke("open_meeting_window", {
@@ -70,7 +80,7 @@ function App() {
               </div>
             }
           >
-            <MeetingView meetingData={meetingData()} />
+            <MeetingView meetingData={meetingData()} onExit={() => setShowMeeting(false)} />
           </Suspense>
         </ErrorBoundary>
       ) : (

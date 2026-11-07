@@ -15,6 +15,7 @@ import { RecordingBanner } from "./components/RecordingBanner";
 import { VideoGrid } from "./components/VideoGrid";
 import { ChatPanel } from "./components/ChatPanel";
 import { useI18n } from "./i18n/I18nProvider";
+import { IS_MOBILE } from "./lib/platform";
 
 /**
  * MeetingView — clean orchestrator.
@@ -172,9 +173,17 @@ export function MeetingView(props) {
     }
   };
 
+  // Mobile renders the meeting in place inside the single webview, so leaving
+  // hands control back to the dashboard instead of closing the window (which
+  // on Android/iOS would quit the app). Desktop keeps the close in leaveCall.
+  const exitMeeting = async () => {
+    await room.leaveCall({ keepWindowOpen: IS_MOBILE });
+    if (IS_MOBILE && props.onExit) props.onExit();
+  };
+
   const handleCloseClick = () => {
     if (preJoin()) {
-      room.leaveCall();
+      exitMeeting();
     } else {
       setShowLeaveDialog(true);
     }
@@ -182,10 +191,11 @@ export function MeetingView(props) {
 
   const confirmLeave = async () => {
     setShowLeaveDialog(false);
-    // Flush the recording while its tracks are still live. leaveCall() closes
-    // this window, and a closed window cannot finish an async recorder stop.
+    // Flush the recording while its tracks are still live: on desktop
+    // leaveCall() then closes this window, and a closed window cannot finish
+    // an async recorder stop.
     await stopRecordingAndNotify();
-    await room.leaveCall();
+    await exitMeeting();
   };
 
   const toggleChat = () => setChatOpen(!chatOpen());
@@ -466,3 +476,6 @@ export function MeetingView(props) {
   );
 }
 
+// Solid lazy() (App.jsx) resolves the module DEFAULT export; the named one
+// alone rendered the meeting window as a black rectangle.
+export default MeetingView;
