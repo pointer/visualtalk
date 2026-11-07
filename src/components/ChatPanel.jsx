@@ -1,6 +1,7 @@
 import { createSignal, createEffect, onMount, For, Show } from "solid-js";
 import { IS_E2EE_ENABLED } from "../lib/edition";
 import { invoke } from "@tauri-apps/api/core";
+import { errorI18nKey, errorMessage } from "../lib/errors";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { RoomEvent } from "livekit-client";
 import * as chat from "./chat";
@@ -408,7 +409,8 @@ export function ChatPanel(props) {
           kind: "ai-error",
           id: `${requestId}-error`,
           senderName: t("chat.ai.assistantName"),
-          text: String(err),
+          // Localized headline + untranslated provider detail; see lib/errors.js.
+          text: `${t(errorI18nKey(err))} ${errorMessage(err)}`,
           question,
           timestamp: Date.now(),
         },

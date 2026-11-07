@@ -9,6 +9,7 @@ mod demo;
 mod device;
 mod e2ee;
 mod egress;
+mod error;
 mod events;
 mod layout;
 mod meeting;

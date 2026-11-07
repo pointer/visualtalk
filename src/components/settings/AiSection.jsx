@@ -1,6 +1,7 @@
 import { createSignal, onMount, For, Show } from "solid-js";
 import { invoke } from "../../lib/ipc";
 import { useI18n } from "../../i18n/I18nProvider";
+import { errorI18nKey, errorMessage } from "../../lib/errors";
 
 /**
  * AI Assistant settings (Settings -> AI).
@@ -47,7 +48,7 @@ export function AiSection() {
       setAiStatus(`✅ ${t("settings.savedSecurely")}`);
       setTimeout(() => setAiStatus(""), 3000);
     } catch (err) {
-      setAiStatus(`❌ Error: ${err}`);
+      setAiStatus(`❌ ${t(errorI18nKey(err))} ${errorMessage(err)}`);
     } finally {
       setAiSaving(false);
     }
@@ -62,7 +63,7 @@ export function AiSection() {
       const result = await invoke("test_ai_connection");
       setAiStatus(`✅ ${result}`);
     } catch (err) {
-      setAiStatus(`❌ Error: ${err}`);
+      setAiStatus(`❌ ${t(errorI18nKey(err))} ${errorMessage(err)}`);
     } finally {
       setAiTesting(false);
     }
