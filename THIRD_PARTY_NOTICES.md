@@ -1,7 +1,7 @@
 # VisualTalk — Third-Party Software Notices
 
-Product version: 3.3.33  
-Generated: 2026-10-16  
+Product version: 3.3.42  
+Generated: 2026-11-07  
 Regenerate with: `pnpm notices` (runs `scripts/generate-notices.py`)
 
 VisualTalk incorporates the third-party software listed below. This document satisfies the attribution and notice requirements of those licenses (MIT, Apache-2.0 §4, BSD, ISC, Zlib, Unicode-3.0, MPL-2.0 §3, CDLA-Permissive-2.0 and others). The full text of each license is reproduced in section 5.
@@ -84,14 +84,14 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | crates.io | `tokio` | 1.53.2 | MIT |
 | crates.io | `url` | 2.5.8 | MIT OR Apache-2.0 |
 | crates.io | `urlencoding` | 2.1.3 | MIT |
-| npm | `@tauri-apps/api` | 2.12.3 | Apache-2.0 OR MIT |
-| npm | `@tauri-apps/plugin-clipboard-manager` | 2.4.1 | MIT OR Apache-2.0 |
-| npm | `@tauri-apps/plugin-dialog` | 2.8.2 | MIT OR Apache-2.0 |
-| npm | `@tauri-apps/plugin-opener` | 2.7.1 | MIT OR Apache-2.0 |
+| npm | `@tauri-apps/api` | 2.12.4 | Apache-2.0 OR MIT |
+| npm | `@tauri-apps/plugin-clipboard-manager` | 2.5.0 | MIT OR Apache-2.0 |
+| npm | `@tauri-apps/plugin-dialog` | 2.8.3 | MIT OR Apache-2.0 |
+| npm | `@tauri-apps/plugin-opener` | 2.7.2 | MIT OR Apache-2.0 |
 | npm | `@tauri-apps/plugin-store` | 2.5.0 | MIT OR Apache-2.0 |
-| npm | `livekit-client` | 2.22.3 | Apache-2.0 |
+| npm | `livekit-client` | 2.23.0 | Apache-2.0 |
 | npm | `solid-icons` | 1.2.0 | MIT |
-| npm | `solid-js` | 1.9.15 | MIT |
+| npm | `solid-js` | 1.9.17 | MIT |
 
 ## 3. All shipped components
 
@@ -694,24 +694,24 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | --- | --- | --- | --- |
 | `@bufbuild/protobuf` | 1.10.1 | (Apache-2.0 AND BSD-3-Clause) |  |
 | `@livekit/mutex` | 1.1.1 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
-| `@livekit/protocol` | 1.50.4 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
-| `@tauri-apps/api` | 2.12.3 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
-| `@tauri-apps/plugin-clipboard-manager` | 2.4.1 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
-| `@tauri-apps/plugin-dialog` | 2.8.2 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
-| `@tauri-apps/plugin-opener` | 2.7.1 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
+| `@livekit/protocol` | 1.52.1 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `@tauri-apps/api` | 2.12.4 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `@tauri-apps/plugin-clipboard-manager` | 2.5.0 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
+| `@tauri-apps/plugin-dialog` | 2.8.3 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
+| `@tauri-apps/plugin-opener` | 2.7.2 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
 | `@tauri-apps/plugin-store` | 2.5.0 | MIT OR Apache-2.0 | PackageCopyrightText: 2019-2022, The Tauri Programme in the Commons Conservancy |
 | `csstype` | 3.2.3 | MIT | Copyright (c) 2017-2018 Fredrik Nicol |
 | `events` | 3.3.0 | MIT | Copyright Joyent, Inc. and other Node contributors. |
-| `jose` | 6.2.12 | MIT | Copyright (c) 2018 Filip Skokan |
-| `livekit-client` | 2.22.3 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `jose` | 6.2.13 | MIT | Copyright (c) 2018 Filip Skokan |
+| `livekit-client` | 2.23.0 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `loglevel` | 1.9.2 | MIT | Copyright (c) 2013 Tim Perry |
 | `machina` | 7.0.1 | MIT | Copyright (c) 2011-2023 Jim Cowart (MIT License) |
 | `sdp` | 3.2.2 | MIT | Copyright (c) 2017 Philipp Hancke |
 | `sdp-transform` | 2.15.0 | MIT | Copyright (c) 2013 Eirik Albrigtsen |
-| `seroval` | 1.5.6 | MIT | MIT License Copyright (c) 2025 Alexis Munsayac <alexis.munsayac@gmail.com> |
-| `seroval-plugins` | 1.5.6 | MIT | MIT License Copyright (c) 2025 Alexis Munsayac <alexis.munsayac@gmail.com> |
+| `seroval` | 1.6.12 | MIT | MIT License Copyright (c) 2025 Alexis Munsayac <alexis.munsayac@gmail.com> |
+| `seroval-plugins` | 1.6.12 | MIT | MIT License Copyright (c) 2025 Alexis Munsayac <alexis.munsayac@gmail.com> |
 | `solid-icons` | 1.2.0 | MIT | Copyright (c) 2025 Ignacio Zsabo |
-| `solid-js` | 1.9.15 | MIT | Copyright (c) 2016-2025 Ryan Carniato |
+| `solid-js` | 1.9.17 | MIT | Copyright (c) 2016-2025 Ryan Carniato |
 | `tslib` | 2.8.1 | 0BSD | Copyright (c) Microsoft Corporation. |
 | `typed-emitter` | 2.1.0 | MIT | Copyright (c) 2018 Andy Wermke |
 | `webrtc-adapter` | 9.0.6 | BSD-3-Clause | Copyright (c) 2014, The WebRTC project authors. All rights reserved. |
@@ -735,39 +735,39 @@ Used to compile and bundle VisualTalk but **not** included in any distributed ar
 | `@babel/helper-string-parser` | 7.29.7 | MIT |
 | `@babel/helper-validator-identifier` | 7.29.7 | MIT |
 | `@babel/helper-validator-option` | 7.29.7 | MIT |
-| `@babel/helpers` | 7.29.7 | MIT |
+| `@babel/helpers` | 7.29.10 | MIT |
 | `@babel/parser` | 7.29.9 | MIT |
 | `@babel/plugin-syntax-jsx` | 7.29.7 | MIT |
 | `@babel/template` | 7.29.7 | MIT |
-| `@babel/traverse` | 7.29.8 | MIT |
+| `@babel/traverse` | 7.29.10 | MIT |
 | `@babel/types` | 7.29.8 | MIT |
 | `@jridgewell/gen-mapping` | 0.3.13 | MIT |
 | `@jridgewell/remapping` | 2.3.5 | MIT |
 | `@jridgewell/resolve-uri` | 3.1.2 | MIT |
 | `@jridgewell/sourcemap-codec` | 1.6.0 | MIT |
 | `@jridgewell/trace-mapping` | 0.3.31 | MIT |
-| `@oxc-project/types` | 0.151.0 | MIT |
+| `@oxc-project/types` | 0.155.0 | MIT |
 | `@rolldown/pluginutils` | 1.0.1 | MIT |
 | `@tailwindcss/node` | 4.3.3 | MIT |
 | `@tailwindcss/oxide` | 4.3.3 | MIT |
 | `@tailwindcss/vite` | 4.3.3 | MIT |
-| `@tauri-apps/cli` | 2.12.0 | Apache-2.0 OR MIT |
+| `@tauri-apps/cli` | 2.12.4 | Apache-2.0 OR MIT |
 | `@types/babel__core` | 7.20.5 | MIT |
 | `@types/babel__generator` | 7.27.0 | MIT |
 | `@types/babel__template` | 7.4.4 | MIT |
 | `@types/babel__traverse` | 7.28.0 | MIT |
 | `@types/dom-mediacapture-record` | 1.0.22 | MIT |
 | `autoprefixer` | 10.6.1 | MIT |
-| `babel-plugin-jsx-dom-expressions` | 0.40.10 | MIT |
-| `babel-preset-solid` | 1.9.15 | MIT |
-| `baseline-browser-mapping` | 2.11.26 | Apache-2.0 |
-| `browserslist` | 4.29.2 | MIT |
-| `caniuse-lite` | 1.0.30001812 | CC-BY-4.0 |
+| `babel-plugin-jsx-dom-expressions` | 0.40.11 | MIT |
+| `babel-preset-solid` | 1.9.16 | MIT |
+| `baseline-browser-mapping` | 2.11.31 | Apache-2.0 |
+| `browserslist` | 4.29.4 | MIT |
+| `caniuse-lite` | 1.0.30001819 | CC-BY-4.0 |
 | `convert-source-map` | 2.0.0 | MIT |
 | `debug` | 4.4.3 | MIT |
 | `detect-libc` | 2.1.2 | Apache-2.0 |
-| `electron-to-chromium` | 1.5.439 | ISC |
-| `enhanced-resolve` | 5.25.1 | MIT |
+| `electron-to-chromium` | 1.5.463 | ISC |
+| `enhanced-resolve` | 5.26.0 | MIT |
 | `entities` | 6.0.1 | BSD-2-Clause |
 | `escalade` | 3.2.0 | MIT |
 | `fdir` | 6.5.0 | MIT |
@@ -786,23 +786,23 @@ Used to compile and bundle VisualTalk but **not** included in any distributed ar
 | `magic-string` | 0.30.21 | MIT |
 | `merge-anything` | 5.1.7 | MIT |
 | `ms` | 2.1.3 | MIT |
-| `nanoid` | 3.3.19 | MIT |
-| `node-releases` | 2.0.57 | MIT |
+| `nanoid` | 3.3.20 | MIT |
+| `node-releases` | 2.0.60 | MIT |
 | `parse5` | 7.3.0 | MIT |
 | `picocolors` | 1.1.1 | ISC |
 | `picomatch` | 4.0.7 | MIT |
-| `postcss` | 8.5.28 | MIT |
+| `postcss` | 8.5.31 | MIT |
 | `postcss-value-parser` | 4.2.0 | MIT |
-| `rolldown` | 1.2.11 | MIT |
+| `rolldown` | 1.2.15 | MIT |
 | `rxjs` | 7.8.2 | Apache-2.0 |
 | `semver` | 6.3.1 | ISC |
 | `solid-refresh` | 0.6.3 | MIT |
-| `source-map-js` | 1.2.1 | BSD-3-Clause |
+| `source-map-js` | 1.2.2 | BSD-3-Clause |
 | `tailwindcss` | 4.3.3 | MIT |
 | `tapable` | 2.3.3 | MIT |
 | `tinyglobby` | 0.2.17 | MIT |
-| `update-browserslist-db` | 1.3.3 | MIT |
-| `vite` | 8.3.1 | MIT |
+| `update-browserslist-db` | 1.3.4 | MIT |
+| `vite` | 8.3.5 | MIT |
 | `vite-plugin-solid` | 2.11.14 | MIT |
 | `vitefu` | 1.1.3 | MIT |
 | `yallist` | 3.1.1 | ISC |
