@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -101,6 +103,54 @@ def patch(path: Path, marker: str, edits: list[tuple[str, str, bool]], descripti
     return True
 
 
+VERSIONCODE_MARKER = "Deterministic Play versionCode"
+VERSIONCODE_ANCHOR = '        versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()\n'
+
+
+def play_version_code() -> int:
+    """major*1_000_000 + minor*10_000 + patch*100, from tauri.conf.json.
+
+    Tauri's `autoIncrementVersionCode` emits an opaque per-build counter, so a CI
+    tag build and a local build of the same version produce different codes and
+    Play rejects whichever is uploaded second. A code derived from the public
+    version is identical everywhere and monotonic across releases; the trailing
+    two digits leave room for a hotfix suffix later if ever needed.
+    """
+    conf = json.loads((ROOT / "src-tauri/tauri.conf.json").read_text(encoding="utf-8"))
+    major, minor, patch = (int(p) for p in conf["version"].split(".")[:3])
+    return major * 1_000_000 + minor * 10_000 + patch * 100
+
+
+def patch_version_code(gradle: Path, check_only: bool) -> bool:
+    source = gradle.read_text(encoding="utf-8")
+    expected = "        versionCode = %d\n" % play_version_code()
+    if VERSIONCODE_MARKER in source:
+        ok = expected.rstrip("\n") in source
+        if check_only:
+            print("• versionCode patch %s" % ("current" if ok else "STALE (version bumped?)"))
+            return ok
+        if ok:
+            return True
+        # Version was bumped: rewrite the number in place.
+        source = re.sub(r"        versionCode = \d+\n", expected, source, count=1)
+        gradle.write_text(source, encoding="utf-8")
+        print("✓ versionCode refreshed to %d" % play_version_code())
+        return True
+    if check_only:
+        print("✗ versionCode patch NOT applied — %s" % gradle, file=sys.stderr)
+        return False
+    if source.count(VERSIONCODE_ANCHOR) != 1:
+        raise ValueError("versionCode anchor found %d× — template drifted" % source.count(VERSIONCODE_ANCHOR))
+    block = (
+        "        // %s: major*1_000_000 + minor*10_000 + patch*100.\n"
+        "        // Added by scripts/fix-android-project.py — see play_version_code().\n"
+        "        versionCode = %d\n" % (VERSIONCODE_MARKER, play_version_code())
+    )
+    gradle.write_text(source.replace(VERSIONCODE_ANCHOR, block), encoding="utf-8")
+    print("✓ versionCode pinned to %d" % play_version_code())
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="report missing patches without editing")
@@ -137,6 +187,7 @@ def main() -> int:
             "media permission",
             args.check,
         )
+        failed |= not patch_version_code(gradle, args.check)
     except (OSError, ValueError) as error:
         print(str(error), file=sys.stderr)
         return 1
