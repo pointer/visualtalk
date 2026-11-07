@@ -34,6 +34,9 @@ pnpm build                # build the SolidJS frontend only
 # Pro Edition (E2EE + streaming) — requires the private src-tauri/e2ee-pro/ sources
 pnpm desktop:pro          # python3 scripts/setup-pro.py && tauri dev --features pro
 pnpm desktop:build:pro    # production Pro bundle
+pnpm check:pro-frontend   # vite-only smoke check: the Pro JSX compiles and
+                          # __PRO_EDITION__ dead-code-eliminates. NOT a Pro app
+                          # build — no Rust, no setup-pro.py source swap.
 
 # Rust — run from src-tauri/ (there is no root Cargo.toml)
 cd src-tauri
@@ -41,6 +44,7 @@ cargo check               # type-check Rust backend
 cargo test                # run Rust tests
 ```
 
+- `*:pro` on desktop/mobile means a **full** Pro build: source swap + `--features pro` + the Pro config overlay. There is deliberately **no** vite-only Pro dev mode — a Pro UI with no Pro Rust core renders commands that cannot exist (`e2ee_*`, translation), so it only ever errors. The frontend-only check carries a distinct name (`check:pro-frontend`) so it cannot be mistaken for a Pro build.
 - Formatting/linting: there is **no** `pnpm lint` or `pnpm format`. Use `cargo fmt` for Rust and match the surrounding JSX style; don't add a formatter config without being asked.
 - Platform bundles: `pnpm mac:build` (plus `mac:build:intel` / `mac:build:universal`), `pnpm win:build`, `pnpm linux:build`, `pnpm ios:build` / `ios:build:pro`, `pnpm android:build` / `android:build:pro`. Mobile setup helpers live in `scripts/` (`fix-ios-project.py`, `fix-android-project.py`, `ensure-ios-toolchain.py`).
 - `pnpm notices` regenerates `THIRD_PARTY_NOTICES.md`; `pnpm license:check` verifies it. Run both after adding or removing a dependency.

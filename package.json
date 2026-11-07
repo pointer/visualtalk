@@ -9,12 +9,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:pro-frontend": "VITE_EDITION=pro VITE_ENABLE_E2EE=true vite build",
     "preview": "vite preview",
     "desktop": "tauri dev",
     "desktop:build": "tauri build",
     "desktop:build:debug": "tauri build --debug",
-    "dev:pro": "VITE_EDITION=pro VITE_ENABLE_E2EE=true vite",
-    "build:pro": "VITE_EDITION=pro VITE_ENABLE_E2EE=true vite build",
     "desktop:pro": "python3 scripts/setup-pro.py && VITE_EDITION=pro VITE_ENABLE_E2EE=true tauri dev --config src-tauri/tauri.pro.conf.json -- --features pro",
     "desktop:build:pro": "python3 scripts/setup-pro.py && VITE_EDITION=pro VITE_ENABLE_E2EE=true tauri build --config src-tauri/tauri.pro.conf.json -- --features pro",
     "mac:init": "tauri macos init",
