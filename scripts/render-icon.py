@@ -36,7 +36,7 @@ Full icon regeneration workflow:
     cp /tmp/icon-regen/ios/*.png src-tauri/icons/ios/
     # App Store icon: opaque 1024x1024, overwrites the alpha copy above
     python3 scripts/render-icon.py src-tauri/icons/ios/AppIcon-512@2x.png --bg '#fff'
-    ./scripts/sync-ios-icons.sh
+    python3 scripts/sync-ios-icons.py
 
 (If resvg is installed -- it preserves alpha, unlike qlmanage -- the first
 line can be replaced with:
@@ -50,7 +50,7 @@ Two `tauri icon` traps this workflow works around:
   * Without `-o` the CLI detects the generated Xcode project and writes the
     iOS icons straight into src-tauri/gen/apple/Assets.xcassets/
     AppIcon.appiconset/, leaving src-tauri/icons/ios/ (the source of truth
-    sync-ios-icons.sh copies from) stale.  Regenerating into a scratch dir
+    sync-ios-icons.py copies from) stale.  Regenerating into a scratch dir
     and copying ios/ back also keeps the `--ios-color` value from leaking
     into android/values/ic_launcher_background.xml (it would turn the
     adaptive-icon background #00000000) and avoids churning the

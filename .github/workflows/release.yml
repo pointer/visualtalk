@@ -155,7 +155,7 @@ jobs:
     # provisioned; tag pushes AND manual workflow_dispatch both produce a
     # Play-ready signed AAB. Upload-key signing and the WebView media
     # permissions are injected into the generated project by
-    # scripts/fix-android-project.sh (the stock Tauri template ships neither a
+    # scripts/fix-android-project.py (the stock Tauri template ships neither a
     # signingConfig nor CAMERA/RECORD_AUDIO, so getUserMedia would be denied).
     steps:
       - uses: actions/checkout@v4
@@ -213,10 +213,10 @@ jobs:
         run: test -d src-tauri/gen/android || pnpm tauri android init
 
       - name: Apply Android project fixes (signing + media permissions)
-        run: ./scripts/fix-android-project.sh
+        run: python3 scripts/fix-android-project.py
 
       - name: Verify Android fixes applied (--check)
-        run: ./scripts/fix-android-project.sh --check
+        run: python3 scripts/fix-android-project.py --check
 
       - name: Decode Android signing key
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
@@ -320,8 +320,8 @@ jobs:
           fi
 
       - name: Install CocoaPods and xcodegen
-        # xcodegen is required by scripts/fix-ios-project.sh, which regenerates
-        # visualtalk.xcodeproj from the patched project.yml. ensure-ios-toolchain.sh
+        # xcodegen is required by scripts/fix-ios-project.py, which regenerates
+        # visualtalk.xcodeproj from the patched project.yml. ensure-ios-toolchain.py
         # only *warns* when xcodegen is missing, so install it explicitly here.
         run: brew install cocoapods xcodegen
 
@@ -331,17 +331,17 @@ jobs:
       - name: Init iOS project (if not present)
         # `pnpm ios:init`, NOT a bare `tauri ios init`. The npm script chains the
         # local fixes that a bare init skips:
-        #   1. ensure-ios-toolchain.sh installs rustup's `llvm-tools`. Without it
+        #   1. ensure-ios-toolchain.py installs rustup's `llvm-tools`. Without it
         #      swift-rs cannot re-globalize the @_cdecl symbols Xcode internalizes
         #      and emits only a `cargo:warning` before giving up — the link then
         #      fails with 9 undefined symbols instead of 3.
-        #   2. fix-ios-project.sh patches project.yml: DEVELOPMENT_TEAM must be the
+        #   2. fix-ios-project.py patches project.yml: DEVELOPMENT_TEAM must be the
         #      certificate OU (not the Apple ID in the CN parentheses), plus
         #      CODE_SIGN_STYLE / CODE_SIGN_IDENTITY, plus anchoring pnpm to the repo
         #      root in the "Build Rust Code" phase (that phase runs with
         #      cwd=src-tauri/gen/apple, which has no package.json, so a bare
         #      `pnpm tauri` dies with ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL).
-        #   3. fix-ios-project.sh in turn calls sync-ios-icons.sh, replacing Tauri's
+        #   3. fix-ios-project.py in turn calls sync-ios-icons.py, replacing Tauri's
         #      placeholder AppIcon set with src-tauri/icons/ios. Skipping this ships
         #      the yellow/teal Tauri logo to the App Store.
         run: test -d src-tauri/gen/apple || pnpm ios:init
@@ -351,16 +351,16 @@ jobs:
         # drifted or the toolchain is incomplete. Each script is idempotent and
         # --check only reports, exiting 1 on drift.
         run: |
-          ./scripts/ensure-ios-toolchain.sh --check
-          ./scripts/fix-ios-project.sh --check
-          ./scripts/sync-ios-icons.sh --check
+          python3 scripts/ensure-ios-toolchain.py --check
+          python3 scripts/fix-ios-project.py --check
+          python3 scripts/sync-ios-icons.py --check
 
       # Tauri CLI v2 handles CI signing natively when these env vars are set:
       # it imports the .p12 into a temporary keychain, installs the mobile
       # provision, flips the generated Xcode project to CODE_SIGN_STYLE=Manual
       # with the right PROVISIONING_PROFILE_SPECIFIER, and restores everything
       # after the build. A hand-rolled keychain import fails because the
-      # project is configured for Automatic signing (fix-ios-project.sh, for
+      # project is configured for Automatic signing (fix-ios-project.py, for
       # local dev) and the runner has no Apple ID account — xcodebuild then
       # errors with "No Accounts" / "No profiles for 'com.katebg.visualtalk'".
       # See: https://v2.tauri.app/distribute/sign/ios/#manual-signing

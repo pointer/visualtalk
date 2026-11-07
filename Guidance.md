@@ -32,7 +32,7 @@ pnpm desktop:build        # production bundle (Community Edition)
 pnpm build                # build the SolidJS frontend only
 
 # Pro Edition (E2EE + streaming) — requires the private src-tauri/e2ee-pro/ sources
-pnpm desktop:pro          # ./scripts/setup-pro.sh && tauri dev --features pro
+pnpm desktop:pro          # python3 scripts/setup-pro.py && tauri dev --features pro
 pnpm desktop:build:pro    # production Pro bundle
 
 # Rust — run from src-tauri/ (there is no root Cargo.toml)
@@ -42,9 +42,9 @@ cargo test                # run Rust tests
 ```
 
 - Formatting/linting: there is **no** `pnpm lint` or `pnpm format`. Use `cargo fmt` for Rust and match the surrounding JSX style; don't add a formatter config without being asked.
-- Platform bundles: `pnpm mac:build` (plus `mac:build:intel` / `mac:build:universal`), `pnpm win:build`, `pnpm linux:build`, `pnpm ios:build` / `ios:build:pro`, `pnpm android:build` / `android:build:pro`. Mobile setup helpers live in `scripts/` (`fix-ios-project.sh`, `fix-android-project.sh`, `ensure-ios-toolchain.sh`).
+- Platform bundles: `pnpm mac:build` (plus `mac:build:intel` / `mac:build:universal`), `pnpm win:build`, `pnpm linux:build`, `pnpm ios:build` / `ios:build:pro`, `pnpm android:build` / `android:build:pro`. Mobile setup helpers live in `scripts/` (`fix-ios-project.py`, `fix-android-project.py`, `ensure-ios-toolchain.py`).
 - `pnpm notices` regenerates `THIRD_PARTY_NOTICES.md`; `pnpm license:check` verifies it. Run both after adding or removing a dependency.
-- Minimum macOS version and required Xcode CLT: see `docs/` and `scripts/ensure-ios-toolchain.sh`; Tauri v2 requires Xcode CLT for desktop builds.
+- Minimum macOS version and required Xcode CLT: see `docs/` and `scripts/ensure-ios-toolchain.py`; Tauri v2 requires Xcode CLT for desktop builds.
 
 ## 4. Project structure
 
@@ -69,7 +69,7 @@ src-tauri/
     chat.rs  meeting.rs  participant.rs  session.rs  token.rs
     recording.rs  egress.rs  device.rs  backgrounds.rs  layout.rs
     window.rs  settings.rs  state.rs  events.rs  demo.rs
-    e2ee.rs               # Pro implementation; CE ships a stub that setup-pro.sh swaps
+    e2ee.rs               # Pro implementation; CE ships a stub that setup-pro.py swaps
   Cargo.toml
   tauri.conf.json         # base config: bundle, window, CSP (source of truth)
   tauri.pro.conf.json     # Pro Edition config overlay
@@ -77,13 +77,13 @@ src-tauri/
   Entitlements.plist      # macOS sandbox/camera entitlements
   Info.plist / Info-pro.plist   # usage strings (NSCameraUsageDescription, …)
   e2ee-pro/               # private Pro sources — not part of the public repo
-scripts/                  # setup-pro.sh, platform fixers, notices generator
+scripts/                  # setup-pro.py, platform fixers, notices generator
 docs/                     # compliance/export packet (ANSSI, BIS, EULA-adjacent)
 ```
 
 **Edition gating — two separate switches.** `e2ee` is the *crypto* switch: the Pro
 implementation lands in `src-tauri/src/e2ee.rs` by file swap
-(`scripts/setup-pro.sh`), while the public repo ships a stub. `pro` is the
+(`scripts/setup-pro.py`), while the public repo ships a stub. `pro` is the
 *edition* switch (`pro = ["e2ee"]` in `Cargo.toml`), and it is what paid-only
 features such as RTMP streaming gate on: `#[cfg(feature = "pro")]` in Rust,
 `__PRO_EDITION__` in JSX (set from `VITE_EDITION=pro` in `vite.config.js`).

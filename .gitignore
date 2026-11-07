@@ -104,7 +104,7 @@ docs/bis-*
 __pycache__/
 *.pyc
 
-# Review-build demo credentials: written by scripts/make-review-build.sh,
+# Review-build demo credentials: written by scripts/make-review-build.py,
 # sourced by the iOS "Build Rust Code" phase, removed when the script exits.
 .review-creds.sh
 

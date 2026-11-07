@@ -10,7 +10,7 @@
 //! * A normal build contains no credentials whatsoever — the strings are
 //!   absent from the binary, not merely unreferenced.
 //! * The repository never holds a secret, so nothing leaks through git history.
-//! * Only a build produced via `scripts/make-review-build.sh` can reach a demo
+//! * Only a build produced via `scripts/make-review-build.py` can reach a demo
 //!   project.
 //!
 //! # Security
