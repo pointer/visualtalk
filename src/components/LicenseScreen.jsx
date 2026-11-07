@@ -41,11 +41,11 @@ const SOURCE_LICENSE =
   SOURCE_LICENSE_SUMMARY +
   (IS_PRO
     ? "\nThis Pro application is sold by the app store, which acts as merchant of\n" +
-      "record. It contains no in-app purchases, and no feature inside it is\n" +
-      "unlocked by payment.\n"
+    "record. It contains no in-app purchases, and no feature inside it is\n" +
+    "unlocked by payment.\n"
     : "\nThis Community Edition application is free of charge. It contains no\n" +
-      "in-app purchases, no subscriptions, no account requirement, and no\n" +
-      "feature that is unlocked by payment.\n");
+    "in-app purchases, no subscriptions, no account requirement, and no\n" +
+    "feature that is unlocked by payment.\n");
 
 /**
  * LicenseScreen component — displays EULA and source license
@@ -128,7 +128,7 @@ export function LicenseScreen(props) {
 
       <div class="flex items-center justify-between text-[10px] text-gray-500 pt-2 border-t border-[#2a2a2a]">
         <span>{"\u00A9 2026 VisualTalk. All rights reserved."}</span>
-        <span>v{props.version || "3.3.33"}</span>
+        <span>v{props.version || "3.3.42"}</span>
       </div>
     </div>
   );

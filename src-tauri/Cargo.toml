@@ -1,6 +1,6 @@
 [package]
 name = "visualtalk"
-version = "3.3.33"
+version = "3.3.42"
 description = "Video-conferencing Tauri App"
 authors = ["katebg@yahoo.com"]
 edition = "2021"
@@ -44,7 +44,11 @@ tokio = { version = "1", features = ["process", "io-util"] }
 # second TLS stack (and the crypto-provider ambiguity that motivated removing
 # `jsonwebtoken`/`ring` originally). `default-features = false` drops `webhooks`
 # which this app does not use.
-livekit-api = { version = "0.9", default-features = false, features = ["access-token", "services", "native-tls"] }
+livekit-api = { version = "0.9", default-features = false, features = [
+    "access-token",
+    "services",
+    "native-tls",
+] }
 # Protobuf message types shared with livekit-api (egress outputs, EgressInfo…).
 livekit-protocol = "0.8"
 # E2EE crypto stack (ECDH P-256 + AES-256-GCM) — only in Pro Edition
