@@ -32,6 +32,29 @@ impl AppState {
             e2ee_session: Mutex::new(None),
         }
     }
+    /// Helper to safely access and mutate AppData.
+    pub fn with_data<F, R>(&self, f: F) -> Result<R, String>
+    where
+        F: FnOnce(&mut AppData) -> R,
+    {
+        let mut data = self
+            .data
+            .lock()
+            .map_err(|_| "Failed to lock app data".to_string())?;
+        Ok(f(&mut *data))
+    }
+
+    /// Helper to safely read AppData.
+    pub fn read_data<F, R>(&self, f: F) -> Result<R, String>
+    where
+        F: FnOnce(&AppData) -> R,
+    {
+        let data = self
+            .data
+            .lock()
+            .map_err(|_| "Failed to lock app data".to_string())?;
+        Ok(f(&*data))
+    }
 }
 
 /// Media runtime: device and participant managers.

@@ -21,6 +21,7 @@ mod state;
 mod token;
 mod window;
 
+#[cfg(feature = "pro")]
 use settings::TranslationSettings;
 
 use backgrounds::{get_background, set_background, BackgroundState};
@@ -42,6 +43,7 @@ use state::{AppState, MediaState};
 /// back to `navigator.language` and then to "en".
 // ===== TRANSLATION =====
 
+#[cfg(feature = "pro")]
 #[tauri::command]
 fn update_translation_settings(
     settings: TranslationSettings,
@@ -57,6 +59,7 @@ fn update_translation_settings(
     Ok(())
 }
 
+#[cfg(feature = "pro")]
 #[tauri::command]
 fn get_translation_settings(state: State<'_, AppState>) -> Result<TranslationSettings, String> {
     let data = state
@@ -1132,8 +1135,11 @@ pub fn run() {
             ai::get_ai_settings,
             ai::update_ai_settings,
             ai::test_ai_connection,
+            ai::get_available_models,
             // Translation
+            #[cfg(feature = "pro")]
             update_translation_settings,
+            #[cfg(feature = "pro")]
             get_translation_settings,
         ])
         .run(tauri::generate_context!())

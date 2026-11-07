@@ -190,11 +190,7 @@ pub async fn ask_ai(
 
 #[tauri::command]
 pub fn get_ai_settings(state: State<'_, AppState>) -> Result<AiSettings, String> {
-    let data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    Ok(data.ai.clone())
+    state.read_data(|data| data.ai.clone())
 }
 
 #[tauri::command]
@@ -202,26 +198,18 @@ pub fn update_ai_settings(
     settings: AiSettings,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    let mut data = state
-        .data
-        .lock()
-        .map_err(|_| "Failed to lock app data".to_string())?;
-    data.ai = settings;
-    data.save(&state.config_dir)?;
-    Ok(())
+    let save_res = state.with_data(|data| {
+        data.ai = settings;
+        data.save(&state.config_dir)
+    })?;
+    save_res
 }
 
 /// Verify the endpoint is reachable and credentials work by listing models.
 /// Returns a short human-readable summary for the settings UI.
 #[tauri::command]
 pub async fn test_ai_connection(state: State<'_, AppState>) -> Result<String, String> {
-    let ai = {
-        let data = state
-            .data
-            .lock()
-            .map_err(|_| "Failed to lock app data".to_string())?;
-        data.ai.clone()
-    };
+    let ai = state.read_data(|data| data.ai.clone())?;
 
     let client = build_client()?;
     let url = format!("{}/models", ai.base_url.trim_end_matches('/'));
@@ -261,5 +249,45 @@ pub async fn test_ai_connection(state: State<'_, AppState>) -> Result<String, St
             }
         }
         Err(_) => Ok("Connected — endpoint reachable".to_string()),
+    }
+}
+
+
+/// List available models by querying the configured endpoint.
+#[tauri::command]
+pub async fn get_available_models(state: State<'_, AppState>) -> Result<Vec<String>, String> {
+    let ai = {
+        let data = state
+            .data
+            .lock()
+            .map_err(|_| "Failed to lock app data".to_string())?;
+        data.ai.clone()
+    };
+
+    let client = build_client()?;
+    let url = format!("{}/models", ai.base_url.trim_end_matches('/'));
+
+    let mut req_builder = client.get(&url);
+    let api_key = resolve_api_key(&ai.api_key);
+    if !api_key.is_empty() {
+        req_builder = req_builder.bearer_auth(api_key);
+    }
+
+    let response = req_builder
+        .send()
+        .await
+        .map_err(|e| format!("Connection failed: {}", e))?;
+
+    let status = response.status();
+    let body = response.text().await.unwrap_or_default();
+
+    if !status.is_success() {
+        let detail: String = body.chars().take(200).collect();
+        return Err(format!("Endpoint returned {}: {}", status, detail));
+    }
+
+    match serde_json::from_str::<ModelsResponse>(&body) {
+        Ok(models) => Ok(models.data.into_iter().map(|m| m.id).collect()),
+        Err(e) => Err(format!("Failed to parse models response: {}", e)),
     }
 }

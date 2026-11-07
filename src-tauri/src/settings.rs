@@ -75,6 +75,7 @@ impl Default for UserProfile {
     }
 }
 
+#[cfg(feature = "pro")]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub enum TranslationStrategy {
@@ -83,27 +84,38 @@ pub enum TranslationStrategy {
     ServerAgent,
 }
 
+#[cfg(feature = "pro")]
 impl Default for TranslationStrategy {
     fn default() -> Self {
         Self::Cloud
     }
 }
 
+#[cfg(feature = "pro")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TranslationSettings {
     pub enabled: bool,
     pub strategy: TranslationStrategy,
+    #[serde(default = "default_source_language")]
+    pub source_language: String,
     pub target_language: String,
     pub api_key: Option<String>,
     pub custom_url: Option<String>,
 }
 
+#[cfg(feature = "pro")]
+fn default_source_language() -> String {
+    "auto".to_string()
+}
+
+#[cfg(feature = "pro")]
 impl Default for TranslationSettings {
     fn default() -> Self {
         Self {
             enabled: false,
             strategy: TranslationStrategy::default(),
+            source_language: default_source_language(),
             target_language: "en".to_string(),
             api_key: None,
             custom_url: None,
@@ -130,6 +142,7 @@ pub struct UserSettings {
     pub recordings_dir: Option<String>,
     /// Pro-only live translation settings.
     #[serde(default)]
+    #[cfg(feature = "pro")]
     pub translation: TranslationSettings,
     /// Use the build-time demo LiveKit project instead of the user's own
     /// credentials. Only ever functional in a build compiled with
@@ -149,6 +162,7 @@ impl Default for UserSettings {
             preferred_mic_id: None,
             preferred_cam_id: None,
             recordings_dir: None,
+            #[cfg(feature = "pro")]
             translation: TranslationSettings::default(),
             demo_mode: false,
         }
@@ -203,6 +217,20 @@ impl AppData {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(feature = "pro")]
+    #[test]
+    fn translation_settings_default_missing_source_language_to_auto() {
+        let legacy = r#"{
+            "enabled": false,
+            "strategy": "cloud",
+            "targetLanguage": "en",
+            "apiKey": null,
+            "customUrl": null
+        }"#;
+        let settings: TranslationSettings = serde_json::from_str(legacy).unwrap();
+        assert_eq!(settings.source_language, "auto");
+    }
 
     /// A `settings.json` written before `report_email` existed must still load,
     /// and reports must route to the organizer (the user's own email) rather
