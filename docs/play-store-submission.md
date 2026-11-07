@@ -25,7 +25,7 @@ bundletool (AAB) and record it in the table below.
 
 | date | versionName | versionCode | artifact | uploaded |
 | --- | --- | --- | --- | --- |
-|  |  |  |  |  |
+| 2026-11-08 | 3.3.42 | 3034200 | `gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab` (35 MB; upload-cert SHA256 3F:83:5B:92:8D:00:38:0E:26:95:FB:1A:7E:E0:4D:10:F0:87:72:48:63:6B:84:FA:D0:08:32:42:F5:DD:3A:EF; `bundletool validate` OK) | not yet — internal track first |
 
 ## 2. Signing
 
