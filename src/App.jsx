@@ -1,8 +1,9 @@
-import { createSignal, onMount } from "solid-js";
+import { createSignal, onMount, lazy, Suspense, ErrorBoundary } from "solid-js";
 import { MainWindow } from "./MainWindow";
-import { MeetingView } from "./MeetingView";
 import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
+
+const MeetingView = lazy(() => import("./MeetingView"));
 
 function App() {
   const [showMeeting, setShowMeeting] = createSignal(false);
@@ -48,8 +49,30 @@ function App() {
   return (
     <>
       {showMeeting() ? (
-        // Pass the full meeting data to the MeetingView
-        <MeetingView meetingData={meetingData()} />
+        <ErrorBoundary
+          fallback={(error) => (
+            <div class="flex h-full flex-col items-center justify-center gap-3 bg-[#111111] p-6 text-center text-white">
+              <p>Could not load the meeting.</p>
+              <p class="text-sm text-gray-400">{String(error)}</p>
+              <button
+                onClick={() => window.location.reload()}
+                class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium hover:bg-blue-700"
+              >
+                Reload
+              </button>
+            </div>
+          )}
+        >
+          <Suspense
+            fallback={
+              <div class="flex h-full items-center justify-center bg-[#111111] text-gray-300">
+                Loading meeting…
+              </div>
+            }
+          >
+            <MeetingView meetingData={meetingData()} />
+          </Suspense>
+        </ErrorBoundary>
       ) : (
         <MainWindow onJoinMeeting={joinMeeting} />
       )}
