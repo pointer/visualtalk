@@ -1,5 +1,5 @@
 import { createSignal, onMount } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./ipc";
 import { useTauriEvents } from "./useTauriEvents";
 
 /**

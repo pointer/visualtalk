@@ -1,5 +1,5 @@
 import { createSignal, onMount } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../lib/ipc";
 import { useI18n } from "../i18n/I18nProvider";
 
 export function NotesTab(props) {

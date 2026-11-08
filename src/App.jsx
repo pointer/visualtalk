@@ -1,6 +1,6 @@
 import { createSignal, onMount, lazy, Suspense, ErrorBoundary } from "solid-js";
 import { MainWindow } from "./MainWindow";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./lib/ipc";
 import { IS_MOBILE } from "./lib/platform";
 import "./App.css";
 
