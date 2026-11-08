@@ -11,7 +11,8 @@ export function useRecording() {
   const [isStreaming, setIsStreaming] = createSignal(false);
   const [recordingMode, setRecordingMode] = createSignal(null);
   const [recordingDuration, setRecordingDuration] = createSignal(0);
-  const [activeEgressId, setActiveEgressId] = createSignal(null);
+  const [activeRecordingEgressId, setActiveRecordingEgressId] = createSignal(null);
+  const [activeStreamEgressId, setActiveStreamEgressId] = createSignal(null);
   const [ffmpegAvailable, setFfmpegAvailable] = createSignal(false);
   const [recordingError, setRecordingError] = createSignal(null);
   // Absolute path of the most recently finalized recording, exactly as Rust
@@ -49,6 +50,7 @@ export function useRecording() {
   };
 
   const startDurationTimer = () => {
+    if (durationTimer) return;
     recordingStartTime = Date.now();
     durationTimer = setInterval(() => {
       setRecordingDuration(Math.floor((Date.now() - recordingStartTime) / 1000));
@@ -250,7 +252,7 @@ export function useRecording() {
           custom_api_secret: options.apiSecret || null,
         },
       });
-      setActiveEgressId(info.egress_id);
+      setActiveRecordingEgressId(info.egress_id);
       setIsRecording(true);
       setRecordingMode("egress");
       startDurationTimer();
@@ -262,7 +264,7 @@ export function useRecording() {
   };
 
   const stopEgressRecording = async (options = {}) => {
-    const eid = activeEgressId();
+    const eid = activeRecordingEgressId();
     if (!eid) return null;
     try {
       const info = await invoke("stop_egress", {
@@ -271,8 +273,10 @@ export function useRecording() {
         customApiKey: options.apiKey || null,
         customApiSecret: options.apiSecret || null,
       });
-      setActiveEgressId(null); setIsRecording(false);
-      setRecordingMode(null); stopDurationTimer();
+      setActiveRecordingEgressId(null); setIsRecording(false);
+      if (!activeStreamEgressId()) {
+        setRecordingMode(null); stopDurationTimer();
+      }
       return info;
     } catch (err) {
       setRecordingError(err || "Failed to stop egress");
@@ -292,7 +296,7 @@ export function useRecording() {
           custom_api_secret: options.apiSecret || null,
         },
       });
-      setActiveEgressId(info.egress_id);
+      setActiveStreamEgressId(info.egress_id);
       setIsStreaming(true); setRecordingMode("egress");
       startDurationTimer();
       return info;
@@ -303,7 +307,7 @@ export function useRecording() {
   };
 
   const stopRtmpStream = async (options = {}) => {
-    const eid = activeEgressId();
+    const eid = activeStreamEgressId();
     if (!eid) return null;
     try {
       await invoke("stop_egress", {
@@ -312,8 +316,10 @@ export function useRecording() {
         customApiKey: options.apiKey || null,
         customApiSecret: options.apiSecret || null,
       });
-      setActiveEgressId(null); setIsStreaming(false);
-      setRecordingMode(null); stopDurationTimer();
+      setActiveStreamEgressId(null); setIsStreaming(false);
+      if (!isRecording()) {
+        setRecordingMode(null); stopDurationTimer();
+      }
     } catch (err) { setRecordingError(err || "Failed to stop stream"); }
   };
 
@@ -356,8 +362,16 @@ export function useRecording() {
   };
 
   const stopRecording = async () => {
-    if (recordingMode() === "egress") return stopEgressRecording();
-    return stopLocalRecording();
+    let recResult = null;
+    if (recordingMode() === "egress") {
+      recResult = await stopEgressRecording();
+    } else {
+      recResult = await stopLocalRecording();
+    }
+    if (activeStreamEgressId()) {
+      await stopRtmpStream();
+    }
+    return recResult;
   };
 
   // ── Format duration ────────────────────────────────────────────
@@ -372,7 +386,9 @@ export function useRecording() {
 
   return {
     isRecording, isStreaming, recordingMode, recordingDuration,
-    activeEgressId, ffmpegAvailable, recordingError, formatDuration,
+    activeEgressId: activeRecordingEgressId,
+    activeRecordingEgressId, activeStreamEgressId,
+    ffmpegAvailable, recordingError, formatDuration,
     lastSavedPath,
     checkFfmpeg, startRecording, stopRecording,
     startLocalRecording, stopLocalRecording,
