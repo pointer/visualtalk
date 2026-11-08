@@ -178,9 +178,10 @@ A ready-made, loopback-only LiveKit server + Egress recorder lives in
 [`docker/`](./docker/README.md):
 
 ```bash
-python3 scripts/livekit-local.py up --recording     # server + redis + recorder
-python3 scripts/livekit-local.py creds              # URL / API key / API secret to paste above
-./scripts/livekit-local.sh smoke --recording  # optional end-to-end proof
+python3 scripts/livekit-local.py up --recording   # server + redis + recorder
+python3 scripts/livekit-local.py creds            # URL / API key / API secret to paste above
+# optional end-to-end proof: see "Verifying a recording" in docker/README.md
+# (the wrapper's `smoke` subcommand was removed — owner decision pending)
 ```
 
 It generates its own API key pair (never committed), needs no cloud account, and
