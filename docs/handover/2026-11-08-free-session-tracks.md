@@ -95,6 +95,13 @@ Never claim a check passed that you skipped.
 
 ## Track 1 — `livekit-local.sh` doc drift: rename, and flag the two lost subcommands
 
+**Status: DONE 2026-11-08** (`c72dd84` + audit fix `fb7081d`). Kept for the record and
+for the corrected gate below. The first pass left three `.sh` references (both
+quick-start `smoke` lines and the flagged section), kept advertising the removed
+`restart`/`smoke` in the day-to-day table, the LAN note, three troubleshooting cells and
+the verified-behaviour list, and missed `docker/.env.example` entirely because the gate
+only grepped `*.md` and `*.yml`.
+
 **Objective.** The stack helper was migrated from `scripts/livekit-local.sh` to
 `scripts/livekit-local.py`; the `.sh` no longer exists, but 24 references to it remain
 across three files (15 in `docker/README.md`, 5 in `docker/docker-compose.yml` over 4
@@ -154,11 +161,12 @@ not faked.
 
 **Verification.**
 ```bash
-# This handover file itself quotes the old name, so it must be excluded or the check
-# can never go green and you will be tempted to "fix" this document. Do not.
-grep -rn 'livekit-local\.sh' . --include='*.md' --include='*.yml' \
-  | grep -v node_modules | grep -v '^./docs/handover/'
-# must print nothing
+# Use git grep, NOT `grep --include`: two of the stale references lived in
+# docker/.env.example, which no *.md/*.yml filter matches — that blind spot is how the
+# first pass missed them. This handover file quotes the old name, hence the pathspec
+# exclusion; do not "fix" this document to make the check pass.
+git grep -n 'livekit-local\.sh' -- . ':!docs/handover'
+# must print nothing (exit status 1)
 python3 scripts/livekit-local.py --help        # confirm the five subcommands you wrote
 grep -n 'smoke\|restart' docker/README.md README.md   # every hit is now a compose
                  # equivalent, or covered by the owner-decision note
@@ -171,6 +179,19 @@ git diff --stat                                # only the three files above
 ---
 
 ## Track 2 — Docker translation-stack hygiene (Docker required — local opencode only)
+
+**Status: DONE 2026-11-08** by the lead, with two findings this track did not anticipate:
+the compose `environment` block set `WHISPER_MODEL` / `WHISPER_DEVICE`, which the image
+**silently ignores** (it reads `WHISPER__MODEL` / `WHISPER__INFERENCE_DEVICE`, and the
+value must be a full HF repo id, not `small`), and the image ships **no `curl`, `wget` or
+`nc`** — only `python3` and `uv` — so the `curl -fsS` healthcheck suggested below would
+have been permanently broken. Implemented instead: pinned `${WHISPER_VERSION:-0.5.0-cpu}`,
+a `python3`/urllib healthcheck with `start_period: 30s` (weights download on the first
+*request*, not at boot, so 60s was unnecessary), `WHISPER__MODEL` passed through under the
+image's own spelling so a stale `.env` cannot forward an invalid model id, a loopback /
+no-auth warning, a **Live Translation (opt-in)** README section, and the diagram line.
+Verified live: `compose config` renders, the container reaches `healthy` on the first
+probe with `WHISPER__MODEL` applied. Evidence: `docs/whisper-service-contract.md` §6.
 
 **Objective.** The `whisper` service exists in `docker/docker-compose.yml:129-141`,
 `WHISPER_*` keys exist in `docker/.env.example:66-71`, and the wrapper already accepts
@@ -242,6 +263,16 @@ git diff --stat        # only the three files above
 ---
 
 ## Track 3 — Capture the real Whisper service contract (Docker required — local opencode only)
+
+**Status: DONE 2026-11-08** — see [`docs/whisper-service-contract.md`](../whisper-service-contract.md).
+Headline: **translation is English-only and a target language is not expressible**, so the
+per-attendee target-language MVP needs a second MT hop (owner decision, §11 of that doc).
+Also captured: SSE streaming works, `verbose_json` returns the detected source language,
+errors are opaque 500s, there is no auth, and latency is ~4.3 s fixed + 0.10×audio (so
+batch ~10-15 s windows). **One instruction below was wrong and is corrected here:**
+`/openapi.json` is *not* the complete route list — `/api/transcribe` and `/api/translate`
+are served (POST → 422) but absent from the spec. Do not treat the spec as exhaustive for
+any service; probe the routes as well as the schema.
 
 **Objective.** `Todo.txt` requires the Whisper service contract to be verified before
 any code is written against it. Produce that evidence as a document. **Zero product
