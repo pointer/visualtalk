@@ -20,6 +20,8 @@ server is configured with no public STUN servers and `use_external_ip: false`.
 │  │      ▲                   ▲                                          │  │
 │  │      │ ws://livekit:7880 │ redis:6379                               │  │
 │  │  egress (recorder, opt-in via the "recording" profile)              │  │
+│  │  whisper (STT, opt-in via the "translation" profile)                │  │
+│  │      ▲ HTTP :8080 from the app, loopback only, no auth              │  │
 │  └─────────────────────────────────────────────┬───────────────────────┘  │
 │                                                ▼                          │
 │                              docker/recordings/<room>-<timestamp>.mp4     │
@@ -362,6 +364,57 @@ flowed even though the job was accepted.
 `EGRESS_COMPLETE` with a non-empty `.mp4` is success. `EGRESS_FAILED` /
 `EGRESS_ABORTED`, or a 0-byte file, means media never flowed — start with
 [Troubleshooting](#troubleshooting).
+
+---
+
+## Live Translation (Whisper, opt-in)
+
+A third service, `whisper`, sits behind the **`translation`** compose profile. It is
+local speech-to-text for Pro live captions, and per
+[`docs/decisions/0003-translation-architecture.md`](../docs/decisions/0003-translation-architecture.md)
+it is offered only in **self-hosted / direct distributions** — never in an app-store
+build, which gets the cloud-API strategy instead.
+
+> ⚠️ **Nothing in the app talks to this service yet.** The runtime pipeline (audio
+> capture, the Rust relay, the caption overlay) is not implemented; only the Settings
+> screen and this container exist. Do not describe captions as a working feature.
+
+```bash
+python3 scripts/livekit-local.py up --translation   # + the whisper container
+curl -s http://127.0.0.1:8080/health                # -> OK
+# stop ONLY whisper, leaving a running LiveKit stack alone:
+docker compose -f docker/docker-compose.yml --profile translation stop whisper
+docker compose -f docker/docker-compose.yml --profile translation rm -f whisper
+```
+
+Use that scoped teardown rather than `down` when you are in a meeting or otherwise
+using the server — `down` stops livekit, redis and egress too.
+
+| Tunable (`docker/.env`) | Default | Notes |
+| --- | --- | --- |
+| `WHISPER_VERSION` | `0.5.0-cpu` | Pinned: upstream is **archived** (moved to `speaches-ai/speaches`). `latest-cpu` is the same image today. ~1.68 GB unpacked, CPU-only. |
+| `WHISPER__MODEL` | `Systran/faster-whisper-small` | **Double underscore** — that is the name the image reads. A full HF repo id, not `small`. |
+| `WHISPER_PORT` | `8080` | Host port; the container listens on 8000. |
+| `WHISPER_BIND_ADDR` | `127.0.0.1` | **Do not widen.** The service has no authentication. |
+
+Two configuration traps, both verified rather than assumed — see
+[`docs/whisper-service-contract.md`](../docs/whisper-service-contract.md) for the
+captures:
+
+- The image reads `WHISPER__MODEL` / `WHISPER__INFERENCE_DEVICE`. This file used to set
+  `WHISPER_MODEL=small` and `WHISPER_DEVICE=cpu`, which were **silently ignored**, so
+  the container always ran the built-in default.
+- **Translation is English-only.** `/v1/audio/translations` has no target-language
+  parameter, French audio comes back as English, and passing `language=de` returns 200
+  with English anyway — silently ignored. Per-attendee non-English captions therefore
+  need a second machine-translation hop after Whisper.
+
+Operational notes: weights download from Hugging Face on the **first request**, not at
+startup, so `healthy` does not mean ready to transcribe (first call measured ~11 s,
+then ~0.43× real time on a 13 s clip — the ~4.3 s fixed per-request overhead means a
+caption client must batch ~10-15 s windows, not 1-2 s slices). The image ships no
+`curl`/`wget`, so the compose healthcheck probes `/health` with `python3`. No volume is
+mounted for the model cache, so a recreate re-downloads the weights.
 
 ---
 

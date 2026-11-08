@@ -127,16 +127,49 @@ services:
     logging: *container-logging
 
   whisper:
-    image: fedirz/faster-whisper-server:latest-cpu
+    # Pinned for the same reason as LIVEKIT_VERSION / EGRESS_VERSION above, and
+    # then some: upstream is ARCHIVED (the project moved to speaches-ai/speaches),
+    # so `latest-cpu` would resolve to a dead tag forever - or change silently if
+    # it were ever re-pushed. `latest-cpu` and `0.5.0-cpu` are the same image today
+    # (digest sha256:760e5e43...), so this pin changes nothing now and records
+    # exactly which build was verified. ~1.68 GB unpacked, CPU-only.
+    # Routes, contract and measured latency: docs/whisper-service-contract.md
+    image: fedirz/faster-whisper-server:${WHISPER_VERSION:-0.5.0-cpu}
     profiles: [translation]
     container_name: visualtalk-whisper
     restart: unless-stopped
     expose: ["8000"]
     ports:
+      # Loopback only, and it must stay that way: the service has NO
+      # authentication, so a LAN-reachable port lets anyone on the network
+      # transcribe audio and load/unload models.
       - "${WHISPER_BIND_ADDR:-127.0.0.1}:${WHISPER_PORT:-8080}:8000"
     environment:
-      - WHISPER_MODEL=${WHISPER_MODEL:-small}
-      - WHISPER_DEVICE=cpu
+      # Double underscore: the image is configured pydantic-settings style and
+      # reads WHISPER__MODEL / WHISPER__INFERENCE_DEVICE. The single-underscore
+      # names this block used to set (WHISPER_MODEL=small, WHISPER_DEVICE=cpu)
+      # were silently ignored - proven with a negative and a positive control in
+      # docs/whisper-service-contract.md section 6.
+      #
+      # WHISPER__MODEL is deliberately passed through under the image's own
+      # spelling rather than mapped from a WHISPER_MODEL knob: a bare size name
+      # like "small" is not a valid value (it must be a full HF repo id), and an
+      # old docker/.env carrying the retired WHISPER_MODEL=small would otherwise
+      # be forwarded and break every request with an opaque 500. Ignored keys
+      # fall back to the default below.
+      - "WHISPER__MODEL=${WHISPER__MODEL:-Systran/faster-whisper-small}"
+      - WHISPER__INFERENCE_DEVICE=cpu
+    healthcheck:
+      # The image ships no curl, wget or nc - only python3 and uv - so the probe
+      # uses urllib. urlopen raises on a non-2xx, which is what makes this fail.
+      # /health answers "OK" as soon as uvicorn is up, but model weights download
+      # lazily on the FIRST request, so a healthy container is not yet ready to
+      # transcribe (first call ~11 s here). Hence the modest start_period.
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     networks: [livekit]
     logging: *container-logging
 
