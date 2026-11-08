@@ -14,6 +14,17 @@ import { useI18n } from "../../i18n/I18nProvider";
  * The runtime translation pipeline is not implemented yet — these settings are
  * the agreed MVP surface (see Todo.txt), and the strategy options must not imply
  * an unimplemented provider is operational.
+ *
+ * CURRENTLY NOT REACHABLE: `SettingsPanel` gates this component behind
+ * `IS_TRANSLATION_AVAILABLE` (`src/lib/edition.js`), which is off unless the build
+ * sets `VITE_ENABLE_TRANSLATION=true`. Nothing reads `translation.enabled`, so the
+ * screen was a toggle that provably did nothing in a paid build. Kept intact
+ * deliberately — flip the flag to bring it back once a provider produces captions.
+ * Known issues to fix before re-enabling: `t("settings.savedSuccessfully")` does
+ * not exist in any locale (the alert renders the raw key — use
+ * `settings.savedSecurely`); every label is hardcoded English; and the target
+ * language picker offers languages no provider can deliver (see
+ * docs/whisper-service-contract.md §5).
  */
 export function TranslationSection() {
   const { t } = useI18n();

@@ -11,9 +11,16 @@ export default defineConfig(async () => ({
   // Compile-time constants for edition gating.
   //  * __PRO_EDITION__ is the edition flag (streaming and other paid features).
   //  * __E2EE_ENABLED__ is the crypto flag (chat/file encryption only).
+  //  * __TRANSLATION_ENABLED__ gates the Live Translation settings surface. It is
+  //    OFF by default because the runtime pipeline behind it does not exist yet:
+  //    nothing reads `translation.enabled`, so the screen would be a toggle that
+  //    does nothing in a paid build. Flip with VITE_ENABLE_TRANSLATION=true only
+  //    once a provider actually produces captions. See Todo.txt and
+  //    docs/whisper-service-contract.md.
   define: {
     __PRO_EDITION__: JSON.stringify(process.env.VITE_EDITION === "pro"),
     __E2EE_ENABLED__: JSON.stringify(process.env.VITE_ENABLE_E2EE === "true"),
+    __TRANSLATION_ENABLED__: JSON.stringify(process.env.VITE_ENABLE_TRANSLATION === "true"),
   },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`

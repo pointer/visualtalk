@@ -101,6 +101,14 @@ Never gate a paid feature on `e2ee` — a build can carry the crypto without bei
 the Pro edition, and `#[cfg]` is preferred over a runtime check so a Community
 binary contains no reachable code path for the feature.
 
+A third switch of a **different kind** exists for unfinished features:
+`__TRANSLATION_ENABLED__` (set from `VITE_ENABLE_TRANSLATION=true`, surfaced as
+`IS_TRANSLATION_AVAILABLE` in `src/lib/edition.js`). It is a *completeness* flag, not
+an edition flag: it hides the Pro Live Translation settings screen because nothing
+reads `translation.enabled` yet, so no build ships a control that provably does
+nothing. It is off by default and no `*:pro` script sets it. Don't reuse it for edition
+gating, and remove the gate rather than leaving a finished feature behind it.
+
 State lives in Solid signals/stores owned by `App.jsx` / `MainWindow.jsx` / `MeetingView.jsx` and passed down as props — there is no `src/stores/` directory. Don't create one for a single feature.
 
 ## 5. Coding conventions

@@ -21,3 +21,18 @@ export const IS_PRO_EDITION =
 /** True when the E2EE crypto build flag is on (`VITE_ENABLE_E2EE=true`). */
 export const IS_E2EE_ENABLED =
   typeof __E2EE_ENABLED__ !== "undefined" && __E2EE_ENABLED__ === true;
+
+/**
+ * True only when the Live Translation settings surface should be shown
+ * (`VITE_ENABLE_TRANSLATION=true`).
+ *
+ * This is a *feature-completeness* flag, not an edition flag: translation is a
+ * Pro feature, but the pipeline behind the settings does not exist yet — nothing
+ * in the app reads `translation.enabled`, there is no audio capture, no provider
+ * client and no caption UI. Shipping the screen would put a toggle in a paid
+ * build that provably does nothing, so it stays hidden until a provider works.
+ * Keep it separate from IS_PRO_EDITION: turning translation on must never imply
+ * anything about the edition, and vice versa.
+ */
+export const IS_TRANSLATION_AVAILABLE =
+  typeof __TRANSLATION_ENABLED__ !== "undefined" && __TRANSLATION_ENABLED__ === true;

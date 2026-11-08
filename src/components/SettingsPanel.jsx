@@ -5,7 +5,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { requestMediaPermissions } from "./Permissions";
 import { LicenseScreen } from "./LicenseScreen";
-import { IS_PRO_EDITION } from "../lib/edition";
+import { IS_PRO_EDITION, IS_TRANSLATION_AVAILABLE } from "../lib/edition";
 import { TranslationSection } from "./settings/TranslationSection";
 import { AiSection } from "./settings/AiSection";
 import { RecordingsSection } from "./settings/RecordingsSection";
@@ -328,7 +328,9 @@ export function SettingsPanel(props) {
               { id: "livekit", label: "LiveKit", icon: "⏚" },
               { id: "recordings", label: "Recordings", icon: "⏺" },
               { id: "ai", label: "AI Assistant", icon: "✨" },
-              ...(IS_PRO_EDITION ? [{ id: "translation", label: "Live Translation", icon: "🌐" }] : []),
+              ...(IS_PRO_EDITION && IS_TRANSLATION_AVAILABLE
+                ? [{ id: "translation", label: "Live Translation", icon: "🌐" }]
+                : []),
               { id: "about", label: "About", icon: "ℹ️" },
             ].map((section) => (
               <button
@@ -790,8 +792,9 @@ export function SettingsPanel(props) {
             <RecordingsSection />
           </Show>
 
-          {/* Live Translation */}
-          <Show when={IS_PRO_EDITION && activeSection() === "translation"}>
+          {/* Live Translation — hidden until the runtime pipeline exists
+              (IS_TRANSLATION_AVAILABLE, see src/lib/edition.js). */}
+          <Show when={IS_PRO_EDITION && IS_TRANSLATION_AVAILABLE && activeSection() === "translation"}>
             <TranslationSection />
           </Show>
 
