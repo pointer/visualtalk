@@ -1,82 +1,102 @@
+"""Check that the en/fr/es locale files stay in parity.
+
+Parity is a ship requirement: every feature that adds a key must add it to all
+three files, and `t()` silently renders the raw key when one is missing
+(see I18nProvider.jsx), so drift surfaces in the UI as "settings.someKey".
+
+Failures (exit 1): a key present in en.json but missing from fr/es, or a key
+present in fr/es but absent from en.
+Warnings (exit 0): an empty value, or a value identical to the English one, which
+is how an untranslated string hides. Genuinely identical loanwords are listed in
+IDENTICAL_OK - add to that set only when the term really is the same in all three
+languages; otherwise translate the value.
+
+Like the other guards in this directory, paths are resolved from the file's own
+location so the script works from any working directory.
+"""
 import json
+import pathlib
 import sys
-from pathlib import Path
 
-def get_keys(data, prefix=""):
-    keys = {}
-    for k, v in data.items():
-        new_key = f"{prefix}{k}"
-        if isinstance(v, dict):
-            keys.update(get_keys(v, f"{new_key}."))
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+LOCALES = ROOT / "src" / "locales"
+SOURCE = "en"
+TARGETS = ("fr", "es")
+
+# Terms legitimately spelled the same in en/fr/es. Compared exactly.
+IDENTICAL_OK = {
+    "Audio",
+    "Chat",
+    "Date",
+    "Description",
+    "LiveKit",
+    "Messages",
+    "Microphone",
+    "Notes",
+    "PMI",
+    "Video",
+    "alice@example.com, bob@example.com",
+}
+
+
+def flatten(data, prefix=""):
+    """Nested dicts -> {dotted.key: leaf value}."""
+    out = {}
+    for key, val in data.items():
+        path = f"{prefix}{key}"
+        if isinstance(val, dict):
+            out.update(flatten(val, f"{path}."))
         else:
-            keys[new_key] = v
-    return keys
+            out[path] = val
+    return out
 
-def load_json(path):
-    with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
 
-def check_parity():
-    en_path = Path('src/locales/en.json')
-    fr_path = Path('src/locales/fr.json')
-    es_path = Path('src/locales/es.json')
-
-    en_data = load_json(en_path)
-    fr_data = load_json(fr_path)
-    es_data = load_json(es_path)
-
-    en_dict = get_keys(en_data)
-    fr_dict = get_keys(fr_data)
-    es_dict = get_keys(es_data)
-
-    en_keys = set(en_dict.keys())
-    fr_keys = set(fr_dict.keys())
-    es_keys = set(es_dict.keys())
-
-    missing_fr = en_keys - fr_keys
-    missing_es = en_keys - es_keys
-    
-    extra_fr = fr_keys - en_keys
-    extra_es = es_keys - en_keys
-
-    errors = False
-    if missing_fr:
-        print(f"Missing in fr.json: {sorted(list(missing_fr))}")
-        errors = True
-    if missing_es:
-        print(f"Missing in es.json: {sorted(list(missing_es))}")
-        errors = True
-    if extra_fr:
-        print(f"Extra in fr.json: {sorted(list(extra_fr))}")
-        errors = True
-    if extra_es:
-        print(f"Extra in es.json: {sorted(list(extra_es))}")
-        errors = True
-
-    # Check for empty-string values and values identical to English
-    for k in sorted(list(en_keys & fr_keys)):
-        fr_val = fr_dict[k]
-        en_val = en_dict[k]
-        if fr_val == "":
-            print(f"WARNING: fr.json key '{k}' is an empty string.")
-        elif fr_val == en_val and len(en_val) > 3: # Ignore short terms like 'PMI', 'Date', etc.
-            # print(f"WARNING: fr.json key '{k}' is identical to English text: '{en_val}'")
-            pass
-
-    for k in sorted(list(en_keys & es_keys)):
-        es_val = es_dict[k]
-        en_val = en_dict[k]
-        if es_val == "":
-            print(f"WARNING: es.json key '{k}' is an empty string.")
-        elif es_val == en_val and len(en_val) > 3:
-            # print(f"WARNING: es.json key '{k}' is identical to English text: '{en_val}'")
-            pass
-
-    if errors:
+def load(locale):
+    path = LOCALES / f"{locale}.json"
+    if not path.exists():
+        print(f"ERROR: {path} not found")
         sys.exit(1)
-    
-    print(f"OK: en/fr/es parity ({len(en_keys)} keys)")
-    sys.exit(0)
+    with open(path, encoding="utf-8") as f:
+        return flatten(json.load(f))
 
-if __name__ == '__main__':
-    check_parity()
+
+def main():
+    en = load(SOURCE)
+    targets = {loc: load(loc) for loc in TARGETS}
+
+    failed = False
+    warnings = []
+
+    for loc, data in targets.items():
+        missing = sorted(set(en) - set(data))
+        extra = sorted(set(data) - set(en))
+        if missing:
+            print(f"MISSING in {loc}.json ({len(missing)}): {', '.join(missing)}")
+            failed = True
+        if extra:
+            print(f"EXTRA in {loc}.json ({len(extra)}): {', '.join(extra)}")
+            failed = True
+
+        for key in sorted(set(en) & set(data)):
+            val, src = data[key], en[key]
+            if not isinstance(val, str) or not isinstance(src, str):
+                continue
+            if val.strip() == "":
+                warnings.append(f"{loc}.json '{key}' is empty")
+            elif val == src and val not in IDENTICAL_OK and len(val) > 1:
+                warnings.append(f"{loc}.json '{key}' is still English: {val!r}")
+
+    if warnings:
+        print(f"WARNINGS ({len(warnings)}) - review these; they do not fail the build:")
+        for w in warnings:
+            print(f"  {w}")
+
+    if failed:
+        return 1
+
+    print(f"OK: en/fr/es parity ({len(en)} keys)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
