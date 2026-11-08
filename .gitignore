@@ -111,6 +111,10 @@ __pycache__/
 # Local LiveKit egress output (docker/.env: LIVEKIT_RECORDINGS_DIR).
 docker/recordings/
 
+# Cloudflare upload staging (scripts/deploy-cloudflare.py stage): copies of the
+# built installers plus generated SHA256SUMS.txt / latest.json.
+dist-cloudflare/
+
 # Play Store marketing assets (screenshots, feature graphic): local-only,
 # regenerated per release; not source.
 product-release/play/

@@ -63,7 +63,11 @@
     "clean:all": "pnpm ios:clean && pnpm android:clean",
     "notices": "python3 scripts/generate-notices.py",
     "license:check": "python3 scripts/generate-notices.py --check",
-    "i18n:check": "python3 scripts/check_i18n_parity.py"
+    "i18n:check": "python3 scripts/check_i18n_parity.py",
+    "cf:check": "python3 scripts/deploy-cloudflare.py check",
+    "cf:stage": "python3 scripts/deploy-cloudflare.py stage",
+    "cf:pages": "python3 scripts/deploy-cloudflare.py pages",
+    "cf:r2": "python3 scripts/deploy-cloudflare.py r2"
   },
   "license": "PolyForm-Noncommercial-1.0.0",
   "dependencies": {
