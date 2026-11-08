@@ -31,8 +31,8 @@ server is configured with no public STUN servers and `use_external_ip: false`.
 ## Quick start
 
 ```bash
-./scripts/livekit-local.sh up --recording     # start server + redis + egress
-./scripts/livekit-local.sh creds              # print what to paste into the app
+python3 scripts/livekit-local.py up --recording     # start server + redis + egress
+python3 scripts/livekit-local.py creds              # print what to paste into the app
 ./scripts/livekit-local.sh smoke --recording  # optional: prove it end to end
 ```
 
@@ -54,7 +54,7 @@ are deliberately not consulted (see `src-tauri/src/egress.rs::resolve_credential
 Without recording (signalling + media only, ~no compositor overhead):
 
 ```bash
-./scripts/livekit-local.sh up
+python3 scripts/livekit-local.py up
 ```
 
 ### Requirements
@@ -115,7 +115,7 @@ egress jobs and the files on disk, or `logs egress`.
 
 ## Day-to-day commands
 
-The wrapper is the recommended entry point (`./scripts/livekit-local.sh --help`
+The wrapper is the recommended entry point (`python3 scripts/livekit-local.py --help`
 for the full text). Raw `docker compose` equivalents are shown for reference —
 run them from `docker/`, and remember compose needs `LIVEKIT_API_KEY` /
 `LIVEKIT_API_SECRET` in the environment or in `docker/.env`.
@@ -248,7 +248,7 @@ control invokes them**. Pressing Record in a meeting takes the client-side path:
   (`MeetingView.jsx:216-232`), so it needs less work than the start side.
 
 So today the recorder is exercised by the smoke test, or by hand with the same
-`lk` call the script makes (`scripts/livekit-local.sh:368-378`):
+`lk` call the (removed) `smoke` subcommand made:
 
 ```bash
 KEY="$(grep '^LIVEKIT_API_KEY=' docker/.env | cut -d= -f2-)"
@@ -262,7 +262,7 @@ lk egress stop --id EG_xxxxxxxxxx --url http://127.0.0.1:7880 \
   --api-key "$KEY" --api-secret "$SECRET"
 ```
 
-(`./scripts/livekit-local.sh creds` prints the same two values. The secret is
+(`python3 scripts/livekit-local.py creds` prints the same two values. The secret is
 `openssl rand -hex 32`, so it contains no characters that need shell quoting.)
 
 There is no devtools shortcut: `withGlobalTauri` is not set in
@@ -295,6 +295,12 @@ additionally requires upstream's seccomp profile.
 at a time, and extra requests should queue rather than thrash the machine.
 
 ### Verifying a recording
+
+> Note: the `smoke` subcommand is not implemented in `scripts/livekit-local.py`
+> (which provides up/down/status/logs/creds only). The steps below describe the
+> behaviour of the removed `.sh` wrapper and are pending an owner decision:
+> re-implement `smoke`, or replace this section with the manual equivalents at
+> lines 329-335.
 
 ```bash
 ./scripts/livekit-local.sh smoke --recording
@@ -330,7 +336,7 @@ Manual equivalents:
 
 ```bash
 ffprobe -v error -show_streams -show_format docker/recordings/<file>.mp4
-./scripts/livekit-local.sh status        # egress job states + files on disk
+python3 scripts/livekit-local.py status        # egress job states + files on disk
 lk egress list --url http://127.0.0.1:7880 --api-key <key> --api-secret <secret>
 ```
 
@@ -381,7 +387,7 @@ hostname -I | awk '{print $1}'             # Linux
 Then `restart` and use `ws://<LAN IP>:7880` in the app on the other device, with
 the same API key/secret. Leave `LIVEKIT_NODE_IP=127.0.0.1` in this mode and
 remote clients will hang on "connecting": they receive `127.0.0.1` as the ICE
-candidate and try to reach *their own* loopback. `scripts/livekit-local.sh up`
+candidate and try to reach *their own* loopback. `python3 scripts/livekit-local.py up`
 refuses that combination outright.
 
 `LIVEKIT_NODE_IP` is an **advertisement**, not a bind address: the server listens
@@ -394,7 +400,7 @@ with VPN/Docker/bridge adapters frequently picks the wrong one (e.g.
 ### Host networking
 
 ```bash
-./scripts/livekit-local.sh up --host --recording
+python3 scripts/livekit-local.py up --host --recording
 # or: docker compose -f docker-compose.yml -f compose.host.yml --profile recording up -d
 ```
 
@@ -460,7 +466,7 @@ stage:
 ```bash
 cd docker
 docker compose build --build-arg BINARY_STAGE=build-from-source livekit
-./scripts/livekit-local.sh restart --recording
+docker compose -f docker/docker-compose.yml --profile recording up -d --force-recreate  # wrapper no longer exposes `restart`
 docker compose exec livekit livekit-server --version
 docker image inspect visualtalk/livekit-server:v1.13.10-local \
   --format '{{index .Config.Labels "dev.visualtalk.binary-stage"}}'   # -> build-from-source
@@ -507,7 +513,7 @@ and `ENTRYPOINT ["/usr/local/bin/livekit-server"]` with
 ### Debugging
 
 ```bash
-./scripts/livekit-local.sh logs -f livekit     # or egress / redis
+python3 scripts/livekit-local.py logs -f livekit     # or egress / redis
 docker compose logs --since 10m egress | grep -i 'candidate\|ice\|egress\|error'
 lk room join --url ws://127.0.0.1:7880 --api-key <key> --api-secret <secret> \
   --identity echo --room testroom --publish-demo
@@ -583,11 +589,11 @@ What was verified against a running stack:
 ## Cleanup
 
 ```bash
-./scripts/livekit-local.sh down                       # stop and remove containers
+python3 scripts/livekit-local.py down                       # stop and remove containers
 cd docker && docker compose --profile recording down -v   # ...and the redis volume
 rm -rf docker/recordings/*                            # recordings are never removed for you
 docker rmi visualtalk/livekit-server:v1.13.10-local   # the built server image
 ```
 
 Related docs: the repository [`README.md`](../README.md) (what VisualTalk is,
-how to run the app) and `scripts/livekit-local.sh --help`.
+how to run the app) and `python3 scripts/livekit-local.py --help`.

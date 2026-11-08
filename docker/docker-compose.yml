@@ -9,7 +9,7 @@ name: visualtalk-livekit
 # Prefer the wrapper - it creates docker/.env with a fresh key pair on first run
 # and prints exactly what to paste into VisualTalk:
 #
-#   ./scripts/livekit-local.sh up [--recording]
+#   python3 scripts/livekit-local.py up [--recording]
 #
 # Every tunable lives in docker/.env (documented in docker/.env.example).
 # Linux / full UDP range: see docker/compose.host.yml.
@@ -34,7 +34,7 @@ services:
       # Parsed as YAML "key: secret" - the space after the colon is required.
       # Sourced from docker/.env so no credential is committed to the repo, and
       # so the same pair can be pasted into VisualTalk's Settings -> LiveKit.
-      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?missing - create docker/.env from docker/.env.example, or run scripts/livekit-local.sh up}: ${LIVEKIT_API_SECRET:?missing - create docker/.env from docker/.env.example, or run scripts/livekit-local.sh up}"
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?missing - create docker/.env from docker/.env.example, or run python3 scripts/livekit-local.py up}: ${LIVEKIT_API_SECRET:?missing - create docker/.env from docker/.env.example, or run python3 scripts/livekit-local.py up}"
       # Advertised as a WebRTC ICE candidate, so it must be reachable from the
       # client: 127.0.0.1 for the app on this machine, your LAN IP otherwise.
       NODE_IP: ${LIVEKIT_NODE_IP:-127.0.0.1}
@@ -110,8 +110,8 @@ services:
       # LIVEKIT_NODE_IP to this machine's LAN IP (see .env.example) so the
       # advertised candidate is genuinely reachable.
       LIVEKIT_WS_URL: ws://livekit:7880
-      LIVEKIT_API_KEY: "${LIVEKIT_API_KEY:?missing - create docker/.env from docker/.env.example, or run scripts/livekit-local.sh up}"
-      LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET:?missing - create docker/.env from docker/.env.example, or run scripts/livekit-local.sh up}"
+      LIVEKIT_API_KEY: "${LIVEKIT_API_KEY:?missing - create docker/.env from docker/.env.example, or run python3 scripts/livekit-local.py up}"
+      LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET:?missing - create docker/.env from docker/.env.example, or run python3 scripts/livekit-local.py up}"
     volumes:
       - ./egress.yaml:/etc/egress.yaml:ro
       # VisualTalk asks egress for /recordings/<room>-<timestamp>.mp4, so
