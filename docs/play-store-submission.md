@@ -26,6 +26,7 @@ bundletool (AAB) and record it in the table below.
 | date | versionName | versionCode | artifact | uploaded |
 | --- | --- | --- | --- | --- |
 | 2026-11-08 | 3.3.42 | 3034200 | `gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab` (35 MB; upload-cert SHA256 3F:83:5B:92:8D:00:38:0E:26:95:FB:1A:7E:E0:4D:10:F0:87:72:48:63:6B:84:FA:D0:08:32:42:F5:DD:3A:EF; `bundletool validate` OK) | not yet — internal track first |
+| 2026-11-09 | 3.3.42 | 3034200 | same path, **rebuilt** to pick up the fr/es locale fixes and the meeting-link fix. File SHA-256 `eeecee131e5e9e125e4b64b73ce218327f1194ef390ba97878e01b278a2431e8`; `bundletool validate` OK; manifest confirms `com.katebg.visualtalk` / 3034200 / 3.3.42; signed by the same `release` signingConfig (keystore.properties → `~/Keys/visualtalk-play/upload-keystore.jks`, cert 3F:83:5B:92…). versionCode is unchanged on purpose: nothing has been uploaded yet. **Once any AAB is uploaded, a rebuild must bump the version first** or Play rejects it. | not yet — internal track first |
 
 ## 2. Signing
 
@@ -70,10 +71,19 @@ see Guidance.md §3).
   see `docs/cloudflare-deploy.md`). The domain is registered on Cloudflare and
   the static site also serves `/.well-known/assetlinks.json` for Android App
   Links and `/j/?room=<code>` as the meeting-link handoff page.
-- Graphics: 512×512 icon (regenerate from the Oct-14 master, see Todo.txt — the
-  committed android mipmaps are the OLD Oct-12 mark), 1024×500 feature graphic
-  (OWNER TASK, design), phone screenshots in `product-release/play/`
-  (gitignored, regenerated per release).
+- Graphics: 512×512 icon — downscale the deterministic master from
+  `python3 scripts/render-icon.py` (the committed Android mipmaps are NOT stale:
+  an audit on 2026-11-08 showed every platform's icons derive from the same
+  Oct-12 `logo.svg`; the Oct-13/14 iOS commits were an alpha/opacity fix for
+  Apple's no-alpha store-icon rule, not a rebrand). 1024×500 feature graphic:
+  OWNER TASK, design. Phone screenshots: originals in `product-release/play/`
+  (1080×2400, gitignored) and Play-legal crops in
+  `product-release/play/1080x1920/` — 9:20 is outside Play's 16:9–9:16 window, so
+  the crops drop only dead space (verified visually: no widget is sliced).
+  **Re-capture before a production rollout:** shot 02 shows `devkey` and the
+  emulator URL `ws://10.0.2.2:7880`, and shot 03 shows a green preview artifact
+  plus the emulator camera label "camera2 1, facing back". Fine for the internal
+  track, not for the store page.
 - Ads: none. In-app purchases: none. Data safety: §5. Content rating: §6.
 
 ## 5. Data safety form (draft answers)
