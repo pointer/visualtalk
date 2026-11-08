@@ -297,7 +297,13 @@ export function useRecording() {
         },
       });
       setActiveStreamEgressId(info.egress_id);
-      setIsStreaming(true); setRecordingMode("egress");
+      // Deliberately does NOT touch recordingMode: that signal describes the
+      // recording, and overwriting it here would strand an in-progress local
+      // recording (stopRecording would take the egress branch, find no recording
+      // id, and never call stopLocalRecording, so the MediaRecorder would keep
+      // running and the file would never be finalised). Streaming state lives in
+      // isStreaming + activeStreamEgressId.
+      setIsStreaming(true);
       startDurationTimer();
       return info;
     } catch (err) {
@@ -362,10 +368,12 @@ export function useRecording() {
   };
 
   const stopRecording = async () => {
+    // Route on what is actually running rather than on recordingMode, so a
+    // stream can never mask an in-progress recording.
     let recResult = null;
-    if (recordingMode() === "egress") {
+    if (activeRecordingEgressId()) {
       recResult = await stopEgressRecording();
-    } else {
+    } else if (isRecording()) {
       recResult = await stopLocalRecording();
     }
     if (activeStreamEgressId()) {
