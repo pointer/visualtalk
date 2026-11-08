@@ -250,3 +250,34 @@ Gatekeeper-blocked installers.
   Free plan — two more reasons the Rust build does not belong there.
 - **r2.dev is rate-limited and documented as non-production.** Put a custom
   domain on the bucket before announcing a release.
+
+## 9. The public website (site/)
+
+`visualtalk.app` serves the committed static site in `site/`. This is what Google
+Play requires as a reachable privacy-policy URL, plus the Android App Links
+manifest and the meeting-link handoff page:
+
+| Path | Purpose |
+| --- | --- |
+| `/privacy` | The privacy policy, rendered from `PRIVACY.md`. Regenerate with the command below, then redeploy. |
+| `/j/?room=<code>` | Meeting-link handoff: shows the room code with a copy button. Query-string form on purpose — a static host cannot route `/j/<code>`. |
+| `/.well-known/assetlinks.json` | Android App Links verification for `com.katebg.visualtalk`, using the Play upload-key fingerprint. |
+| `/` | Minimal product page. |
+
+Deploy with `pnpm cf:site` (`wrangler deploy`; the output directory comes from
+`wrangler.jsonc`'s `assets.directory`, which is why the dashboard shows no
+"Output directory" field for this Workers-with-assets project). `preview_urls`
+is off because deploys are manual and release-driven.
+
+Regenerate the policy page after editing `PRIVACY.md`:
+
+```bash
+pandoc PRIVACY.md -f markdown -t html5 -s \
+  --metadata title="VisualTalk — Privacy Policy" \
+  --include-in-header=site/_partials/head.html \
+  --include-before-body=site/_partials/nav.html \
+  -o site/privacy.html
+```
+
+Android App Bundles are deliberately excluded from `stage` and `r2`: an `.aab`
+only ever goes to Google Play Console, never to a public bucket.

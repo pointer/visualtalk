@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Join this VisualTalk meeting</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         color: #1c1c1e; background: #fafafa; }
+  @media (prefers-color-scheme: dark) { body { color: #f2f2f7; background: #101014; } a { color: #c4a5ff; } }
+  main { max-width: 42rem; margin: 0 auto; padding: 4rem 1.25rem; }
+  h1 { margin: 0 0 1rem; font-size: 1.8rem; letter-spacing: -.02em; }
+  .code { font: 600 2rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+          background: linear-gradient(135deg, #8b5cf6, #ec4899);
+          -webkit-background-clip: text; background-clip: text; color: transparent;
+          margin: 0 0 1rem; word-break: break-all; }
+  button { font: inherit; padding: .6rem 1.2rem; border: 0; border-radius: 10px;
+           background: #7c3aed; color: #fff; cursor: pointer; }
+  button:active { transform: scale(.98); }
+  [role="status"] { min-height: 1.4em; font-size: .9rem; opacity: .7; }
+  ol { padding-left: 1.2rem; }
+  a { color: #7c3aed; }
+  .note { margin-top: 2rem; font-size: .9rem; opacity: .65; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Join this VisualTalk meeting</h1>
+  <p class="code" id="code">…</p>
+  <button id="copy" type="button">Copy room code</button>
+  <p id="status" role="status"></p>
+  <ol>
+    <li>Open <strong>VisualTalk</strong> on your device.</li>
+    <li>Choose <strong>Join</strong> and paste the code above.</li>
+    <li>The meeting runs on the host's LiveKit server — the one your own app is
+        configured to use.</li>
+  </ol>
+  <p class="note">This page carries only the room code. VisualTalk is
+     bring-your-own-server, so the server address and the access token come from
+     each participant's app settings, or from the full invitation text the host
+     copied with “Copy invitation”.</p>
+  <p><a href="/">What is VisualTalk?</a> · <a href="/privacy">Privacy</a></p>
+</main>
+<script>
+  const params = new URLSearchParams(location.search);
+  const fromQuery = params.get("room");
+  const parts = location.pathname.split("/").filter(Boolean);
+  // ?room= is the canonical form (static hosts cannot route /j/<code>); the
+  // path form is accepted as a fallback for links copied before that existed.
+  const code = fromQuery !== null ? fromQuery : decodeURIComponent(parts[parts.length - 1] || "");
+  document.getElementById("code").textContent = code || "(no room code in this link)";
+  document.getElementById("copy").addEventListener("click", async () => {
+    const status = document.getElementById("status");
+    try {
+      await navigator.clipboard.writeText(code);
+      status.textContent = "Copied.";
+    } catch {
+      status.textContent = "Copy failed — select the code manually.";
+    }
+  });
+</script>
+</body>
+</html>

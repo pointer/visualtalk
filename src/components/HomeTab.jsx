@@ -103,7 +103,7 @@ export function HomeTab(props) {
       await navigator.clipboard.writeText(profile().pmi);
       alert(t("mainWindow.copiedPmi", { pmi: profile().pmi }));
     } else if (action === "Copy meeting link") {
-      const link = `https://visualtalk.app/j/${activeRoom}`;
+      const link = `https://visualtalk.app/j/?room=${encodeURIComponent(activeRoom)}`;
       await navigator.clipboard.writeText(link);
       alert(t("mainWindow.copiedLink", { link }));
     } else if (action === "Copy invitation") {

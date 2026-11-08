@@ -67,7 +67,8 @@
     "cf:check": "python3 scripts/deploy-cloudflare.py check",
     "cf:stage": "python3 scripts/deploy-cloudflare.py stage",
     "cf:pages": "python3 scripts/deploy-cloudflare.py pages",
-    "cf:r2": "python3 scripts/deploy-cloudflare.py r2"
+    "cf:r2": "python3 scripts/deploy-cloudflare.py r2",
+    "cf:site": "python3 scripts/deploy-cloudflare.py site"
   },
   "license": "PolyForm-Noncommercial-1.0.0",
   "dependencies": {

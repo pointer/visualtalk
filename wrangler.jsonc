@@ -1,0 +1,19 @@
+{
+  // Cloudflare Workers-with-assets config for the public website in site/.
+  //
+  // The output directory lives HERE, not in the dashboard: Workers projects read
+  // `assets.directory` from this file, which is why the project settings show no
+  // "Output directory" field. There is deliberately no build command and no main
+  // worker script - the site is committed static files (privacy policy, the
+  // /j/<room> handoff page, assetlinks.json), deployed with `pnpm cf:site`.
+  //
+  // `name` must match the existing Cloudflare project so deploys land on it.
+  "name": "visualtalk",
+  "compatibility_date": "2026-11-08",
+  // Deploys are manual and release-driven (pnpm cf:site); preview deployments
+  // would mint a public preview URL per upload for no benefit.
+  "preview_urls": false,
+  "assets": {
+    "directory": "./site"
+  }
+}

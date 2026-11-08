@@ -65,8 +65,11 @@ see Guidance.md §3).
   contains no purchases or subscriptions (parity with the EULA text).
 - Category: Social (alt. Communication).
 - Contact: support address = `settings.rs SUPPORT_EMAIL`; privacy policy URL =
-  hosted `PRIVACY.md` (OWNER TASK: publish it — GitHub Pages or the product
-  site; Play rejects listings without a reachable URL).
+  **`https://visualtalk.app/privacy`** — live since 2026-11-08, served from
+  `site/privacy.html` (rendered from `PRIVACY.md`; regenerate + `pnpm cf:site`,
+  see `docs/cloudflare-deploy.md`). The domain is registered on Cloudflare and
+  the static site also serves `/.well-known/assetlinks.json` for Android App
+  Links and `/j/?room=<code>` as the meeting-link handoff page.
 - Graphics: 512×512 icon (regenerate from the Oct-14 master, see Todo.txt — the
   committed android mipmaps are the OLD Oct-12 mark), 1024×500 feature graphic
   (OWNER TASK, design), phone screenshots in `product-release/play/`

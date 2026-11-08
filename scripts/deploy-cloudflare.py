@@ -67,6 +67,7 @@ TAURI_DIR = ROOT / "src-tauri"
 TARGET_DIR = TAURI_DIR / "target"
 PRODUCT_RELEASE_DIR = ROOT / "product-release"
 WEB_DIST = ROOT / "dist"
+SITE_DIR = ROOT / "site"
 STAGE_ROOT = ROOT / "dist-cloudflare"
 E2EE_RS = TAURI_DIR / "src" / "e2ee.rs"
 
@@ -92,7 +93,10 @@ ARTIFACT_SUFFIXES = (
     ".deb",
     ".rpm",
     ".apk",
-    ".aab",
+    # NOTE: no ".aab" here, on purpose. An Android App Bundle is only ever uploaded
+    # to Google Play Console, which re-signs it with the app-signing key; publishing
+    # one to a public bucket bypasses Play review and signing and serves no purpose.
+    # See docs/play-store-submission.md.
     ".ipa",
 )
 
@@ -236,7 +240,8 @@ EXTRA_ARTIFACT_GLOBS = (
     (PRODUCT_RELEASE_DIR, "*/*/*", "product-release"),
     (ROOT / "src-tauri/gen/apple/build", "arm64/*.ipa", "gen/apple"),
     (ROOT / "src-tauri/gen/android/app/build/outputs", "**/*.apk", "gen/android"),
-    (ROOT / "src-tauri/gen/android/app/build/outputs", "**/*.aab", "gen/android"),
+    # No "**/*.aab": bundles go to Play Console only, never to R2 (see the note on
+    # ARTIFACT_EXTENSIONS).
 )
 
 
@@ -574,6 +579,26 @@ def object_key(args: argparse.Namespace, version: str, name: str, *, latest: boo
     return "/".join(parts)
 
 
+def cmd_site(args: argparse.Namespace) -> int:
+    """Deploy the public website (site/) with `wrangler deploy`.
+
+    The Cloudflare project is a Workers-with-assets project: the output directory is
+    declared in wrangler.jsonc (`assets.directory`), not in the dashboard, and there
+    is no build step - the site is committed static files. It hosts the
+    privacy-policy URL Google Play requires, the /j/<room> handoff page and
+    /.well-known/assetlinks.json for Android App Links.
+    """
+    if not (SITE_DIR / "index.html").is_file():
+        print(f"❌ {SITE_DIR}/index.html missing - the site is committed source", file=sys.stderr)
+        return 1
+    print(f"▶ Cloudflare Workers assets → {SITE_DIR} (config: wrangler.jsonc)")
+    ensure_wrangler_auth(dry_run=args.dry_run)
+    wrangler(["deploy"], dry_run=args.dry_run)
+    if not args.dry_run:
+        print("  verify: curl -sI https://visualtalk.app/privacy")
+    return 0
+
+
 def cmd_r2(args: argparse.Namespace) -> int:
     """Stage the built installers and upload them to an R2 bucket."""
     bucket = args.bucket or os.environ.get("CF_R2_BUCKET", "")
@@ -795,6 +820,10 @@ def build_parser() -> argparse.ArgumentParser:
     pages.add_argument("--create-project", action="store_true", help="create the Pages project if missing")
     pages.add_argument("--skip-build", action="store_true", help="deploy the existing dist/ as-is")
     pages.set_defaults(handler=cmd_pages)
+
+    site = sub.add_parser("site", help="deploy the public website (site/) via wrangler deploy")
+    common(site)
+    site.set_defaults(handler=cmd_site)
 
     r2 = sub.add_parser("r2", help="stage installers and upload them to R2")
     common(r2)
