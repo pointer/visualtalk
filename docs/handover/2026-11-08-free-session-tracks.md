@@ -527,6 +527,53 @@ git diff --stat                    # only the files you converted
 
 ---
 
+## Track 7 — Research: can LiveKit Cloud transcription deliver target languages?
+
+**Objective.** Answer one question with citations, and change no product code. Whether
+VisualTalk should build captions at all hinges on it: the local path can only ever give
+a source-language transcript plus English, so if the cloud path cannot do target
+languages either, the feature is captions — not translation — and should be priced and
+marketed as such.
+
+**Question.** Does a LiveKit **Cloud** transcription agent translate into an arbitrary
+target language (not just English), and can it run against a *user's own* LiveKit Cloud
+project using the API key they paste into VisualTalk Settings?
+
+**Method.** The docs site moved and deep links 404 — start from
+`https://docs.livekit.io/sitemap.xml` and the `livekit/agents` repo rather than guessing
+URLs. Establish: (1) what LiveKit Cloud offers as managed transcription; (2) whether
+target-language translation is supported and by which provider/plugin; (3) whether it
+needs a LiveKit account owned by *us* or works with the customer's own project and key;
+(4) pricing model (per minute? included?); (5) whether the client receives it through
+`RoomEvent.TranscriptionReceived`, which `livekit-client` 2.23.0 already supports.
+
+**Already established — do not re-derive.** No local STT plugin exists
+(`livekit-plugins-whisper`, `-faster-whisper`, `-inference`, `-translate` are absent
+from both the agents repo and PyPI; `-silero` is VAD only). Browser clients cannot
+publish transcriptions, only receive them. Whisper's own `translate` is English-only
+(`docs/whisper-service-contract.md` §5).
+
+**Deliverable.** `docs/translation-provider-research.md`: a recommendation
+(cloud-first / captions-only / defer), the evidence per claim with URLs, and an explicit
+list of what could not be verified. If the answer requires contacting LiveKit or creating
+a trial Cloud account, say so and stop — do not create accounts.
+
+**Constraints.** No product code, no dependency changes, no edits to `docs/decisions/`
+(if the answer changes ADR 0003, report that; the owner writes the ADR). No credentials
+in the document.
+
+**Verification.**
+```bash
+test -f docs/translation-provider-research.md && wc -l docs/translation-provider-research.md
+grep -c 'https://' docs/translation-provider-research.md   # every claim needs a source
+grep -n -i 'unverified\|could not verify' docs/translation-provider-research.md
+git diff --stat   # exactly one new file
+```
+
+**Commit:** `docs(translation): research cloud transcription capability`
+
+---
+
 ## Explicitly out of scope for these sessions
 
 Streaming UI (banner, toolbar button, organizer-only + Pro gating, `docker/` RTMP sink),
