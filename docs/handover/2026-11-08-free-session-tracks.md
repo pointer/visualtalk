@@ -102,6 +102,15 @@ quick-start `smoke` lines and the flagged section), kept advertising the removed
 the verified-behaviour list, and missed `docker/.env.example` entirely because the gate
 only grepped `*.md` and `*.yml`.
 
+**Follow-up (same day):** the owner chose to restore the lost subcommands rather than
+delete the docs, so `smoke` and `restart` are now implemented in
+`scripts/livekit-local.py` — ported from the deleted `.sh` at `bf8404f^`, not rewritten.
+The "removed / owner decision pending" markers this track added were therefore reverted,
+and the README's original smoke/restart documentation is accurate again. `smoke` also
+gained two fixes the `.sh` never had: it probes for a host-reachable address because
+`LIVEKIT_NODE_IP` may be an emulator-only `10.0.2.2`, and it names the stale-credentials
+cause instead of dumping `lk`'s Go stack trace.
+
 **Objective.** The stack helper was migrated from `scripts/livekit-local.sh` to
 `scripts/livekit-local.py`; the `.sh` no longer exists, but 24 references to it remain
 across three files (15 in `docker/README.md`, 5 in `docker/docker-compose.yml` over 4

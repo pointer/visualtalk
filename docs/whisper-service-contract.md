@@ -323,9 +323,13 @@ What a client can and cannot do with this:
 
 ## 11. Open questions for the owner
 
-1. **§5 is the blocking one:** English-only translation means per-attendee target-language
-   captions need a second MT hop. Accept English-only for the Docker strategy, add the
-   hop, or narrow Strategy 2 in ADR 0003?
+1. **§5 — DECIDED 2026-11-08: English-only for now.** The owner chose to ship
+   English-only captions for the Docker strategy and defer the second
+   machine-translation hop. Consequence for any implementation: while the Docker
+   provider is selected, the target language is effectively fixed to English and the
+   UI must not offer or imply a non-English target (§5's silent-ignore behaviour makes
+   a wrong target fail invisibly). Revisit the MT hop later; the obvious local candidate
+   is the existing OpenAI-compatible client in `src-tauri/src/ai.rs`.
 2. Upstream is archived. Migrate to `speaches-ai/speaches` (a different image, almost
    certainly different routes — it would need its own contract capture), or pin
    `0.5.0-cpu` and accept an unmaintained dependency?
