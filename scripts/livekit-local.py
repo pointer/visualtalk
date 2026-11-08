@@ -120,6 +120,25 @@ def read_env():
     return vals
 
 
+def load_env():
+    """Export docker/.env into this process before invoking compose.
+
+    Compose interpolation prefers the SHELL environment over the .env file, so a
+    LIVEKIT_API_SECRET already exported in the user's shell silently wins for the
+    server, while read_env() - which `creds` and `smoke` use - keeps reading the
+    file. The two then disagree and every token the CLI mints fails with
+    "signature is invalid", which looks exactly like a stale container.
+
+    The removed .sh wrapper avoided this by sourcing the file
+    (`set -a; . docker/.env; set +a`); this is the equivalent, and it keeps
+    docker/.env the single source of truth the docs promise.
+    """
+    if not os.path.exists(ENV_FILE):
+        return
+    for k, v in read_env().items():
+        os.environ[k] = v
+
+
 def cmd_creds(args):
     vals = read_env()
     port = vals.get("LIVEKIT_PORT", "7880")
@@ -188,8 +207,8 @@ def cmd_smoke(args):
         addr = "127.0.0.1"
         warn(f"LIVEKIT_NODE_IP={node_ip} is not reachable from this machine (it is the")
         warn("address advertised to clients, e.g. an emulator's 10.0.2.2). Signalling")
-        warn("will be tested over 127.0.0.1, but the media leg cannot be verified from")
-        warn("here - set LIVEKIT_NODE_IP to a host-reachable IP for a full smoke test.")
+        warn("will be tested over 127.0.0.1. Media may still flow - the server opens")
+        warn("ICE toward the publisher - but if a media step below fails, this is why.")
     ws, http = f"ws://{addr}:{port}", f"http://{addr}:{port}"
     room = f"vt-smoke-{int(time.time())}"
     pub = None
@@ -340,6 +359,11 @@ def main():
 
 
 def build_compose_cmd(args, extra_docker_args=None):
+    # Every compose invocation must see docker/.env as the authority - see
+    # load_env(). Without this a shell-exported LIVEKIT_* variable quietly
+    # configures the server with credentials the rest of this script disagrees
+    # with.
+    load_env()
     cmd = ["docker", "compose", "-f", os.path.join(DOCKER_DIR, "docker-compose.yml")]
     if getattr(args, "host", False): cmd.extend(["-f", os.path.join(DOCKER_DIR, "compose.host.yml")])
     if getattr(args, "recording", False): cmd.extend(["--profile", "recording"])
