@@ -75,8 +75,17 @@ see Guidance.md §3).
   `python3 scripts/render-icon.py` (the committed Android mipmaps are NOT stale:
   an audit on 2026-11-08 showed every platform's icons derive from the same
   Oct-12 `logo.svg`; the Oct-13/14 iOS commits were an alpha/opacity fix for
-  Apple's no-alpha store-icon rule, not a rebrand). 1024×500 feature graphic:
-  OWNER TASK, design. Phone screenshots: originals in `product-release/play/`
+  Apple's no-alpha store-icon rule, not a rebrand). Generated 2026-11-09:
+  `product-release/play/icon-512.png` (512×512 RGBA, downscaled from that master).
+  1024×500 feature graphic: candidate at
+  `product-release/play/feature-graphic-1024x500.png`, rendered by headless Chrome
+  from `product-release/play/feature-graphic-source.html` (this ffmpeg build has no
+  `drawtext` filter): `"/Applications/Google Chrome.app/Contents/MacOS/Google
+  Chrome" --headless=new --disable-gpu --hide-scrollbars
+  --force-device-scale-factor=1 --window-size=1024,500
+  --user-data-dir=/tmp/chrome-fg --screenshot=<out.png>
+  file://<…>/feature-graphic-source.html`. Owner to approve or restyle the HTML.
+  Phone screenshots: originals in `product-release/play/`
   (1080×2400, gitignored) and Play-legal crops in
   `product-release/play/1080x1920/` — 9:20 is outside Play's 16:9–9:16 window, so
   the crops drop only dead space (verified visually: no widget is sliced).
