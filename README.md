@@ -123,7 +123,7 @@ visualtalk/
 │   └── tauri.conf.json       # Tauri application configuration
 ├── docker/                   # Local LiveKit + Egress stack (see docker/README.md)
 ├── scripts/
-│   └── livekit-local.py      # up/down/status/logs/creds wrapper
+│   └── livekit-local.py      # up/down/restart/status/logs/creds/smoke wrapper
 ├── macOS Tauri Camera Permission Checklist.md  # Detailed macOS WebRTC TCC guide
 ├── package.json              # Node dependencies & Vite build scripts
 └── vite.config.js            # Vite + Solid plugin configuration
@@ -178,10 +178,9 @@ A ready-made, loopback-only LiveKit server + Egress recorder lives in
 [`docker/`](./docker/README.md):
 
 ```bash
-python3 scripts/livekit-local.py up --recording   # server + redis + recorder
-python3 scripts/livekit-local.py creds            # URL / API key / API secret to paste above
-# optional end-to-end proof: see "Verifying a recording" in docker/README.md
-# (the wrapper's `smoke` subcommand was removed — owner decision pending)
+python3 scripts/livekit-local.py up --recording     # server + redis + recorder
+python3 scripts/livekit-local.py creds              # URL / API key / API secret to paste above
+python3 scripts/livekit-local.py smoke --recording  # optional end-to-end proof
 ```
 
 It generates its own API key pair (never committed), needs no cloud account, and

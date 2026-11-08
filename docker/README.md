@@ -33,10 +33,9 @@ server is configured with no public STUN servers and `use_external_ip: false`.
 ## Quick start
 
 ```bash
-python3 scripts/livekit-local.py up --recording   # start server + redis + egress
-python3 scripts/livekit-local.py creds            # print what to paste into the app
-# optional end-to-end proof: see "Verifying a recording" below — the wrapper's
-# `smoke` subcommand was removed in the .sh-to-.py migration (owner decision pending)
+python3 scripts/livekit-local.py up --recording     # start server + redis + egress
+python3 scripts/livekit-local.py creds              # print what to paste into the app
+python3 scripts/livekit-local.py smoke --recording  # optional: prove it end to end
 ```
 
 On the first run the script creates `docker/.env` from `docker/.env.example`
@@ -68,10 +67,9 @@ python3 scripts/livekit-local.py up
   (verified here with v5.0.2).
 - `openssl` (first run only, to generate the key pair).
 - Optional: the **`lk` CLI** (`brew install livekit/tap/livekit-cli`) — used by
-  the recording table in `status` (the removed `smoke` subcommand used it too).
-  `status` degrades gracefully without it.
-- Optional: `ffprobe` (ffmpeg) — describes a finished recording; the removed
-  `smoke` subcommand used it, and the manual equivalents still do.
+  `smoke` and by the recording table in `status`. Both degrade gracefully
+  without it.
+- Optional: `ffprobe` (ffmpeg) — `smoke` uses it to describe the recording.
 
 ---
 
@@ -129,22 +127,20 @@ run them from `docker/`, and remember compose needs `LIVEKIT_API_KEY` /
 | Start (no recording) | `up` | `docker compose up -d` |
 | Start + egress | `up --recording` | `docker compose --profile recording up -d` |
 | Stop & remove | `down` | `docker compose --profile recording down --remove-orphans` |
-| Apply config/`.env` edits | *(`restart` removed)* | `docker compose --profile recording up -d --force-recreate` |
-| Rebuild the server image | `docker compose build livekit`, then the `--force-recreate` command at right | same |
+| Apply config/`.env` edits | `restart --recording` | `docker compose --profile recording up -d --force-recreate` |
+| Rebuild the server image | `docker compose build livekit`, then `restart --recording` | same |
 | Container states + recordings | `status` | `docker compose ps` |
 | Logs | `logs -f egress` | `docker compose logs -f egress` |
 | Print app credentials | `creds` | `grep -E 'LIVEKIT_(API_KEY\|API_SECRET\|PORT)' .env` |
-| End-to-end test | *(`smoke` removed)* | see [Verifying](#verifying-a-recording) |
+| End-to-end test | `smoke --recording` | see [Verifying](#verifying-a-recording) |
 | Host networking | `up --host --recording` | `docker compose -f docker-compose.yml -f compose.host.yml --profile recording up -d` |
 
 Notes:
 
-- Recreating the containers is what picks up edits to `livekit.yaml`,
-  `egress.yaml`, `.env` and `docker-compose.yml`. The wrapper's `restart`
-  subcommand was removed, so run the `--force-recreate` command in the table
-  above. Both YAML configs are bind-mounted read-only, so a recreate is enough —
-  no rebuild needed. **The Dockerfile is the exception**: rebuild first, then
-  recreate (compose only recreates a container when the image
+- `restart` is what picks up edits to `livekit.yaml`, `egress.yaml`, `.env` and
+  `docker-compose.yml`. Both YAML configs are bind-mounted read-only, so a
+  restart is enough — no rebuild needed. **The Dockerfile is the exception**:
+  rebuild first, then restart (compose only recreates a container when the image
   ID actually changed, which is also how a stale image keeps running after an
   edit).
 - `down` never touches `docker/recordings/`; `creds` and `status` start nothing,
@@ -199,8 +195,8 @@ a **room composite** with:
 
 > ⚠️ **Nothing in the shipped UI calls that wrapper yet** — see
 > [Not yet reachable from the app UI](#not-yet-reachable-from-the-app-ui). The
-> payload below is what `egress.rs` builds and what the removed
-> `smoke --recording` subcommand sent, not what the Record button does today.
+> payload below is what `egress.rs` builds and what `smoke --recording` sends,
+> not what the Record button does today.
 
 ```jsonc
 {
@@ -253,8 +249,8 @@ control invokes them**. Pressing Record in a meeting takes the client-side path:
   command returns an `EgressInfo` object. The stop side is already mode-aware
   (`MeetingView.jsx:216-232`), so it needs less work than the start side.
 
-So today the recorder is exercised by hand, with the same
-`lk` call the (removed) `smoke` subcommand made:
+So today the recorder is exercised by the smoke test, or by hand with the same
+`lk` call `_smoke_record()` in `scripts/livekit-local.py` makes:
 
 ```bash
 KEY="$(grep '^LIVEKIT_API_KEY=' docker/.env | cut -d= -f2-)"
@@ -302,13 +298,8 @@ at a time, and extra requests should queue rather than thrash the machine.
 
 ### Verifying a recording
 
-> Note: the `smoke` subcommand is not implemented in `scripts/livekit-local.py`
-> (which provides up/down/status/logs/creds only). The steps below describe the
-> behaviour of the removed wrapper subcommand and are pending an owner decision:
-> re-implement `smoke`, or replace this section with the manual equivalents below.
-
 ```bash
-# formerly: the wrapper's `smoke --recording` subcommand (removed — see note above)
+python3 scripts/livekit-local.py smoke --recording
 ```
 
 publishes a demo participant with the `lk` CLI into a throwaway room
@@ -378,6 +369,8 @@ build, which gets the cloud-API strategy instead.
 > ⚠️ **Nothing in the app talks to this service yet.** The runtime pipeline (audio
 > capture, the Rust relay, the caption overlay) is not implemented; only the Settings
 > screen and this container exist. Do not describe captions as a working feature.
+> It also translates into **English only** — see
+> [`docs/whisper-service-contract.md`](../docs/whisper-service-contract.md) §5.
 
 ```bash
 python3 scripts/livekit-local.py up --translation   # + the whisper container
@@ -440,11 +433,10 @@ ipconfig getifaddr en0                     # macOS
 hostname -I | awk '{print $1}'             # Linux
 ```
 
-Then recreate the stack (see [Day-to-day commands](#day-to-day-commands)) and use
-`ws://<LAN IP>:7880` in the app on the other device, with
+Then `restart` and use `ws://<LAN IP>:7880` in the app on the other device, with
 the same API key/secret. Leave `LIVEKIT_NODE_IP=127.0.0.1` in this mode and
 remote clients will hang on "connecting": they receive `127.0.0.1` as the ICE
-candidate and try to reach *their own* loopback. `python3 scripts/livekit-local.py up`
+candidate and try to reach *their own* loopback. `scripts/livekit-local.py up`
 refuses that combination outright.
 
 `LIVEKIT_NODE_IP` is an **advertisement**, not a bind address: the server listens
@@ -523,7 +515,7 @@ stage:
 ```bash
 cd docker
 docker compose build --build-arg BINARY_STAGE=build-from-source livekit
-docker compose -f docker/docker-compose.yml --profile recording up -d --force-recreate  # wrapper no longer exposes `restart`
+python3 scripts/livekit-local.py restart --recording
 docker compose exec livekit livekit-server --version
 docker image inspect visualtalk/livekit-server:v1.13.10-local \
   --format '{{index .Config.Labels "dev.visualtalk.binary-stage"}}'   # -> build-from-source
@@ -550,10 +542,10 @@ and `ENTRYPOINT ["/usr/local/bin/livekit-server"]` with
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
-| App hangs on "connecting"; participant never appears | `LIVEKIT_NODE_IP` is not reachable *from the client* (classic: left at `127.0.0.1` while a phone joins), or `LIVEKIT_BIND_ADDR` is still loopback | Set `NODE_IP` to a client-reachable IP; for LAN devices also `LIVEKIT_BIND_ADDR=0.0.0.0`; allow UDP `7882` (or the range in host mode) through the firewall; then recreate the stack |
+| App hangs on "connecting"; participant never appears | `LIVEKIT_NODE_IP` is not reachable *from the client* (classic: left at `127.0.0.1` while a phone joins), or `LIVEKIT_BIND_ADDR` is still loopback | Set `NODE_IP` to a client-reachable IP; for LAN devices also `LIVEKIT_BIND_ADDR=0.0.0.0`; allow UDP `7882` (or the range in host mode) through the firewall; `restart` |
 | Recording never appears; `EGRESS_ABORTED` / `EGRESS_FAILED`; egress logs "Start signal not received" | Media never reached egress — ICE failure. Usually `rtc.use_mdns: false`, or an unreachable `NODE_IP` in host mode | Keep `use_mdns: true` in `livekit.yaml`; see [mDNS](#why-rtcuse_mdns-true-matters). Then set `LIVEKIT_LOG_LEVEL=debug` and `logging.level: debug` in `egress.yaml` and look for "Found valid candidate pair" |
 | Recording file is 0 bytes | Same as above: the job started, media never flowed, the pipeline finalised an empty file | Same fix; check what the participant actually published with `lk room participants list <room> --url http://127.0.0.1:7880 --api-key <key> --api-secret <secret>` (the `tracks:` count) |
-| `error="Local upload failed ... no such file or directory"` | The host `recordings/` directory was deleted or recreated while the stack was running — the container still holds the old inode | Recreate the stack (or `down` + `up`). Never delete the directory while the stack is up; delete *files* inside it instead |
+| `error="Local upload failed ... no such file or directory"` | The host `recordings/` directory was deleted or recreated while the stack was running — the container still holds the old inode | `restart` (or `down` + `up`). Never delete the directory while the stack is up; delete *files* inside it instead |
 | Permission denied writing `/recordings` (Linux) | The egress container runs as uid 1001 and the host directory is not writable by it | `sudo chown -R 1001:0 docker/recordings`. `up`/`creds`/`status` detect the mismatch and print this exact command as a warning, but cannot fix an existing directory they do not own |
 | `chrome failed to start` | `cap_add: [SYS_ADMIN]` missing (egress ≥ v1.7.6 needs it for Chrome's namespace switch), or `enable_chrome_sandbox: true` without upstream's seccomp profile | Restore the capability; keep the sandbox disabled |
 | `failed to load template ... unexpected token '{'` | `template_port` (7980) is served by an unrelated process — only possible in host networking, where everything shares the host's ports | Move the other process, or change `template_port` in `egress.yaml` |
@@ -562,7 +554,7 @@ and `ENTRYPOINT ["/usr/local/bin/livekit-server"]` with
 | Server exits: `must provide api key` / `invalid keys` | `LIVEKIT_KEYS` empty — `.env` missing or credentials blank | `up` regenerates a `.env` with a random pair; `creds` shows what is expected |
 | `secret must be at least 32 characters` | Placeholder or short secret | Generate a real one (the wrapper does this for you) |
 | `Port 7880 is already in use` | Another process, or a second copy of this stack | Change `LIVEKIT_PORT` **and** the URL in the app, or stop the other process |
-| Config edits have no effect | The container was not recreated — `up` skips unchanged containers | Recreate the stack with `--force-recreate`; after editing `Dockerfile`, run `docker compose build livekit` first |
+| Config edits have no effect | The container was not recreated — `up` skips unchanged containers | Use `restart`; after editing `Dockerfile`, run `docker compose build livekit` first |
 | Missing CA bundle / outbound TLS fails (webhooks, TURN over TLS) | Alpine's minimal runtime ships no `/etc/ssl/certs/ca-certificates.crt` | Rebuild the image; the Dockerfile installs `ca-certificates` for exactly this reason |
 | `!reset` unknown tag / `docker compose: not found` | Compose v1, or v2 older than 2.24.4 | Upgrade to Compose v2 ≥ 2.24.4 (only needed for `compose.host.yml`) |
 | Recording stalls with "max cpu utilization reached" | Egress CPU admission refused the job | Finish the running recording first, or lower `room_composite_cpu_cost` / raise `max_cpu_utilization` in `egress.yaml` |
@@ -629,8 +621,7 @@ What was verified against a running stack:
   file whose duration matches the recording window (19.8 s for a 20 s window) —
   with **one** participant (6.0 MB) and with **two** (8.5 MB / 24.8 s), i.e. the
   grid layout composites both.
-- The wrapper's `smoke --recording` (since removed — see [Verifying](#verifying-a-recording))
-  passed end to end and cleaned up after itself.
+- `smoke --recording` passes end to end and cleans up after itself.
 - Both compositor paths work: `enable_template_sdk: true` (default) and `false`
   (headless Chrome). The SDK path is markedly lighter; the Chrome path
   additionally requires `rtc.use_mdns: true`, `cap_add: [SYS_ADMIN]` and a free
@@ -639,8 +630,8 @@ What was verified against a running stack:
   compose network (server-initiated ICE toward egress's `prflx` candidate).
 - **Not verified — and not currently possible:** the app UI triggering egress
   (see [Not yet reachable from the app UI](#not-yet-reachable-from-the-app-ui)).
-  What was verified is the server + recorder half, driven by the since-removed
-  `smoke --recording` and `lk egress start`.
+  What was verified is the server + recorder half, driven by `smoke --recording`
+  and `lk egress start`.
 
 ---
 
@@ -654,4 +645,4 @@ docker rmi visualtalk/livekit-server:v1.13.10-local   # the built server image
 ```
 
 Related docs: the repository [`README.md`](../README.md) (what VisualTalk is,
-how to run the app) and `python3 scripts/livekit-local.py --help`.
+how to run the app) and `scripts/livekit-local.py --help`.
