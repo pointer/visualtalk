@@ -281,3 +281,11 @@ pandoc PRIVACY.md -f markdown -t html5 -s \
 
 Android App Bundles are deliberately excluded from `stage` and `r2`: an `.aab`
 only ever goes to Google Play Console, never to a public bucket.
+
+⚠️ **Never upload site files through the dashboard by hand.** A direct upload
+replaces the whole asset set, so a folder containing only `privacy.html` would
+silently delete `/.well-known/assetlinks.json` — and Android App Links
+verification would then fail later with no obvious cause. Edit `site/` in the
+repo and run `pnpm cf:site`. (`/privacy.html` answering 307 → `/privacy` is
+Workers' `html_handling` canonicalisation of `site/privacy.html`, not a leftover
+file.)

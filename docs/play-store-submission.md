@@ -85,14 +85,19 @@ see Guidance.md §3).
   --force-device-scale-factor=1 --window-size=1024,500
   --user-data-dir=/tmp/chrome-fg --screenshot=<out.png>
   file://<…>/feature-graphic-source.html`. Owner to approve or restyle the HTML.
-  Phone screenshots: originals in `product-release/play/`
-  (1080×2400, gitignored) and Play-legal crops in
-  `product-release/play/1080x1920/` — 9:20 is outside Play's 16:9–9:16 window, so
-  the crops drop only dead space (verified visually: no widget is sliced).
-  **Re-capture before a production rollout:** shot 02 shows `devkey` and the
-  emulator URL `ws://10.0.2.2:7880`, and shot 03 shows a green preview artifact
-  plus the emulator camera label "camera2 1, facing back". Fine for the internal
-  track, not for the store page.
+  Phone screenshots: re-captured on a **real device** 2026-11-09 (settings, prejoin,
+  in-meeting) and normalized in `product-release/play/1080x1920/` — the raw window
+  captures are 648×1411 with titlebar bands and a scrollbar, so each is cropped
+  (bands + scrollbar removed, per-image y offset) and scaled to exactly 1080×1920,
+  the 9:16 edge of Play's accepted window (the originals' ~9:19.6 is outside it).
+  Set: `01-home` (emulator), `02-settings-livekit`, `03-prejoin`, `04-meeting`.
+  Owner confirmed the LiveKit Cloud URL and API key visible in shot 02 are **dummy
+  values**. Residual cosmetic caveats, acceptable for the internal track but worth
+  fixing before the production store page: shot 02's tab strip is truncated at the
+  left edge (capture defect, not fixable by cropping), and all three are upscaled
+  from a 648 px-wide source so they are soft at full size — re-capture at native
+  device resolution when convenient. The two pre-2026-11-09 emulator shots they
+  replace showed `devkey`, `ws://10.0.2.2:7880` and a green preview artifact.
 - Ads: none. In-app purchases: none. Data safety: §5. Content rating: §6.
 
 ## 5. Data safety form (draft answers)
