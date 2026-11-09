@@ -123,3 +123,8 @@ product-release/play/
 # hosted policy at visualtalk.app/privacy is rendered from the canonical
 # PRIVACY.md at deploy time, so a second copy here can only drift.
 Google Play/
+
+# Play tester email list: starts as one address and grows to ~20 personal
+# addresses for the closed-testing gate. Upload it through the Console; a list
+# of people's emails must never sit in a public repository.
+tester-list.csv
