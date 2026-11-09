@@ -27,6 +27,8 @@ bundletool (AAB) and record it in the table below.
 | --- | --- | --- | --- | --- |
 | 2026-11-08 | 3.3.42 | 3034200 | `gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab` (35 MB; upload-cert SHA256 3F:83:5B:92:8D:00:38:0E:26:95:FB:1A:7E:E0:4D:10:F0:87:72:48:63:6B:84:FA:D0:08:32:42:F5:DD:3A:EF; `bundletool validate` OK) | not yet — internal track first |
 | 2026-11-09 | 3.3.42 | 3034200 | same path, **rebuilt** to pick up the fr/es locale fixes and the meeting-link fix. File SHA-256 `eeecee131e5e9e125e4b64b73ce218327f1194ef390ba97878e01b278a2431e8`; `bundletool validate` OK; manifest confirms `com.katebg.visualtalk` / 3034200 / 3.3.42; signed by the same `release` signingConfig (keystore.properties → `~/Keys/visualtalk-play/upload-keystore.jks`, cert 3F:83:5B:92…). versionCode is unchanged on purpose: nothing has been uploaded yet. **Once any AAB is uploaded, a rebuild must bump the version first** or Play rejects it. | not yet — internal track first |
+| 2026-11-09 | 3.3.42 | 3034200 | (the artifact above) — **versionCode CONSUMED** by the first internal-upload attempt; Play rejects any further bundle carrying it, so this code is dead | consumed, never rolled out |
+| 2026-11-09 | 3.3.43 | 3034300 | rebuilt after the bump (version in package.json + Cargo.toml + tauri.conf.json, then `fix-android-project.py` refreshed the code). SHA-256 `5f4d1929741db9a3fb0bbe8dea256ac4675f1c2e97b4d32737b6df543d6e0542`; `bundletool validate` OK; manifest confirms `com.katebg.visualtalk` / 3034300 / 3.3.43; same upload-key signingConfig | **this is the bundle to upload** |
 
 ## 2. Signing
 
@@ -134,8 +136,24 @@ see Guidance.md §3).
 2. Complete data safety + content rating + privacy policy URL.
 3. Upload the signed AAB to the **internal testing** track; add the owner's
    Gmail; install from the track on the emulator AND the moto g67.
-4. Closed testing (optional) → production, staged or 100%.
+4. Closed testing → production, staged or 100%. **Not optional for personal
+   developer accounts registered after 2023-11-13:** Play gates production access
+   behind closed testing with at least 20 testers for 14 consecutive days. The
+   Console's Testing page states the exact requirement for this account;
+   organisation accounts are exempt. Internal testing is available immediately
+   either way, to up to 100 chosen testers.
 5. Record date / versionName / versionCode / artifact in §1 after each upload.
+
+Rules learned the hard way (2026-11-09):
+
+- A versionCode is **consumed the moment any bundle carrying it is processed by
+  Play**, even if the release is never rolled out or is deleted afterwards.
+  `3034200` (v3.3.42) was consumed by the first internal-upload attempt and can
+  never be reused — a retry therefore requires a version bump, not a re-upload.
+- Never hand-edit `versionCode` in `src-tauri/gen/android`: `fix-android-project.py`
+  owns that line (derived from `tauri.conf.json`) and `--check` fails forever if
+  the two disagree. Bump the version in `package.json` + `Cargo.toml` +
+  `tauri.conf.json`, then re-run the patch script.
 
 ## 8. Device-catalog notes
 

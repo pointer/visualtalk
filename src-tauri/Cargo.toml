@@ -1,6 +1,6 @@
 [package]
 name = "visualtalk"
-version = "3.3.42"
+version = "3.3.43"
 description = "Video-conferencing Tauri App"
 authors = ["katebg@yahoo.com"]
 edition = "2021"
