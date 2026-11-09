@@ -155,6 +155,20 @@ Rules learned the hard way (2026-11-09):
   the two disagree. Bump the version in `package.json` + `Cargo.toml` +
   `tauri.conf.json`, then re-run the patch script.
 
+Console progress log:
+
+- 2026-11-09: app created; internal testing release created. The first upload of
+  `3034200` processed (consuming the code); the retry was rejected; the release
+  now carries the library bundle `3034200`, which is content-identical to
+  `3034300` (see §1 — only docs and version stamps changed between the builds).
+  App content: **11 declarations actioned** (trader status & ToS, health,
+  advertising ID, financial features, government, data safety, target audience,
+  content ratings, ads, sign-in details, privacy policy), none needing attention.
+  Still open: add testers and roll out the internal release, install on the
+  moto g67 and report first-launch behaviour, then the personal-account
+  closed-testing gate (20 testers / 14 days) before any production rollout.
+  The missing-debug-symbols warning is deferred to pre-production.
+
 ## 8. Device-catalog notes
 
 - The manifest carries a leanback launcher intent filter (Android TV) with
