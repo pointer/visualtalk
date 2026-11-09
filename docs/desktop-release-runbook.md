@@ -38,10 +38,23 @@ Mac App Store work. Pro Edition never goes through this path — see the
 5. **Publish the release.** The workflow creates it as a **draft**; assets are
    404 until published.
    ```bash
-   gh release view v3.3.44 --json assets --jq '.assets[].name'   # expect 9
+   gh release view v3.3.44 --json assets --jq '.assets[].name'   # expect 9 desktop assets
    gh release edit v3.3.44 --draft=false
    ```
-6. **Generate and deploy the downloads page:**
+6. **Attach the server-stack bundle**, so self-hosters get server and client
+   from one place:
+   ```bash
+   python3 scripts/package-server-stack.py
+   cp product-release/visualtalk-server-<ver>.zip /tmp/
+   gh release upload v<ver> /tmp/visualtalk-server-<ver>.zip --clobber
+   ```
+   The zip is allowlist-built (compose files, configs, auditable Dockerfile,
+   `.env.example`, the wrapper, a standalone README) and re-scanned after
+   writing, so `docker/.env` and recordings can never enter it. The copy through
+   `/tmp` is not ceremonial: the zip is gitignored, and `gh` honours `.gitignore`
+   when globbing upload paths, so uploading it in place fails with
+   "no matches found".
+7. **Generate and deploy the downloads page:**
    ```bash
    python3 scripts/build-downloads-page.py --tag v3.3.44 \
      --macos-signing ad-hoc --windows-signing unsigned
@@ -50,7 +63,7 @@ Mac App Store work. Pro Edition never goes through this path — see the
    Hashes come from GitHub's per-asset digests (the script only downloads when a
    digest is missing). Spot-check one independently before announcing:
    `curl -sL <asset url> | shasum -a 256`.
-7. **Verify live:** `https://visualtalk.app/downloads/` returns 200 and lists the
+8. **Verify live:** `https://visualtalk.app/downloads/` returns 200 and lists the
    new version; one asset URL returns 200; `SHA256SUMS.txt` matches the page.
 
 ## Signing status (and how to change it)

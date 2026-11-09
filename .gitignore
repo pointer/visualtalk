@@ -115,6 +115,10 @@ docker/recordings/
 # built installers plus generated SHA256SUMS.txt / latest.json.
 dist-cloudflare/
 
+# Per-release server-stack bundle (scripts/package-server-stack.py); lives on
+# the GitHub Release, not in git.
+product-release/visualtalk-server-*.zip
+
 # Play Store marketing assets (screenshots, feature graphic): local-only,
 # regenerated per release; not source.
 product-release/play/

@@ -39,6 +39,7 @@ PLATFORM_HINTS = (
     ("macOS (Intel)", lambda n: n.endswith(".dmg") and ("x64" in n or "x86" in n)),
     ("Windows (x64)", lambda n: n.endswith(".msi") or n.endswith(".exe")),
     ("Linux (x64)", lambda n: n.endswith((".AppImage", ".deb", ".rpm"))),
+    ("Self-hosted server stack", lambda n: n.startswith("visualtalk-server-") and n.endswith(".zip")),
 )
 
 
