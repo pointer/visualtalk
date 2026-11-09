@@ -48,10 +48,18 @@ def release_assets(tag: str) -> list[dict]:
         capture_output=True, text=True, check=True,
     ).stdout
     data = json.loads(out)
-    return [
-        {"name": a["name"], "url": a["url"], "size": a["size"]}
-        for a in data.get("assets", [])
-    ]
+    assets = []
+    for a in data.get("assets", []):
+        digest = (a.get("digest") or "")
+        assets.append({
+            "name": a["name"],
+            "url": a["url"],
+            "size": a["size"],
+            # GitHub supplies sha256:<hex> per asset; use it instead of
+            # re-downloading tens of MB when present.
+            "sha256": digest.removeprefix("sha256:") if digest.startswith("sha256:") else "",
+        })
+    return assets
 
 
 def sha256_of_url(url: str) -> str:
@@ -164,9 +172,10 @@ def main() -> int:
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    print(f"▶ hashing {len(assets)} release assets…")
+    print(f"▶ collecting hashes for {len(assets)} release assets…")
     for a in assets:
-        a["sha256"] = sha256_of_url(a["url"])
+        if not a["sha256"]:
+            a["sha256"] = sha256_of_url(a["url"])
         print(f"   {a['sha256'][:12]}…  {a['name']}")
 
     html = render(assets, args.tag, args.macos_signing, args.windows_signing)

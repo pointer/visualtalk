@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download VisualTalk 3.3.43</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         color: #1c1c1e; background: #fafafa; }
+  @media (prefers-color-scheme: dark) { body { color: #f2f2f7; background: #101014; } a { color: #c4a5ff; } }
+  body > * { max-width: 52rem; margin-left: auto; margin-right: auto; padding-left: 1.25rem; padding-right: 1.25rem; }
+  header.site { padding-top: 1.5rem; padding-bottom: .75rem; border-bottom: 1px solid #d1d1d6; margin-bottom: 2rem; }
+  @media (prefers-color-scheme: dark) { header.site { border-color: #3a3a3c; } }
+  h1 { font-size: 2rem; letter-spacing: -.02em; }
+  table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
+  td, th { border: 1px solid #d1d1d6; padding: .5rem .7rem; text-align: left; vertical-align: top; }
+  @media (prefers-color-scheme: dark) { td, th { border-color: #3a3a3c; } }
+  code { font-size: .85em; }
+  .warn { border-left: 4px solid #ec4899; padding: .75rem 1rem; background: rgba(236,72,153,.08); }
+  a { color: #7c3aed; }
+  pre { overflow-x: auto; font-size: .8rem; }
+</style>
+</head>
+<body>
+<header class="site"><strong>VisualTalk</strong> &middot; <a href="/">Home</a> &middot; <a href="/privacy">Privacy</a></header>
+<main>
+  <h1>Download VisualTalk 3.3.43</h1>
+  <p>Community Edition. Bring your own LiveKit server; recordings stay on your
+     device. By downloading you agree to the <a href="/privacy">privacy policy</a>
+     and the EULA shown at first launch.</p>
+  <p class="warn"><strong>Neither build is notarized nor code-signed yet.</strong> macOS will refuse to open the app until you right-click &rarr; Open; Windows SmartScreen will warn &ldquo;unknown publisher&rdquo;. Always verify the SHA-256 of what you download against this page.</p>
+  <table>
+    <tr><th>Platform</th><th>Installer</th><th>Size</th><th>SHA-256 (first 16)</th></tr>
+    <tr><td>macOS (Apple Silicon)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_aarch64.dmg">visualtalk_3.3.43_aarch64.dmg</a></td><td>6.3 MiB</td><td><code>e450280c045dd014&hellip;</code></td></tr>
+    <tr><td>macOS (Intel)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_x64.dmg">visualtalk_3.3.43_x64.dmg</a></td><td>6.5 MiB</td><td><code>d858a8abc5599a52&hellip;</code></td></tr>
+    <tr><td>Windows (x64)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_x64-setup.exe">visualtalk_3.3.43_x64-setup.exe</a></td><td>4.2 MiB</td><td><code>433951eefb79c914&hellip;</code></td></tr>
+    <tr><td>Windows (x64)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_x64_en-US.msi">visualtalk_3.3.43_x64_en-US.msi</a></td><td>6.0 MiB</td><td><code>3298b427124a8f8c&hellip;</code></td></tr>
+    <tr><td>Linux (x64)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk-3.3.43-1.x86_64.rpm">visualtalk-3.3.43-1.x86_64.rpm</a></td><td>7.7 MiB</td><td><code>b09907467208961b&hellip;</code></td></tr>
+    <tr><td>Linux (x64)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_amd64.AppImage">visualtalk_3.3.43_amd64.AppImage</a></td><td>83.7 MiB</td><td><code>477933fca0f191fe&hellip;</code></td></tr>
+    <tr><td>Linux (x64)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_amd64.deb">visualtalk_3.3.43_amd64.deb</a></td><td>7.7 MiB</td><td><code>33fe10a2f222c282&hellip;</code></td></tr>
+  </table>
+  <h2>Verify your download</h2>
+  <pre>shasum -a 256 &lt;file&gt;             # macOS / Linux
+certutil -hashfile &lt;file&gt; SHA256   # Windows</pre>
+  <p>Full checksums: <a href="SHA256SUMS.txt">SHA256SUMS.txt</a>.</p>
+</main>
+</body>
+</html>
+<!-- sums
+b09907467208961b5faf59ff41df321f089eb633648cb2346afd949134995b71  visualtalk-3.3.43-1.x86_64.rpm
+8dc006b759041f59c1182e8628a01b5ed3904243738342c624c10c2d016f5be5  visualtalk_3.3.43_aarch64.app.tar.gz
+e450280c045dd01410f26b353b7c631425c43150dd5818ac510045512bdd4b3b  visualtalk_3.3.43_aarch64.dmg
+477933fca0f191fe28da6cc568de60acdc551bbcbc3b1d0709126f2601157a13  visualtalk_3.3.43_amd64.AppImage
+33fe10a2f222c282edf29ef7151683a199664afe2aacc82158ee321b102462cd  visualtalk_3.3.43_amd64.deb
+433951eefb79c914d004e94d90eacdceda858d1ffca3a96ef85ffdf7ce4f0b3e  visualtalk_3.3.43_x64-setup.exe
+7088b81f09f86b35fc34a398a30f5c122cc82e6ba9ce3167e95b3d0d042b1c59  visualtalk_3.3.43_x64.app.tar.gz
+d858a8abc5599a52a7a19dcc23e23ec8380247622f6224f74b57e3828904f484  visualtalk_3.3.43_x64.dmg
+3298b427124a8f8cac999dbb7482b48236d9b728545149dc8eac608f93481a9d  visualtalk_3.3.43_x64_en-US.msi
+-->
