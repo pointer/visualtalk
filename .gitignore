@@ -118,3 +118,8 @@ dist-cloudflare/
 # Play Store marketing assets (screenshots, feature graphic): local-only,
 # regenerated per release; not source.
 product-release/play/
+
+# Owner's Play working folder (policy copy + HTML render): local-only. The
+# hosted policy at visualtalk.app/privacy is rendered from the canonical
+# PRIVACY.md at deploy time, so a second copy here can only drift.
+Google Play/
