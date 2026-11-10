@@ -28,7 +28,8 @@ bundletool (AAB) and record it in the table below.
 | 2026-11-08 | 3.3.42 | 3034200 | `gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab` (35 MB; upload-cert SHA256 3F:83:5B:92:8D:00:38:0E:26:95:FB:1A:7E:E0:4D:10:F0:87:72:48:63:6B:84:FA:D0:08:32:42:F5:DD:3A:EF; `bundletool validate` OK) | not yet — internal track first |
 | 2026-11-09 | 3.3.42 | 3034200 | same path, **rebuilt** to pick up the fr/es locale fixes and the meeting-link fix. File SHA-256 `eeecee131e5e9e125e4b64b73ce218327f1194ef390ba97878e01b278a2431e8`; `bundletool validate` OK; manifest confirms `com.katebg.visualtalk` / 3034200 / 3.3.42; signed by the same `release` signingConfig (keystore.properties → `~/Keys/visualtalk-play/upload-keystore.jks`, cert 3F:83:5B:92…). versionCode is unchanged on purpose: nothing has been uploaded yet. **Once any AAB is uploaded, a rebuild must bump the version first** or Play rejects it. | not yet — internal track first |
 | 2026-11-09 | 3.3.42 | 3034200 | (the artifact above) — **versionCode CONSUMED** by the first internal-upload attempt; Play rejects any further bundle carrying it, so this code is dead | consumed, never rolled out |
-| 2026-11-09 | 3.3.43 | 3034300 | rebuilt after the bump (version in package.json + Cargo.toml + tauri.conf.json, then `fix-android-project.py` refreshed the code). SHA-256 `5f4d1929741db9a3fb0bbe8dea256ac4675f1c2e97b4d32737b6df543d6e0542`; `bundletool validate` OK; manifest confirms `com.katebg.visualtalk` / 3034300 / 3.3.43; same upload-key signingConfig | **this is the bundle to upload** |
+| 2026-11-09 | 3.3.43 | 3034300 | rebuilt after the bump (version in package.json + Cargo.toml + tauri.conf.json, then `fix-android-project.py` refreshed the code). SHA-256 `5f4d1929741db9a3fb0bbe8dea256ac4675f1c2e97b4d32737b6df543d6e0542`; `bundletool validate` OK; manifest confirms `com.katebg.visualtalk` / 3034300 / 3.3.43; same upload-key signingConfig | superseded by the 2026-11-10 rebuild (build outputs had been cleaned; never uploaded) |
+| 2026-11-10 | 3.3.43 | 3034300 | rebuilt for the closed-testing release (previous AAB no longer on disk). SHA-256 `d8c8b0e3c1a6aee0d4e15797f4baac6442b31cb99ff53f3b2b615d92ef233d22`; `bundletool validate` OK; manifest confirms `com.katebg.visualtalk` / 3034300 / 3.3.43; upload-key cert re-verified `3F:83:5B:92…` (matches assetlinks.json) | **this is the bundle to upload** |
 
 ## 2. Signing
 
@@ -143,6 +144,7 @@ see Guidance.md §3).
    organisation accounts are exempt. Internal testing is available immediately
    either way, to up to 100 chosen testers.
 5. Record date / versionName / versionCode / artifact in §1 after each upload.
+   - Uploaded 2026-11-10 / 3.3.43 / 3034300  
 
 Rules learned the hard way (2026-11-09):
 
@@ -168,6 +170,16 @@ Console progress log:
   moto g67 and report first-launch behaviour, then the personal-account
   closed-testing gate (20 testers / 14 days) before any production rollout.
   The missing-debug-symbols warning is deferred to pre-production.
+- 2026-11-10: tester-gate logistics in place. `tester-list.csv` upgraded to a
+  tracker (email / date_added / optin_confirmed / installed / notes; gitignored
+  at .gitignore:134, personal data never committed); 4 recruited testers + the
+  owner row recorded. `scripts/play-tester-tracker.py` reports opted-in count
+  vs the 20 minimum and the earliest production-request date. Recruitment kit
+  (opt-in link, FR/EN templates, channels) lives in gitignored
+  `play-tester-kit.md` at the repo root. Opt-in link
+  `play.google.com/apps/testing/com.katebg.visualtalk` to be sent only once the
+  closed release is live; gate start date to be logged here when the release
+  is live AND opted-in ≥ 20.
 
 ## 8. Device-catalog notes
 
@@ -178,4 +190,3 @@ Console progress log:
 - Wear OS: not targeted; no watch layout exists.
 - ChromeOS: eligible by default (ARM/x86 ABIs present); untested — note in the
   listing or exclude via Console once tested.
-
