@@ -36,6 +36,61 @@ Phones/tablets on your Wi-Fi: `--host`, then set `LIVEKIT_NODE_IP` in
 
 Prove it end to end: `python3 scripts/livekit-local.py smoke --recording`.
 
+## Connecting the app to this server — in plain words
+
+Think of it like this: the **address** is the server's phone number, the
+**API key** is a membership-card number, and the **API secret** is the PIN for
+that card. When the server starts for the first time it creates the card and
+the PIN by itself and writes them into its own notebook — a file called
+`docker/.env`. Everything the app will ever ask you for is already written
+there; your job is only to copy three values.
+
+**Step 1 — ask the notebook out loud.** In this folder, run:
+
+```bash
+python3 scripts/livekit-local.py creds
+```
+
+It prints exactly what to paste, for example:
+
+```
+LiveKit credentials (docker/.env):
+  url (this machine):      ws://localhost:7880
+  url (android emulator):  ws://10.0.2.2:7880
+  LIVEKIT_NODE_IP:         127.0.0.1
+  LIVEKIT_API_KEY:         vt-xxxxxxxx
+  LIVEKIT_API_SECRET:      <a long scrambled string>
+```
+
+Prefer no commands at all? Open the `docker` folder and open the file named
+`.env` in any text editor (TextEdit, Notepad). It is a hidden file: on a Mac
+press Cmd+Shift+. (Command + Shift + period) in Finder once to reveal hidden
+files; on Windows tick View → "Hidden items". The values sit after the `=` on
+the lines starting `LIVEKIT_API_KEY=` and `LIVEKIT_API_SECRET=`.
+
+**Step 2 — pick the address that matches where the app runs.**
+
+| The app runs on… | Paste this address |
+| --- | --- |
+| The same computer as the server | `ws://localhost:7880` (same as `ws://127.0.0.1:7880` — both mean "this computer") |
+| An Android emulator on the server computer | `ws://10.0.2.2:7880` |
+| A phone or tablet on your home Wi-Fi | `ws://<the server computer's Wi-Fi address>:7880`, e.g. `ws://192.168.1.20:7880`. Find it — Mac: System Settings → Wi-Fi → Details… → IP Address. Windows: Settings → Network & Internet → your connection → IPv4 address. The server must have been started with `--host` so phones can reach it. |
+
+**Step 3 — paste into the app.** In VisualTalk: **Settings → LiveKit**, fill
+the three boxes (address, API key, API secret), press **Save Configuration**.
+No account, no cloud, nothing leaves your home. The secret is a password:
+never paste it into chats, screenshots or emails.
+
+**If it misbehaves (plain-words fixes):**
+
+- The phone spins on "Connecting…" forever → you pasted the "this computer"
+  address; a phone needs the Wi-Fi address from the table above.
+- "Unauthorized" or an auth error → the key or secret was retyped by hand and
+  has a typo; copy-paste instead. Neither value contains spaces.
+- It worked yesterday but not today → the server is asleep: run
+  `python3 scripts/livekit-local.py up` again. The address and the credentials
+  never change unless you delete `docker/.env`.
+
 ## What is in the box
 
 | Path | Purpose |

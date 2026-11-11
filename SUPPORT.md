@@ -22,6 +22,29 @@ maintainers and the community through the channels below.
 - **Anything else, including security reports:** email
   <kghemari@yahoo.com>. Security reports are handled confidentially.
 
+## Using your own meeting server (self-hosting)
+
+VisualTalk ships no default meeting server: you connect it either to a LiveKit
+Cloud project or to the free server bundle on the downloads page
+(<https://visualtalk.app/downloads/>). If "API key" and "API secret" sound
+intimidating, here is the plain-words version:
+
+- The **server address** is the server's phone number. On the same computer it
+  is `ws://localhost:7880`; from a phone on the same home Wi-Fi it is
+  `ws://<that computer's Wi-Fi address>:7880`.
+- The **API key** and **API secret** are a card-and-PIN pair the server creates
+  by itself on first start and keeps in a file named `docker/.env`. You never
+  invent them — you copy them.
+- The bundle prints all three values ready to copy: run
+  `python3 scripts/livekit-local.py creds` inside the bundle folder, then paste
+  them in VisualTalk under **Settings → LiveKit** and press
+  **Save Configuration**.
+
+The bundle's README carries the full step-by-step in plain words ("Connecting
+the app to this server — in plain words"), including the fixes for the two
+classic mistakes: the wrong address for phones, and a hand-retyped secret. The
+secret is a password — never share it in chats, screenshots or emails.
+
 ## Acceptable use and content reporting
 
 VisualTalk transmits user-generated content (chat messages, shared files, display
