@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to — VisualTalk</title>
+<meta name="description" content="Plain-words guide: get VisualTalk, connect it to LiveKit Cloud or your own Docker server, and run your first meeting.">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         color: #1c1c1e; background: #fafafa; }
+  @media (prefers-color-scheme: dark) { body { color: #f2f2f7; background: #101014; } a { color: #c4a5ff; } }
+  body > * { max-width: 46rem; margin-left: auto; margin-right: auto;
+             padding-left: 1.25rem; padding-right: 1.25rem; }
+  header.site { padding-top: 1.5rem; padding-bottom: .75rem; border-bottom: 1px solid #d1d1d6; margin-bottom: 2rem; }
+  @media (prefers-color-scheme: dark) { header.site { border-color: #3a3a3c; } }
+  h1 { font-size: 2rem; letter-spacing: -.02em; }
+  h2 { margin-top: 2.2rem; }
+  a { color: #7c3aed; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  td, th { border: 1px solid #d1d1d6; padding: .45rem .65rem; text-align: left; vertical-align: top; }
+  @media (prefers-color-scheme: dark) { td, th { border-color: #3a3a3c; } }
+  code { font-size: .88em; }
+  pre { overflow-x: auto; font-size: .82rem; background: rgba(127,127,127,.12); padding: .6rem .8rem; border-radius: 8px; }
+  .tip { border-left: 4px solid #7c3aed; padding: .65rem 1rem; background: rgba(124,58,237,.08); border-radius: 0 8px 8px 0; }
+  .note { margin-top: 3rem; font-size: .9rem; opacity: .7; }
+</style>
+</head>
+<body>
+<header class="site"><strong>VisualTalk</strong> &middot; <a href="/">Home</a> &middot; <a href="/downloads/">Downloads</a> &middot; <a href="/how-to/">How to</a> &middot; <a href="/privacy">Privacy</a></header>
+<main>
+<h1>How to use VisualTalk</h1>
+<p>This guide is written for people, not engineers. If you can copy and paste,
+you can set up VisualTalk. The whole one-time setup is: <strong>get the app,
+pick a server, paste three values</strong>. Everything after that is buttons.</p>
+
+<h2>1. Get the app</h2>
+<p><strong>Desktop (macOS, Windows, Linux):</strong> download the installer for
+your system from the <a href="/downloads/">Downloads</a> page. On macOS the
+first launch may need a right-click &rarr; <em>Open</em> (the builds are not
+notarized yet &mdash; the Downloads page explains).</p>
+<p><strong>Phones and tablets:</strong> the Android app is in closed testing on
+Google Play and the iOS app is with Apple for review. Until both are public,
+everything in this guide works exactly the same on desktop.</p>
+
+<h2>2. Pick a server (one-time, about five minutes)</h2>
+<p>VisualTalk does not own any conferencing servers &mdash; that is the whole
+point. Your meetings run on a server <em>you</em> choose. Pick one of the two:</p>
+
+<h3>Option A &mdash; LiveKit Cloud (free tier, someone else's computer)</h3>
+<p>Create a free account at <a href="https://cloud.livekit.io">cloud.livekit.io</a>,
+create a project, and open the project's dashboard. It shows three values:
+a <strong>URL</strong> (it starts with <code>wss://</code>), an
+<strong>API key</strong> and an <strong>API secret</strong>. Copy all three
+somewhere handy. You are done with this step.</p>
+
+<h3>Option B &mdash; your own server (the free bundle, your own computer)</h3>
+<p>Download the <em>self-hosted server stack</em> zip from the
+<a href="/downloads/">Downloads</a> page, unzip it, and follow the two commands
+in its README (&ldquo;Quick start&rdquo;). Then, in plain words:</p>
+<ul>
+  <li>the <strong>address</strong> is the server's phone number;</li>
+  <li>the <strong>API key</strong> is a membership-card number;</li>
+  <li>the <strong>API secret</strong> is the PIN for that card.</li>
+</ul>
+<p>The server creates the card and the PIN by itself on first start and writes
+them into its own notebook, a file called <code>docker/.env</code>. You never
+invent them &mdash; you copy them. In the bundle folder, this command reads the
+notebook out loud:</p>
+<pre>python3 scripts/livekit-local.py creds</pre>
+<p>It prints the URL, the API key and the API secret, ready to copy. (No
+commands? Open the <code>docker</code> folder and open <code>.env</code> in any
+text editor &mdash; on a Mac press Cmd+Shift+. in Finder once to reveal hidden
+files.) Which address to use depends on where the app runs:</p>
+<table>
+  <tr><th>The app runs on&hellip;</th><th>Paste this address</th></tr>
+  <tr><td>The same computer as the server</td><td><code>ws://localhost:7880</code></td></tr>
+  <tr><td>A phone or tablet on your home Wi-Fi</td><td><code>ws://&lt;the server computer's Wi-Fi address&gt;:7880</code>, e.g. <code>ws://192.168.1.20:7880</code>. Find it &mdash; Mac: System Settings &rarr; Wi-Fi &rarr; Details&hellip; &rarr; IP Address; Windows: Settings &rarr; Network &amp; Internet &rarr; your connection &rarr; IPv4 address. Start the server with <code>--host</code> so phones can reach it.</td></tr>
+  <tr><td>An Android emulator on the server computer</td><td><code>ws://10.0.2.2:7880</code></td></tr>
+</table>
+<h2>3. Tell the app (one-time)</h2>
+<p>In VisualTalk, open <strong>Settings &rarr; LiveKit</strong> (the gear icon at
+the bottom left). Paste the three values into <em>LiveKit Server URL</em>,
+<em>API Key</em> and <em>API Secret</em>, then press <strong>Save
+Configuration</strong>. The app can now dial your server. No account, no cloud
+sign-up, nothing leaves your home. Treat the API secret like a password: never
+paste it into chats, screenshots or emails.</p>
+
+<h2>4. Your first meeting</h2>
+<ul>
+  <li><strong>New Meeting</strong> starts one immediately. <em>Copy meeting
+  link</em> gives you a <code>visualtalk.app/j/&hellip;</code> page: send it to
+  whoever you invite &mdash; it shows the room code with a copy button.</li>
+  <li><strong>Join</strong> is for entering a room code or invite link someone
+  sent you.</li>
+  <li><strong>Schedule</strong> puts a meeting on a date; it then appears on
+  your dashboard at the chosen time, and invites work the same way.</li>
+  <li>Before entering, the <strong>preview</strong> shows your camera so you can
+  check your face and background, pick the right microphone and camera, and
+  join muted or camera-off if you prefer.</li>
+  <li>In the meeting, the toolbar controls the <strong>microphone</strong>,
+  <strong>camera</strong> and <strong>screen share</strong>; the side panel
+  holds <strong>chat</strong> and <strong>file sharing</strong> with the other
+  participants.</li>
+  <li><strong>Notes</strong> on the dashboard is a personal notepad that stays
+  on your device.</li>
+</ul>
+
+<h2>5. Recording and captions (optional)</h2>
+<p>The meeting organizer can <strong>record</strong> a meeting. With the Docker
+bundle, recordings land in <code>docker/recordings/</code> on the server
+machine and nowhere else; the <strong>Recordings</strong> tab lists them. If
+your server runs the optional speech-to-text add-on, live captions appear
+during meetings (that add-on translates into English only).</p>
+
+<h2>6. When it misbehaves (plain-words fixes)</h2>
+<ul>
+  <li>A phone spins on &ldquo;Connecting&hellip;&rdquo; forever &rarr; you pasted
+  the &ldquo;this computer&rdquo; address. A phone needs the Wi-Fi address from
+  the table in step 2.</li>
+  <li>&ldquo;Unauthorized&rdquo; or an auth error &rarr; the key or secret was
+  retyped by hand and has a typo. Copy-paste instead; neither value contains
+  spaces.</li>
+  <li>It worked yesterday but not today &rarr; the server is asleep. Start it
+  again (with the bundle: <code>python3 scripts/livekit-local.py up</code>).</li>
+  <li>Camera or microphone silent &rarr; the operating system asked permission
+  on first use and was declined. Re-allow VisualTalk in your system's privacy
+  settings, then restart the app.</li>
+</ul>
+<p class="tip">Still stuck? Email <a href="mailto:kghemari@yahoo.com">kghemari@yahoo.com</a>
+with your VisualTalk version (Settings &rarr; About) and what you see on
+screen. Support is free and best-effort.</p>
+
+<p class="note">VisualTalk holds no accounts and no analytics, and the publisher
+never sees meeting content. Details: <a href="/privacy">privacy policy</a>.</p>
+</main>
+</body>
+</html>
