@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comment faire — VisualTalk</title>
+<meta name="description" content="Guide en langage simple : obtenir VisualTalk, le connecter à LiveKit Cloud ou à votre propre serveur Docker, et lancer votre première réunion.">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         color: #1c1c1e; background: #fafafa; }
+  @media (prefers-color-scheme: dark) { body { color: #f2f2f7; background: #101014; } a { color: #c4a5ff; } }
+  body > * { max-width: 46rem; margin-left: auto; margin-right: auto;
+             padding-left: 1.25rem; padding-right: 1.25rem; }
+  header.site { padding-top: 1.5rem; padding-bottom: .75rem; border-bottom: 1px solid #d1d1d6; margin-bottom: 2rem; }
+  @media (prefers-color-scheme: dark) { header.site { border-color: #3a3a3c; } }
+  h1 { font-size: 2rem; letter-spacing: -.02em; }
+  h2 { margin-top: 2.2rem; }
+  a { color: #7c3aed; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  td, th { border: 1px solid #d1d1d6; padding: .45rem .65rem; text-align: left; vertical-align: top; }
+  @media (prefers-color-scheme: dark) { td, th { border-color: #3a3a3c; } }
+  code { font-size: .88em; }
+  pre { overflow-x: auto; font-size: .82rem; background: rgba(127,127,127,.12); padding: .6rem .8rem; border-radius: 8px; }
+  .tip { border-left: 4px solid #7c3aed; padding: .65rem 1rem; background: rgba(124,58,237,.08); border-radius: 0 8px 8px 0; }
+  .lang { font-size: .9rem; opacity: .75; margin: -.5rem 0 1rem; }
+  .note { margin-top: 3rem; font-size: .9rem; opacity: .7; }
+</style>
+</head>
+<body>
+<header class="site"><strong>VisualTalk</strong> &middot; <a href="/">Accueil</a> &middot; <a href="/downloads/">Téléchargements</a> &middot; <a href="/how-to/">Guide</a> &middot; <a href="/pro/">Pro</a> &middot; <a href="/privacy">Confidentialité</a></header>
+<main>
+<h1>Comment utiliser VisualTalk</h1>
+<p class="lang">Read in: <a href="/how-to/">English</a></p>
+<p>Ce guide est écrit pour des personnes, pas pour des ingénieurs. Si vous
+savez copier-coller, vous pouvez configurer VisualTalk. Toute la
+configuration initiale tient en trois gestes : <strong>obtenir l'application,
+choisir un serveur, coller trois valeurs</strong>. Ensuite, tout se fait en
+boutons.</p>
+
+<h2>1. Obtenir l'application</h2>
+<p><strong>Ordinateur (macOS, Windows, Linux) :</strong> téléchargez
+l'installateur de votre système depuis la page
+<a href="/downloads/">Téléchargements</a>. Sur macOS, le premier lancement
+peut demander un clic droit &rarr; <em>Ouvrir</em> (les builds ne sont pas
+encore notariés &mdash; la page Téléchargements l'explique).</p>
+<p><strong>Telephones et tablettes :</strong> l'application Android est en
+test fermé sur Google Play et l'application iOS est en examen chez Apple. En
+attendant leur sortie, tout ce guide fonctionne à l'identique sur
+ordinateur.</p>
+
+<h2>2. Choisir un serveur (une fois, environ cinq minutes)</h2>
+<p>VisualTalk ne possède aucun serveur de visioconférence &mdash; c'est tout
+l'intérêt. Vos réunions tournent sur un serveur que <em>vous</em> choisissez.
+Prenez l'un des deux :</p>
+
+<h3>Option A &mdash; LiveKit Cloud (offre gratuite, chez quelqu'un d'autre)</h3>
+<p>Créez un compte gratuit sur <a href="https://cloud.livekit.io">cloud.livekit.io</a>,
+créez un projet, ouvrez le tableau de bord du projet. Il affiche trois
+valeurs : une <strong>URL</strong> (elle commence par <code>wss://</code>),
+une <strong>clé API</strong> et un <strong>secret API</strong>. Copiez-les
+trois quelque part. Vous avez fini cette étape.</p>
+
+<h3>Option B &mdash; votre propre serveur (le bundle gratuit, chez vous)</h3>
+<p>Téléchargez le zip <em>self-hosted server stack</em> depuis la page
+<a href="/downloads/">Téléchargements</a>, décompressez-le, et suivez les deux
+commandes de son README (&laquo; Quick start &raquo;). Puis, en langage
+simple :</p>
+<ul>
+  <li>l'<strong>adresse</strong> est le numéro de téléphone du serveur ;</li>
+  <li>la <strong>clé API</strong> est un numéro de carte de membre ;</li>
+  <li>le <strong>secret API</strong> est le code PIN de cette carte.</li>
+</ul>
+<p>Le serveur crée la carte et le PIN tout seul au premier démarrage et les
+écrit dans son propre carnet, un fichier nommé <code>docker/.env</code>. Vous
+ne les inventez jamais &mdash; vous les copiez. Dans le dossier du bundle,
+cette commande lit le carnet à voix haute :</p>
+<pre>python3 scripts/livekit-local.py creds</pre>
+<p>Elle affiche l'URL, la clé API et le secret API, prêts à copier. (Sans
+commande ? Ouvrez le dossier <code>docker</code> et ouvrez <code>.env</code>
+dans un éditeur de texte &mdash; sur Mac, appuyez sur Cmd+Maj+. dans le
+Finder une fois pour révéler les fichiers cachés.) L'adresse à utiliser
+dépend de l'endroit où tourne l'application :</p>
+<table>
+  <tr><th>L'application tourne sur&hellip;</th><th>Collez cette adresse</th></tr>
+  <tr><td>Le même ordinateur que le serveur</td><td><code>ws://localhost:7880</code></td></tr>
+  <tr><td>Un téléphone ou une tablette sur votre Wi-Fi domestique</td><td><code>ws://&lt;adresse Wi-Fi de l'ordinateur serveur&gt;:7880</code>, par ex. <code>ws://192.168.1.20:7880</code>. La trouver &mdash; Mac : Réglages Système &rarr; Wi-Fi &rarr; Détails&hellip; &rarr; Adresse IP ; Windows : Paramètres &rarr; Réseau et Internet &rarr; votre connexion &rarr; Adresse IPv4. Démarrez le serveur avec <code>--host</code> pour que les téléphones l'atteignent.</td></tr>
+  <tr><td>Un émulateur Android sur l'ordinateur serveur</td><td><code>ws://10.0.2.2:7880</code></td></tr>
+</table>
+<h2>3. Prévenir l'application (une fois)</h2>
+<p>Dans VisualTalk, ouvrez <strong>Paramètres &rarr; LiveKit</strong> (l'icône
+engrenage en bas à gauche). Collez les trois valeurs dans <em>URL du serveur
+LiveKit</em>, <em>Clé API</em> et <em>Secret API</em>, puis appuyez sur
+<strong>Enregistrer la configuration</strong>. L'application sait maintenant
+appeler votre serveur. Pas de compte, pas d'inscription cloud, rien ne sort
+de chez vous. Traitez le secret API comme un mot de passe : ne le collez
+jamais dans une conversation, une capture d'écran ou un e-mail.</p>
+
+<h2>4. Votre première réunion</h2>
+<ul>
+  <li><strong>Nouvelle réunion</strong> en démarre une immédiatement.
+  <em>Copier le lien de la réunion</em> vous donne une page
+  <code>visualtalk.app/j/&hellip;</code> : envoyez-la à vos invités &mdash;
+  elle affiche le code de salle avec un bouton copier.</li>
+  <li><strong>Rejoindre</strong> sert à saisir un code de salle ou un lien
+  d'invitation reçu.</li>
+  <li><strong>Planifier</strong> place une réunion à une date ; elle apparaît
+  ensuite sur votre tableau de bord à l'heure choisie, et les invitations
+  fonctionnent pareil.</li>
+  <li>Avant d'entrer, l'<strong>aperçu</strong> montre votre caméra pour
+  vérifier votre cadre et votre arrière-plan, choisir le bon microphone et la
+  bonne caméra, et rejoindre en muet ou caméra éteinte si vous préférez
+  (&laquo; Toujours afficher l'aperçu &raquo;).</li>
+  <li>En réunion, la barre d'outils contrôle le <strong>microphone</strong>,
+  la <strong>caméra</strong> et le <strong>partage d'écran</strong> ; le
+  panneau latéral contient la <strong>discussion</strong> et l'<strong>envoi
+  de fichiers</strong> avec les autres participants.</li>
+  <li><strong>Notes</strong> sur le tableau de bord est un bloc-notes
+  personnel qui reste sur votre appareil.</li>
+</ul>
+
+<h2>5. Enregistrement et sous-titres (optionnel)</h2>
+<p>L'organisateur peut <strong>enregistrer</strong> une réunion. Avec le
+bundle Docker, les enregistrements arrivent dans <code>docker/recordings/</code>
+sur la machine serveur et nulle part ailleurs ; l'onglet
+<strong>Enregistrements</strong> les liste. Si votre serveur fait tourner le
+module optionnel de reconnaissance vocale, des sous-titres apparaissent en
+réunion (ce module ne traduit qu'en anglais).</p>
+
+<h2>6. Quand ça se comporte mal (solutions en langage simple)</h2>
+<ul>
+  <li>Un téléphone tourne en rond sur &laquo; Connexion&hellip; &raquo; &rarr;
+  vous avez collé l'adresse &laquo; cet ordinateur &raquo;. Un téléphone a
+  besoin de l'adresse Wi-Fi du tableau de l'étape 2.</li>
+  <li>&laquo; Unauthorized &raquo; ou une erreur d'authentification &rarr; la
+  clé ou le secret a été retapé à la main avec une coquille. Copiez-collez
+  plutôt ; aucune des deux valeurs ne contient d'espace.</li>
+  <li>Ça marchait hier mais pas aujourd'hui &rarr; le serveur dort.
+  Relancez-le (avec le bundle : <code>python3 scripts/livekit-local.py up</code>).</li>
+  <li>Caméra ou micro muet &rarr; le système a demandé l'autorisation au
+  premier usage et elle a été refusée. Ré-autorisez VisualTalk dans les
+  réglages de confidentialité du système, puis relancez l'application.</li>
+</ul>
+<p class="tip">Toujours bloqué ? Écrivez à <a href="mailto:kghemari@yahoo.com">kghemari@yahoo.com</a>
+avec votre version de VisualTalk (Paramètres &rarr; À propos) et ce que vous
+voyez à l'écran. L'assistance est gratuite et au mieux de nos possibilités.</p>
+
+<p class="note">VisualTalk ne contient ni compte ni analytique, et l'éditeur ne
+voit jamais le contenu des réunions. Détails : <a href="/privacy">politique de
+confidentialité</a>.</p>
+</main>
+</body>
+</html>
