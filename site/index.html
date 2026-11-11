@@ -18,6 +18,13 @@
   a { color: #7c3aed; }
   .links { list-style: none; padding: 0; display: flex; gap: 1.5rem; }
   .note { margin-top: 2.5rem; font-size: .9rem; opacity: .65; }
+  .pro { margin-top: 3rem; padding: 1.25rem 1.4rem; border: 1px solid rgba(139,92,246,.35);
+         border-radius: 16px; background: linear-gradient(180deg, rgba(139,92,246,.08), rgba(236,72,153,.04)); }
+  @media (prefers-color-scheme: dark) { .pro { border-color: rgba(196,165,255,.35); } }
+  .pro h2 { margin: .4rem 0 .5rem; font-size: 1.4rem; }
+  .pbadge { display: inline-block; padding: .15rem .6rem; border-radius: 999px; font-size: .72rem;
+            font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #fff;
+            background: linear-gradient(135deg, #8b5cf6, #ec4899); }
 </style>
 </head>
 <body>
@@ -35,6 +42,15 @@
     <li><a href="/privacy">Privacy policy</a></li>
     <li><a href="mailto:kghemari@yahoo.com">Support</a></li>
   </ul>
+  <section class="pro">
+    <span class="pbadge">Pro &middot; coming soon</span>
+    <h2>VisualTalk Pro</h2>
+    <p>For conversations that need a guarantee: end-to-end encrypted chat and
+       files (your server sees only ciphertext), organizer streaming to your
+       own RTMP destination, and commercial licensing &mdash; as a separate
+       app. The Community Edition stays free, open and unchanged.</p>
+    <p><a href="/pro/">See what Pro adds &rarr;</a></p>
+  </section>
   <p class="note">Received a meeting link? Open the VisualTalk app and join with the
      room code shown on that page.</p>
 </main>
