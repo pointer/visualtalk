@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Light on your phone&rsquo;s battery — why VisualTalk is Rust + Tauri, not Electron</title>
+<meta name="description" content="On a phone, every background millisecond comes out of your battery. VisualTalk ships no browser engine, runs no background service, receiver or push SDK, and holds its wake lock only while a meeting is live. The Rust + Tauri design behind that, and what we are not claiming.">
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         color: #1c1c1e; background: #fafafa; }
+  @media (prefers-color-scheme: dark) { body { color: #f2f2f7; background: #101014; } a { color: #c4a5ff; } }
+  body > * { max-width: 46rem; margin-left: auto; margin-right: auto;
+             padding-left: 1.25rem; padding-right: 1.25rem; }
+  header.site { padding-top: 1.5rem; padding-bottom: .75rem; border-bottom: 1px solid #d1d1d6; margin-bottom: 2rem; }
+  @media (prefers-color-scheme: dark) { header.site { border-color: #3a3a3c; } }
+  h1 { font-size: 2rem; letter-spacing: -.02em; margin-bottom: .25rem; }
+  h2 { margin-top: 2.4rem; font-size: 1.35rem; }
+  a { color: #7c3aed; }
+  code { font-size: .88em; }
+  .badge { display: inline-block; padding: .2rem .7rem; border-radius: 999px; font-size: .78rem;
+           font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+           color: #fff; background: linear-gradient(135deg, #8b5cf6, #ec4899); }
+  .tag { font-size: 1.1rem; opacity: .85; margin: .25rem 0 1.5rem; }
+  .lede { font-size: 1.05rem; }
+  ul.tight { padding-left: 1.15rem; }
+  ul.tight li { margin-bottom: .85rem; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr)); gap: .75rem;
+           margin: 1.75rem 0 .5rem; }
+  .stat { border: 1px solid rgba(139,92,246,.35); border-radius: 14px; padding: .85rem .95rem;
+          background: linear-gradient(180deg, rgba(139,92,246,.08), rgba(236,72,153,.04)); }
+  @media (prefers-color-scheme: dark) { .stat { border-color: rgba(196,165,255,.35); } }
+  .stat b { display: block; font-size: 1.5rem; letter-spacing: -.02em; line-height: 1.2; }
+  .stat span { display: block; font-size: .82rem; opacity: .75; margin-top: .15rem; }
+  .plain { border: 1px solid #d1d1d6; border-radius: 16px; padding: 1rem 1.25rem; margin-top: 1.75rem; }
+  @media (prefers-color-scheme: dark) { .plain { border-color: #3a3a3c; } }
+  .plain h2 { margin-top: 0; font-size: 1.05rem; text-transform: uppercase; letter-spacing: .05em; opacity: .8; }
+  .honest { border-left: 4px solid #7c3aed; padding: .85rem 1.1rem; background: rgba(124,58,237,.08);
+            border-radius: 0 8px 8px 0; margin-top: 1.5rem; }
+  .honest h2 { margin-top: 0; font-size: 1.05rem; text-transform: uppercase; letter-spacing: .05em; opacity: .8; }
+  .cta { margin-top: 2.5rem; border: 1px solid #d1d1d6; border-radius: 16px; padding: 1.1rem 1.3rem; }
+  @media (prefers-color-scheme: dark) { .cta { border-color: #3a3a3c; } }
+  .cta ul { list-style: none; padding: 0; margin: .5rem 0 0; display: flex; flex-wrap: wrap; gap: 1.25rem; }
+  .note { margin-top: 3rem; font-size: .9rem; opacity: .7; }
+  .srcnote { margin-top: .25rem; font-size: .9rem; opacity: .7; }
+</style>
+</head>
+<body>
+<header class="site"><strong>VisualTalk</strong> &middot; <a href="/">Home</a> &middot; <a href="/downloads/">Downloads</a> &middot; <a href="/how-to/">How to</a> &middot; <a href="/why-tauri/">Why Tauri</a> &middot; <a href="/pro/">Pro</a> &middot; <a href="/privacy">Privacy</a></header>
+<main>
+<span class="badge">Architecture</span>
+<h1>A meeting app that doesn&rsquo;t eat your phone&rsquo;s battery.</h1>
+<p class="tag">Why VisualTalk is built on Rust and Tauri instead of Electron
+&mdash; and why your phone notices first.</p>
+
+<div class="plain">
+<h2>In plain words</h2>
+<ul class="tight">
+  <li><strong>Your battery:</strong> when a meeting ends, the app truly goes to
+  sleep. Nothing keeps working in the background, so between calls it costs
+  your battery nothing.</li>
+  <li><strong>Your storage:</strong> the whole app is a small download &mdash; a
+  few megabytes, roughly two or three photos &mdash; and the only things it
+  keeps are the ones you save yourself, like recordings you chose to make or
+  notes you typed.</li>
+  <li><strong>During a call:</strong> it borrows only the power and memory the
+  call itself needs, and gives it all back the moment you hang up.</li>
+</ul>
+</div>
+
+<p class="lede">On a phone, every megabyte resident in RAM and every background
+millisecond comes straight out of your battery. So VisualTalk ships no browser
+engine of its own &mdash; it draws its interface in the webview Android and iOS
+already provide &mdash; and it runs nothing at all between calls: no sync daemon,
+no push SDK, no telemetry beacon. The logic that matters lives in a small Rust
+core. The result is longer calls, a cooler phone, and a battery graph you can
+check yourself in your phone&rsquo;s settings.</p>
+
+<div class="stats">
+  <div class="stat"><b>0</b><span>background services, receivers or push SDKs</span></div>
+  <div class="stat"><b>1</b><span>webview: the one your OS already runs</span></div>
+  <div class="stat"><b>Call-only</b><span>wake lock, held while a meeting is live</span></div>
+  <div class="stat"><b>4.2&nbsp;MiB</b><span>desktop installer &middot; macOS 6.3&nbsp;MiB</span></div>
+</div>
+<p class="srcnote">The mobile facts are readable on your own phone &mdash; Android:
+Settings &rarr; Apps &rarr; VisualTalk &rarr; Battery; iOS: Settings &rarr;
+Battery. The desktop figures are our published 3.3.43 artifacts; verify them
+against the SHA-256 sums on the <a href="/downloads/">Downloads</a> page.</p>
+<h2>Your phone&rsquo;s battery, first</h2>
+<ul class="tight">
+  <li><strong>Nothing runs between calls.</strong> The Android manifest declares
+  no services, no broadcast receivers and no push SDK: when you leave a meeting,
+  VisualTalk stops. Check it yourself &mdash; Android: Settings &rarr; Apps
+  &rarr; VisualTalk &rarr; Battery; iOS: Settings &rarr; Battery. Outside calls,
+  the number stays where it was.</li>
+  <li><strong>No second browser in your RAM.</strong> Bundling a browser engine
+  means paying for its memory and its background scheduling on top of the one
+  your phone already runs. VisualTalk draws its interface in the system WebView
+  on Android and WKWebView on iOS &mdash; shared with the operating system,
+  updated with it, and already warm.</li>
+  <li><strong>The wake lock exists only during a call.</strong> The single
+  <code>WAKE_LOCK</code> permission is the media-session lock that keeps audio
+  alive if your screen sleeps mid-call; it is released when the meeting ends.
+  Nothing keeps your phone awake behind your back.</li>
+  <li><strong>Hardware does the heavy media work.</strong> Audio and video ride
+  the platform&rsquo;s own WebRTC stack and its hardware codecs &mdash; the same
+  accelerated path the system browser uses &mdash; while signaling, tokens and,
+  in <a href="/pro/">Pro</a>, end-to-end encryption run as native Rust instead of
+  JavaScript competing for the main thread.</li>
+  <li><strong>Small enough to forget.</strong> The store delivers only the slice
+  for your device&rsquo;s architecture, and there is no engine of ours to update
+  beside the OS&rsquo;s own. The Android app is in closed testing on Google Play
+  and the iOS app is with Apple for review;
+  <a href="/downloads/">desktop ships today</a>.</li>
+</ul>
+
+<h2>The same logic on your laptop</h2>
+<ul class="tight">
+  <li><strong>Your RAM stays yours.</strong> A browser-bundling client carries
+  its own copy of Chromium plus the helper processes it spawns. VisualTalk
+  renders in the webview the OS already loads &mdash; WebKit on macOS, WebView2
+  on Windows, WebKitGTK on Linux &mdash; so there is no second browser sitting
+  resident in memory beside the one you already have open.</li>
+  <li><strong>Idle actually means idle.</strong> With no Node.js runtime to keep
+  warm between clicks and no browser engine scheduling background work, an open
+  VisualTalk window costs close to nothing while you are listening or talking
+  &mdash; the desktop version of the same battery argument.</li>
+  <li><strong>A download measured in megabytes.</strong> The Windows installer is
+  4.2&nbsp;MiB and the macOS disk image 6.3&nbsp;MiB, where browser-bundling
+  desktop apps typically run 100&ndash;200&nbsp;MB. The one exception is the Linux
+  <em>AppImage</em> (83.7&nbsp;MiB), which packs its own WebKitGTK because we
+  cannot assume your distro has one &mdash; use the <code>.deb</code> or
+  <code>.rpm</code> (7.7&nbsp;MiB) if it does.</li>
+</ul>
+
+<h2>The Rust advantage: thin UI, fat core</h2>
+<p>Our design rule is <em>thin UI, fat core</em>. The interface is a small
+SolidJS layer that renders state and forwards your clicks; everything that
+decides, signs, encrypts or persists lives in Rust behind an explicit command
+boundary. Your LiveKit API secret, for instance, is held and used in the Rust
+core and never enters the webview&rsquo;s JavaScript heap.</p>
+<ul class="tight">
+  <li><strong>Memory safety without a garbage collector.</strong> Rust&rsquo;s
+  ownership rules make use-after-free, buffer overruns and data races impossible
+  at compile time &mdash; the family of bugs that otherwise reaches users as an
+  unexplained crash mid-meeting.</li>
+  <li><strong>Native speed where it counts.</strong> Token signing, session
+  authority, window lifecycle, persistence and &mdash; in Pro &mdash;
+  end-to-end encryption (ECDH P-256 key agreement, a fresh AES-256-GCM key for
+  every message) run as compiled native code, on a phone as on a laptop.</li>
+  <li><strong>Quieter hardware, one codebase.</strong> Less background churn
+  means fewer fan spin-ups on a long call and less thermal throttling on a
+  phone, and the same Rust core drives macOS, Windows, Linux, iOS and Android
+  &mdash; so a fix or a feature lands everywhere at once.</li>
+</ul>
+
+<div class="honest">
+<h2>What we are not claiming</h2>
+<p>We have not published a benchmark suite, so we won&rsquo;t invent one: no
+&ldquo;X% more battery&rdquo; figure appears on this page, and an app that
+promises you one for video calls is selling something. The largest battery costs
+in any call &mdash; the screen, the radio, encoding and decoding video &mdash;
+are paid by every client, ours included. What we remove is everything around
+them: a bundled engine, background processes, and JavaScript doing a native
+core&rsquo;s job. The mobile facts above are checkable in your own phone&rsquo;s
+settings; the desktop sizes are downloadable artifacts you can verify.</p>
+</div>
+
+<div class="cta">
+<strong>See the difference on your own device.</strong>
+<ul>
+  <li><a href="/downloads/">Download VisualTalk</a></li>
+  <li><a href="/how-to/">Set it up in five minutes</a></li>
+  <li><a href="/pro/">What Pro adds</a></li>
+</ul>
+</div>
+
+<p class="note">The Rust core is open source &mdash; <code>src-tauri/src/</code>
+in the repository, with the architecture decisions recorded in
+<code>docs/decisions/</code>. Questions:
+<a href="mailto:kghemari@yahoo.com">kghemari@yahoo.com</a>.</p>
+</main>
+</body>
+</html>
