@@ -1,8 +1,8 @@
-# Store-listing drafts — How-to and Pro mentions
+# Store-listing drafts — How-to, Pro and battery mentions
 
 Status: **drafts for owner review**, not yet pasted into App Store Connect or
-Play Console. Two sentences per locale below; everything else in the listings
-stays as-is.
+Play Console. Three sentences per locale below (sentence 3 = battery &
+efficiency, mobile-first); everything else in the listings stays as-is.
 
 ## Compliance guardrails (read first)
 
@@ -16,6 +16,12 @@ stays as-is.
 - **Claims stay inside the shipped set:** E2EE = chat messages and files only
   (never "encrypted video/audio"); streaming = organizer RTMP from your own
   server. Mirror the wording of <https://visualtalk.app/pro/>.
+- **Battery/efficiency claims stay architecture-based and user-verifiable:**
+  the manifest declares no service, no receiver, no push SDK and a single
+  media-session `WAKE_LOCK`; the app renders in the system webview. Never put a
+  benchmark percentage ("X% more battery") in a listing field — the claim must
+  be checkable by the user in their own battery settings, same rule as
+  <https://visualtalk.app/why-tauri/>.
 - **Timing:** the *How-to* sentence can go in now. The *Pro* sentence goes in
   on Pro ship-night only (same night as the `site/pro-ship-flip` branch merge),
   because advertising an app that is not yet public invites rejection.
@@ -43,6 +49,28 @@ stays as-is.
 - **pl:** Osobna płatna edycja VisualTalk Pro dodaje szyfrowanie end-to-end czatu i plików oraz streaming prowadzącego: https://visualtalk.app/pro/.
 - **pt:** Uma edição paga separada, VisualTalk Pro, acrescenta chat e partilha de ficheiros com cifragem ponta-a-ponta e transmissão pelo organizador: https://visualtalk.app/pro/.
 - **ar:** إصدار مدفوع منفصل، VisualTalk Pro، يضيف تشفيرًا تامًا للدردشة والملفات وبث المنظم: https://visualtalk.app/pro/.
+
+## Sentence 3 — battery & efficiency (paste now, append after sentence 1)
+
+Architecture-based and user-verifiable only (see guardrails): no benchmark
+percentages. Every fact is checkable by the user — Android: Settings → Apps →
+VisualTalk → Battery; the manifest declares no service, no receiver, no push
+SDK and a single media-session wake lock.
+
+- **en-US:** Easy on your phone's battery: no bundled browser engine (the system webview renders the app), no background service, receiver or push SDK, and the wake lock is held only while a meeting is live. Details: https://visualtalk.app/why-tauri/
+- **fr:** Économe en batterie : aucun moteur de navigateur embarqué (le webview système affiche l'application), aucun service d'arrière-plan, aucun récepteur ni SDK de push, et le verrou d'éveil n'est actif que pendant un appel. Détails : https://visualtalk.app/why-tauri/
+- **es:** Ligero con la batería de tu teléfono: sin motor de navegador incluido (el webview del sistema muestra la app), sin servicio en segundo plano, receptor ni SDK de push, y el wake lock solo se mantiene durante una llamada. Detalles: https://visualtalk.app/why-tauri/
+- **de:** Schont den Akku deines Telefons: keine mitgelieferte Browser-Engine (das System-WebView zeichnet die App), kein Hintergrunddienst, kein Receiver, kein Push-SDK, und der Wake-Lock gilt nur während eines Meetings. Details: https://visualtalk.app/why-tauri/
+- **it:** Leggero sulla batteria del telefono: nessun motore browser incluso (è il webview di sistema a mostrare l'app), nessun servizio in background, receiver o SDK push, e il wake lock resta attivo solo durante una riunione. Dettagli: https://visualtalk.app/why-tauri/
+- **nl:** Zuinig met de batterij van je telefoon: geen meegeleverde browser-engine (de systeem-webview tekent de app), geen achtergrondservice, receiver of push-SDK, en de wake lock geldt alleen tijdens een gesprek. Details: https://visualtalk.app/why-tauri/
+- **pl:** Oszczędny dla baterii telefonu: bez wbudowanego silnika przeglądarki (interfejs renderuje systemowy webview), bez usługi w tle, odbiornika i SDK push, a wake lock działa tylko podczas spotkania. Szczegóły: https://visualtalk.app/why-tauri/
+- **pt:** Leve para a bateria do seu telemóvel: sem motor de browser incluído (é o webview do sistema que mostra a app), sem serviço em segundo plano, receiver ou SDK de push, e o wake lock só vigora durante uma chamada. Detalhes: https://visualtalk.app/why-tauri/
+- **ar:** لطيف على بطارية هاتفك: لا محرك متصفح مضمّن (يعرض التطبيق عبر webview الخاص بالنظام)، ولا خدمة خلفية ولا مستقبِل ولا SDK للدفع، ولا يُحتفظ بقفل الإيقاظ إلا أثناء المكالمة. التفاصيل: https://visualtalk.app/why-tauri/
+
+## Short-form fields (en only, owner review — optional)
+
+- **Play short description (≤80):** `Private meetings on your own server, light on your phone's battery.` (67 chars) — replaces the current privacy-only line if the owner wants the battery lead on the store card itself.
+- **App Store promotional text (≤170):** `No bundled browser, no background service, no push SDK: VisualTalk wakes your phone only during a call. Private video meetings on your own LiveKit server.` (154 chars)
 
 ## Where to paste
 

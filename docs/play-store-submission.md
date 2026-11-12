@@ -61,12 +61,23 @@ see Guidance.md §3).
 ## 4. Store listing (drafts, en; fr/es later)
 
 - Title (≤30): `VisualTalk`
-- Short description (≤80): `Private video meetings on your own LiveKit server.`
+- Short description (≤80): current `Private video meetings on your own LiveKit
+  server.` (50 chars). Battery-lead alternative, owner to pick:
+  `Private meetings on your own server, light on your phone's battery.` (67
+  chars). Mobile efficiency is the differentiator phone users scan for; privacy
+  still leads the full description either way.
 - Full description (≤4000): lead with bring-your-own-server privacy — no
   accounts, no licensor-operated infrastructure, no analytics, no ads; in-meeting
   chat and file transfer; recordings stay on the user's device; bring your own
   LiveKit server (self-hosted or hosted); the Community Edition is free and
-  contains no purchases or subscriptions (parity with the EULA text).
+  contains no purchases or subscriptions (parity with the EULA text). Then the
+  efficiency paragraph, mobile-first: no bundled browser engine (the system
+  WebView / WKWebView renders the app), no background service, receiver or push
+  SDK, wake lock held only while a meeting is live, platform hardware codecs for
+  media; desktop installers 4–7 MiB. Paste-ready per-locale line:
+  `docs/store-listing-drafts.md` sentence 3. No benchmark percentages in any
+  listing field — every efficiency claim must stay checkable in the phone's own
+  battery settings (same rule as visualtalk.app/why-tauri/).
 - Category: Social (alt. Communication).
 - Contact: support address = `settings.rs SUPPORT_EMAIL`; privacy policy URL =
   **`https://visualtalk.app/privacy`** — live since 2026-11-08, served from
