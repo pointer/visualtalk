@@ -54,6 +54,22 @@ cargo test                # run Rust tests
 - Android toolchain: NDK r23+ dropped the target-prefixed binutils, so the vendored OpenSSL Makefile cannot find `<triple>-ranlib` and dies with `make: *** [install_dev] Error 127`. Every `android:*` script and the CI android job therefore `eval "$(python3 scripts/android-toolchain-env.py)"` first, which exports `RANLIB_<target>` pointing at the NDK's `llvm-ranlib` (resolved from `ANDROID_HOME`, newest NDK). If an android build hits that error, the wiring or `ANDROID_HOME` is missing. `src-tauri/gen/android` is generated, gitignored, and patched by `fix-android-project.py` (upload-key signing + WebView media permissions); regenerate with `pnpm android:init`.
 - **Never build or Run this project from Android Studio.** Studio's Gradle builds the same `gen/android` without Tauri's `custom-protocol` feature, installs a dev-mode APK that points the WebView at `http://localhost:1420` (white/black screen, "Failed to request …"), and writes dev-mode artifacts into the shared `src-tauri/target/<abi>/debug`, which a later CLI build can ship. It has overwritten a good CLI install twice during the 2026-11-07 session. Recovery: quit Studio, `adb uninstall com.katebg.visualtalk`, `cargo clean -p visualtalk`, rebuild via `pnpm android:*`, reinstall.
 - Android/iOS are single-Activity: Tauri cannot spawn a second window there, and the one `spawn_meeting_window` creates never surfaces (ghost behind the dashboard). `App.jsx` therefore renders `MeetingView` **in place** when `IS_MOBILE`, and leaving uses `leaveCall({ keepWindowOpen: true })` plus `onExit` back to the dashboard — closing the only window would quit the app.
+- **iOS dev on a physical device needs `TAURI_DEV_HOST`.** With a connected
+  iPhone, Tauri rewrites the `devUrl` `localhost` to an auto-detected "public"
+  IP, and on a Mac with CoreSimulator's NAT present it can pick `bridge100`
+  (e.g. `192.168.252.1`), which the phone can never reach — the installed dev
+  build then dies with `Failed to request http://192…`. Force the Wi-Fi
+  interface instead: `TAURI_DEV_HOST=$(ipconfig getifaddr en0) pnpm ios:dev:pro`.
+  The phone must sit in the same Wi-Fi subnet as the Mac (sanity-check with
+  Safari on the phone → `http://<that IP>:1420`); if the network isolates
+  clients (guest/corporate APs do), use a personal hotspot instead.
+  Android physical-device dev also rewrites `localhost` to a host IP; Tauri's
+  automatic selection can pick the unreachable `bridge100` address. The
+  `android:dev*` scripts use `--force-ip-prompt`; select the Mac's Wi-Fi IP
+  (for example, `192.168.1.240`), and keep the phone on that same network.
+  The scripts clear any inherited `TAURI_DEV_HOST`; Tauri sets it to the
+  selected address for the frontend dev server. `adb reverse` alone does not
+  prevent the CLI from rewriting the dev URL on a physical Android device.
 - `pnpm notices` regenerates `THIRD_PARTY_NOTICES.md`; `pnpm license:check` verifies it. Run both after adding or removing a dependency.
 - Cloudflare publishing: **Cloudflare cannot build this repo** — its Pages build image has no Rust toolchain (`cargo metadata` → `os error 2`), no Xcode/WebKitGTK, and no way to run a native binary. Build locally or in GitHub Actions, then upload: `pnpm cf:check` (readiness), `pnpm cf:stage` (collect installers into gitignored `dist-cloudflare/<version>/` + SHA256SUMS/latest.json), `pnpm cf:pages` (`dist/` → Pages), `pnpm cf:r2` (installers → R2). All four wrap `scripts/deploy-cloudflare.py`, which shells out to `pnpm dlx wrangler@4` (wrangler is deliberately not a dependency) and refuses Pro artifacts without `--allow-pro`. Full procedure, dashboard settings and the CI snippet: `docs/cloudflare-deploy.md`.
 - Minimum macOS version and required Xcode CLT: see `docs/` and `scripts/ensure-ios-toolchain.py`; Tauri v2 requires Xcode CLT for desktop builds.
