@@ -195,6 +195,8 @@ pub fn run() {
             commands::layout::calculate_filmstrip_dimensions,
             // Locale
             commands::system::get_system_locale,
+            #[cfg(feature = "pro")]
+            commands::system::get_energy_efficiency_stats,
             // Backgrounds
             backgrounds::get_background,
             backgrounds::set_background,

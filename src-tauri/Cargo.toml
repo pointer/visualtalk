@@ -62,6 +62,12 @@ icalendar = "0.17"
 # for android targets. Desktop builds keep linking the system OpenSSL.
 [target.'cfg(target_os = "android")'.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
+# Per-process CPU/memory stats for the Pro energy-efficiency command. sysinfo's
+# Apple backend is macOS-only (no iOS support: libc exposes neither
+# mach_task_self nor the Mach flavours it imports for that target), so iOS
+# measures via Mach task_info directly in commands/system.rs and only Android
+# needs this crate. Keeping it unconditional broke EVERY iOS build.
+sysinfo = "0.33"
 
 [features]
 default = []

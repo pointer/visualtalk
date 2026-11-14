@@ -1,7 +1,7 @@
 # VisualTalk — Third-Party Software Notices
 
 Product version: 3.3.43  
-Generated: 2026-11-09  
+Generated: 2026-11-14  
 Regenerate with: `pnpm notices` (runs `scripts/generate-notices.py`)
 
 VisualTalk incorporates the third-party software listed below. This document satisfies the attribution and notice requirements of those licenses (MIT, Apache-2.0 §4, BSD, ISC, Zlib, Unicode-3.0, MPL-2.0 §3, CDLA-Permissive-2.0 and others). The full text of each license is reproduced in section 5.
@@ -10,7 +10,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 
 ## 1. Summary
 
-- Shipped (statically linked or bundled) components: **611**
+- Shipped (statically linked or bundled) components: **622**
 - Build-time-only components (not distributed): **84**
 - No GPL, AGPL, SSPL, BUSL, Elastic License or Commons Clause component is linked into any distributed binary.
 - Weak copyleft present: MPL-2.0 (file-scoped, see section 6) and CDLA-Permissive-2.0 (root CA certificate data).
@@ -21,9 +21,9 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 
 | License expression | Components |
 | --- | --- |
-| `MIT OR Apache-2.0` | 272 |
-| `MIT` | 144 |
-| `Apache-2.0 OR MIT` | 57 |
+| `MIT OR Apache-2.0` | 281 |
+| `MIT` | 145 |
+| `Apache-2.0 OR MIT` | 58 |
 | `MIT/Apache-2.0` | 21 |
 | `Apache-2.0` | 18 |
 | `Unicode-3.0` | 18 |
@@ -76,6 +76,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | crates.io | `serde` | 1.0.229 | MIT OR Apache-2.0 |
 | crates.io | `serde_json` | 1.0.151 | MIT OR Apache-2.0 |
 | crates.io | `sha2` | 0.11.0 | MIT OR Apache-2.0 |
+| crates.io | `sysinfo` | 0.33.1 | MIT |
 | crates.io | `tauri` | 2.12.3 | Apache-2.0 OR MIT |
 | crates.io | `tauri-build` | 2.7.2 | Apache-2.0 OR MIT |
 | crates.io | `tauri-plugin-dialog` | 2.8.1 | Apache-2.0 OR MIT |
@@ -95,7 +96,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 
 ## 3. All shipped components
 
-### crates.io (588)
+### crates.io (599)
 
 | Component | Version | License | Copyright |
 | --- | --- | --- | --- |
@@ -169,6 +170,8 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `cpufeatures` | 0.3.1 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `crc32fast` | 1.5.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `crossbeam-channel` | 0.5.17 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `crossbeam-deque` | 0.8.8 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `crossbeam-epoch` | 0.9.21 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `crossbeam-utils` | 0.8.23 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `crypto-common` | 0.1.7 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `crypto-common` | 0.2.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -359,6 +362,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `nix` | 0.31.3 | MIT | Copyright (c) 2015 Carl Lerche + nix-rust Authors |
 | `nom` | 8.0.0 | MIT | Copyright (c) 2014-2019 Geoffroy Couprie |
 | `nom-language` | 0.1.0 | MIT |  |
+| `ntapi` | 0.4.3 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
 | `num-conv` | 0.2.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `num-traits` | 0.2.19 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `num_enum` | 0.7.6 | BSD-3-Clause OR MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -445,6 +449,8 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `rand_core` | 0.9.5 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `rand_pcg` | 0.10.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `raw-window-handle` | 0.6.2 | MIT OR Apache-2.0 OR Zlib | "Licensor" shall mean the copyright owner or entity authorized by |
+| `rayon` | 1.12.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
+| `rayon-core` | 1.13.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `redox_syscall` | 0.5.18 | MIT | Copyright (c) 2017 Redox OS Developers |
 | `redox_users` | 0.5.3 | MIT | Copyright (c) 2017 Jose Narvaez |
 | `ref-cast` | 1.0.27 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -520,6 +526,7 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `syn` | 3.0.7 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `sync_wrapper` | 1.0.2 | Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `synstructure` | 0.14.0 | MIT | Copyright 2016 Nika Layzell |
+| `sysinfo` | 0.33.1 | MIT | Copyright (c) 2015 Guillaume Gomez |
 | `system-configuration` | 0.7.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `system-configuration-sys` | 0.6.0 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
 | `system-deps` | 6.2.2 | MIT OR Apache-2.0 | "Licensor" shall mean the copyright owner or entity authorized by |
@@ -615,15 +622,20 @@ VisualTalk itself is licensed under the PolyForm Noncommercial License 1.0.0 (Co
 | `winapi-util` | 0.1.11 | Unlicense OR MIT | Copyright (c) 2017 Andrew Gallant |
 | `winapi-x86_64-pc-windows-gnu` | 0.4.0 | MIT/Apache-2.0 |  |
 | `window-vibrancy` | 0.8.1 | Apache-2.0 OR MIT | "Licensor" shall mean the copyright owner or entity authorized by |
+| `windows` | 0.57.0 | MIT OR Apache-2.0 |  |
 | `windows` | 0.62.2 | MIT OR Apache-2.0 |  |
 | `windows-collections` | 0.3.2 | MIT OR Apache-2.0 |  |
+| `windows-core` | 0.57.0 | MIT OR Apache-2.0 |  |
 | `windows-core` | 0.62.2 | MIT OR Apache-2.0 |  |
 | `windows-future` | 0.3.2 | MIT OR Apache-2.0 |  |
+| `windows-implement` | 0.57.0 | MIT OR Apache-2.0 |  |
 | `windows-implement` | 0.60.2 | MIT OR Apache-2.0 |  |
+| `windows-interface` | 0.57.0 | MIT OR Apache-2.0 |  |
 | `windows-interface` | 0.59.3 | MIT OR Apache-2.0 |  |
 | `windows-link` | 0.2.1 | MIT OR Apache-2.0 |  |
 | `windows-numerics` | 0.3.1 | MIT OR Apache-2.0 |  |
 | `windows-registry` | 0.6.1 | MIT OR Apache-2.0 |  |
+| `windows-result` | 0.1.2 | MIT OR Apache-2.0 |  |
 | `windows-result` | 0.4.1 | MIT OR Apache-2.0 |  |
 | `windows-strings` | 0.5.1 | MIT OR Apache-2.0 |  |
 | `windows-sys` | 0.45.0 | MIT OR Apache-2.0 |  |

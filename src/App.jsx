@@ -2,6 +2,8 @@ import { createSignal, onMount, lazy, Suspense, ErrorBoundary } from "solid-js";
 import { MainWindow } from "./MainWindow";
 import { invoke } from "./lib/ipc";
 import { IS_MOBILE } from "./lib/platform";
+import { IS_PRO_EDITION } from "./lib/edition";
+import EfficiencyStats from "./components/EfficiencyStats";
 import "./App.css";
 
 const MeetingView = lazy(() => import("./MeetingView"));
@@ -58,6 +60,9 @@ function App() {
 
   return (
     <>
+      {/* Pro-only energy overlay: the Rust command answers on mobile only and
+          errors elsewhere, and the CE bundle dead-code-eliminates this node. */}
+      {IS_PRO_EDITION ? <EfficiencyStats /> : null}
       {showMeeting() ? (
         <ErrorBoundary
           fallback={(error) => (
