@@ -1,13 +1,39 @@
 #!/bin/sh
-# Secret scanning for staged changes, powered by gitleaks.
+# Guards for staged changes:
+#   1. the Pro E2EE implementation must never be staged (see below)
+#   2. secret scanning, powered by gitleaks
 # Enable with:  git config core.hooksPath scripts/git-hooks
 # See SECURITY.md for the credential policy.
 #
-# Exits non-zero (blocking the commit) when a secret is detected.
+# Exits non-zero (blocking the commit) when a guard trips.
 # Bypass in a genuine emergency with:  git commit --no-verify
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT" || exit 1
 
+# --- Guard 1: Pro E2EE source ------------------------------------------------
+# src-tauri/src/e2ee.rs is TRACKED in this public repository and must only ever
+# hold the Community stub. scripts/setup-pro.py swaps the Pro implementation in
+# for local *:pro builds and restores the stub with --revert, so committing the
+# swapped file would publish the Pro crypto source — irreversible, and it
+# destroys the Pro edition's only differentiator.
+#
+# The STAGED blob is what gets checked, not the worktree: the worktree
+# legitimately holds the Pro implementation mid-session while the index does
+# not. `Aes256Gcm` is imported only by the Pro implementation, which is the same
+# marker scripts/setup-pro.py --check greps for.
+E2EE_PATH="src-tauri/src/e2ee.rs"
+if git diff --cached --name-only --diff-filter=ACMR -- "$E2EE_PATH" | grep -q . &&
+   git show ":$E2EE_PATH" 2>/dev/null | grep -q 'Aes256Gcm'; then
+  echo "" >&2
+  echo "pre-commit: commit BLOCKED — the Pro E2EE implementation is staged." >&2
+  echo "pre-commit: $E2EE_PATH must stay the Community stub in this repository." >&2
+  echo "pre-commit: restore it with:  python3 scripts/setup-pro.py --revert" >&2
+  echo "pre-commit: Pro builds re-install it for you (every pnpm *:pro script)." >&2
+  exit 1
+fi
+
+# --- Guard 2: secrets (gitleaks) ---------------------------------------------
 if ! command -v gitleaks >/dev/null 2>&1; then
   echo "pre-commit: gitleaks not installed — skipping secret scan." >&2
   echo "pre-commit: install it with:  brew install gitleaks" >&2
@@ -15,8 +41,6 @@ if ! command -v gitleaks >/dev/null 2>&1; then
 fi
 
 echo "pre-commit: scanning staged changes for secrets (gitleaks)…"
-
-cd "$REPO_ROOT" || exit 1
 
 # gitleaks >= 8.24 replaced "protect" with "git --pre-commit".
 if gitleaks git --help >/dev/null 2>&1; then

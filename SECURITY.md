@@ -26,6 +26,13 @@ Rules for contributors:
    ```
 
    Do not bypass it with `--no-verify`.
+
+   The same hook also blocks a staged `src-tauri/src/e2ee.rs` that holds the Pro
+   E2EE implementation: that path is tracked in this public repository and must
+   only ever contain the Community stub. `scripts/setup-pro.py` swaps the Pro
+   source in for local `*:pro` builds — run `python3 scripts/setup-pro.py
+   --revert` before committing (every `pnpm *:pro` script re-installs it, so
+   reverting costs a Pro build nothing).
 4. Signing secrets must never be compiled into a shipped binary — they are
    recoverable by anyone with `strings`. Token minting for a distributed
    build belongs on a server the user controls.
