@@ -132,4 +132,6 @@ Google Play/
 # addresses for the closed-testing gate. Upload it through the Console; a list
 # of people's emails must never sit in a public repository.
 tester-list.csv
+
+# Owner's Play listing screenshot notes: a local working document, not source.
 VisualTalk Screenshots.rtf
