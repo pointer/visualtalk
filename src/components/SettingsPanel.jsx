@@ -9,6 +9,7 @@ import { IS_PRO_EDITION, IS_TRANSLATION_AVAILABLE } from "../lib/edition";
 import { TranslationSection } from "./settings/TranslationSection";
 import { AiSection } from "./settings/AiSection";
 import { RecordingsSection } from "./settings/RecordingsSection";
+import { MessagingSection } from "./settings/MessagingSection";
 
 export function SettingsPanel(props) {
   const { t, locale, changeLocale, availableLocales } = useI18n();
@@ -30,7 +31,13 @@ export function SettingsPanel(props) {
   const [url, setUrl] = createSignal('');
   const [apiKey, setApiKey] = createSignal('');
   const [apiSecret, setApiSecret] = createSignal('');
+  // Rust never returns the stored secret, only whether one exists, so this
+  // field stays blank and saving with it blank keeps the stored value.
+  const [apiSecretConfigured, setApiSecretConfigured] = createSignal(false);
   const [identity, setIdentity] = createSignal('');
+  // Optional external guest-token issuer (ADR 0006). Empty = sign one link per
+  // guest in-app; set = one shareable capability link.
+  const [tokenIssuerUrl, setTokenIssuerUrl] = createSignal('');
   const [status, setStatus] = createSignal('');
   // const [loading, setLoading] = createSignal(false);
   /////
@@ -157,8 +164,9 @@ export function SettingsPanel(props) {
       if (settings) {
         setUrl(settings.url);
         setApiKey(settings.api_key);
-        setApiSecret(settings.api_secret);
+        setApiSecretConfigured(settings.api_secret_configured === true);
         setIdentity(settings.identity);
+        setTokenIssuerUrl(settings.token_issuer_url || '');
       }
 
       // Load devices via the browser API + sync into Rust.
@@ -298,8 +306,13 @@ export function SettingsPanel(props) {
           api_key: apiKey(),
           api_secret: apiSecret(),
           identity: identity(),
+          token_issuer_url: tokenIssuerUrl().trim(),
         },
       });
+      // Rust kept the stored secret when this field was blank; either way the
+      // form should not go on holding one.
+      setApiSecret('');
+      setApiSecretConfigured(true);
       setStatus(`✅ ${t("settings.savedSecurely")}`);
 
       // Clear status message after 3 seconds
@@ -326,6 +339,7 @@ export function SettingsPanel(props) {
               { id: "meeting", label: "Meeting", icon: "📹" },
               { id: "profile", label: "Profile", icon: "👤" },
               { id: "livekit", label: "LiveKit", icon: "⏚" },
+              { id: "messaging", label: t("settings.messaging.tab"), icon: "✉️" },
               { id: "recordings", label: "Recordings", icon: "⏺" },
               { id: "ai", label: "AI Assistant", icon: "✨" },
               ...(IS_PRO_EDITION && IS_TRANSLATION_AVAILABLE
@@ -726,9 +740,25 @@ export function SettingsPanel(props) {
                     value={apiSecret()}
                     onInput={(e) => setApiSecret(e.currentTarget.value)}
                     class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
-                    placeholder="••••••••••••"
-                    required
+                    placeholder={apiSecretConfigured() ? t("settings.apiSecretStoredPlaceholder") : "••••••••••••"}
+                    required={!apiSecretConfigured()}
                   />
+                  <Show when={apiSecretConfigured()}>
+                    <p class="text-xs text-gray-500">{t("settings.apiSecretStoredHint")}</p>
+                  </Show>
+                </div>
+
+                {/* Guest token issuer (optional, ADR 0006) */}
+                <div class="flex flex-col gap-1">
+                  <label class="text-sm text-gray-400">{t("settings.tokenIssuerUrl")}</label>
+                  <input
+                    type="url"
+                    value={tokenIssuerUrl()}
+                    onInput={(e) => setTokenIssuerUrl(e.currentTarget.value)}
+                    class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg p-3 outline-none focus:border-blue-500 transition-colors font-mono text-sm"
+                    placeholder="https://meetings.example.com/v1/token"
+                  />
+                  <p class="text-xs text-gray-500">{t("settings.tokenIssuerHint")}</p>
                 </div>
 
                 {/* Status Message */}
@@ -786,6 +816,10 @@ export function SettingsPanel(props) {
 
           <Show when={activeSection() === "ai"}>
             <AiSection />
+          </Show>
+
+          <Show when={activeSection() === "messaging"}>
+            <MessagingSection />
           </Show>
 
 <Show when={activeSection() === "recordings"}>

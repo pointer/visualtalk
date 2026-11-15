@@ -56,6 +56,20 @@
     }
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "visualtalk"
+        ]
+      },
+      "mobile": [
+        {
+          "scheme": [
+            "visualtalk"
+          ]
+        }
+      ]
+    },
     "window": {
       "create": true,
       "close": true,

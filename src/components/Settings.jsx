@@ -18,7 +18,9 @@ export default function Settings() {
             if (settings) {
                 setUrl(settings.url);
                 setApiKey(settings.api_key);
-                setApiSecret(settings.api_secret);
+                // The secret is never returned: `load_settings` only reports
+                // whether one is stored, and saving with this field blank keeps
+                // the stored value (see SettingsPanel.jsx).
                 setIdentity(settings.identity);
             }
         } catch (err) {

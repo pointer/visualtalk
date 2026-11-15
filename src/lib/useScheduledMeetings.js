@@ -88,7 +88,8 @@ export function useScheduledMeetings(options = {}) {
 
   const copyInvite = async (meeting) => {
     try {
-      await navigator.clipboard.writeText(meeting.invite_link);
+      const invite = await invoke("get_meeting_invite", { room: meeting.room_id });
+      await navigator.clipboard.writeText(invite);
       alert(t("mainWindow.inviteCopied"));
     } catch (err) {
       console.error("Failed to copy invite link:", err);

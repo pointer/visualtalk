@@ -4,6 +4,12 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { describeMediaError } from "../components/Permissions";
 import { SUPPORTS_SCREEN_SHARE } from "./platform";
+import {
+  localParticipantTileName,
+  normalizeDisplayName,
+  remoteParticipantTileName,
+} from "./participantNames";
+import { describeDisconnect } from "./disconnectReasons";
 
 /**
  * Composable for LiveKit Room lifecycle, participants, and meeting actions.
@@ -365,7 +371,15 @@ export function useLiveKitRoom() {
   };
 
   // ---- Connect to LiveKit meeting ----
-  const connectToMeeting = async ({ identity, roomName, micId, camId, token: providedToken, url: providedUrl }) => {
+  const connectToMeeting = async ({
+    identity,
+    displayName,
+    roomName,
+    micId,
+    camId,
+    token: providedToken,
+    url: providedUrl,
+  }) => {
     setConnectionError("");
     // Store room name for the meeting-ended event on leave.
     setCurrentRoom(roomName);
@@ -373,6 +387,7 @@ export function useLiveKitRoom() {
     remoteRecordings.clear();
     refreshRemoteRecording();
     activeRecordingNotices.clear();
+    const remoteDisplayNames = new Map();
     // Stop preview stream
     const pStream = previewStream();
     if (pStream) pStream.getTracks().forEach((t) => t.stop());
@@ -384,7 +399,8 @@ export function useLiveKitRoom() {
     // first consumer on macOS WebKit and renders a black local tile, so the
     // published LiveKit track is the single source of truth for the tile.
     setLocalStream(null);
-    resetParticipants([{ id: "local", name: "You (Local)", isLocal: true, videoTrack: null }]);
+    const localName = localParticipantTileName(displayName);
+    resetParticipants([{ id: "local", name: localName, isLocal: true, videoTrack: null }]);
 
     // Resolve LiveKit server URL + token:
     //   1) get_meeting_session — Rust mints the token from the server saved in
@@ -392,15 +408,13 @@ export function useLiveKitRoom() {
     //   2) token/url passed down from the main window via query params
     //      (host flow / invite deep links)
     let LIVEKIT_URL = providedUrl || null;
-    let token = null;
+    let token = providedToken || null;
     try {
       const session = await invoke("get_meeting_session", { room: roomName });
       LIVEKIT_URL = LIVEKIT_URL || session.livekit_url;
-      token = session.token;
+      token = token || session.token;
     } catch (err) {
-      if (providedToken) {
-        token = providedToken; // last resort: token minted by the main window
-      } else {
+      if (!token) {
         const msg = `Could not obtain a LiveKit token: ${err && err.message ? err.message : err}`;
         console.error("[connectToMeeting]", msg);
         setConnectionError(msg);
@@ -416,14 +430,34 @@ export function useLiveKitRoom() {
     // Create Room and wire event handlers
     const newRoom = new Room();
     setLkRoom(newRoom);
+    const getRemoteParticipantName = (participant) =>
+      remoteDisplayNames.get(participant.identity) ||
+      remoteParticipantTileName(participant.name, participant.identity);
+    const displayNameToAnnounce = normalizeDisplayName(displayName);
+    const announceDisplayName = async () => {
+      if (!displayNameToAnnounce || !newRoom.localParticipant.identity) return;
+      try {
+        await newRoom.localParticipant.publishData(
+          new TextEncoder().encode(
+            JSON.stringify({
+              type: "PARTICIPANT_DISPLAY_NAME",
+              name: displayNameToAnnounce,
+            })
+          ),
+          { reliable: true, topic: "vt-display-name" }
+        );
+      } catch (err) {
+        console.error("[connectToMeeting] could not announce display name:", err);
+      }
+    };
 
     // ---- Remote tracks subscribed ----
     newRoom.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
       const isScreen = publication.source === Track.Source.ScreenShare;
       const id = isScreen ? `${participant.identity}-screen` : participant.identity;
       const name = isScreen
-        ? `${participant.name || participant.identity}'s Screen`
-        : participant.name || participant.identity;
+        ? `${getRemoteParticipantName(participant)}'s Screen`
+        : getRemoteParticipantName(participant);
 
       if (track.kind === Track.Kind.Video) {
         // UPSERT: ParticipantConnected may have already added this identity —
@@ -490,7 +524,7 @@ export function useLiveKitRoom() {
           ...prev,
           {
             id: participant.identity,
-            name: participant.name || participant.identity,
+            name: getRemoteParticipantName(participant),
             isLocal: false,
             videoTrack: null,
             audioTrack: null,
@@ -500,11 +534,14 @@ export function useLiveKitRoom() {
       // Someone who joins mid-recording has to be told too — otherwise they
       // are recorded from the first second without ever seeing a notice.
       replayRecordingNoticesTo(participant);
+      // Re-send our display label so a late joiner learns it immediately.
+      void announceDisplayName();
     });
 
     // ---- Participant disconnected ----
     newRoom.on(RoomEvent.ParticipantDisconnected, (participant) => {
       // Their <audio> elements must go, otherwise a stale voice keeps playing.
+      remoteDisplayNames.delete(participant.identity);
       detachParticipantAudio(participant.identity);
       updateParticipants((prev) =>
         prev.filter(
@@ -541,7 +578,7 @@ export function useLiveKitRoom() {
         updateParticipants((prev) => {
           const entry = {
             id: "local",
-            name: "You (Local)",
+            name: localName,
             isLocal: true,
             videoTrack: publication.track,
           };
@@ -606,6 +643,23 @@ export function useLiveKitRoom() {
     newRoom.on(RoomEvent.DataReceived, (payload, participant) => {
       try {
         const data = JSON.parse(new TextDecoder().decode(payload));
+        if (data.type === "PARTICIPANT_DISPLAY_NAME" && participant?.identity) {
+          const name = normalizeDisplayName(data.name);
+          if (name) {
+            // Attribute the untrusted display label to LiveKit's packet sender,
+            // never to an identity claimed inside the message.
+            remoteDisplayNames.set(participant.identity, name);
+            updateParticipants((prev) =>
+              prev.map((entry) =>
+                entry.id === participant.identity
+                  ? { ...entry, name }
+                  : entry.id === `${participant.identity}-screen`
+                    ? { ...entry, name: `${name}'s Screen` }
+                    : entry
+              )
+            );
+          }
+        }
         if (data.type === "RAISE_HAND") {
           setRaisedHands((prev) => [...new Set([...prev, data.identity])]);
         }
@@ -657,16 +711,17 @@ export function useLiveKitRoom() {
       remoteRecordings.clear();
       refreshRemoteRecording();
       activeRecordingNotices.clear();
-      setConnectionError(
-        `Disconnected from the meeting${reason ? ` (${reason})` : ""}. ` +
-        "If this happened right after another device joined, both may share the same " +
-        "identity — LiveKit kicks the older connection."
-      );
+      // `reason` is LiveKit's numeric DisconnectReason; describeDisconnect maps
+      // it to words and adds the shared-identity guidance, which is the one
+      // cause a user can actually act on (one invite link used by several
+      // people, or the same profile open on two devices).
+      setConnectionError(describeDisconnect(reason));
     });
 
     // ---- Connect ----
     try {
       await newRoom.connect(LIVEKIT_URL, token);
+      await announceDisplayName();
     } catch (err) {
       const msg = `Failed to connect to the LiveKit server (${LIVEKIT_URL}): ${err && err.message ? err.message : err}`;
       console.error("[connectToMeeting]", msg);

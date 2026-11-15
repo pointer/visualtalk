@@ -1,10 +1,9 @@
 use crate::token;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_store::StoreExt; // Assuming your token module is imported at the root
                                   // use tauri_plugin_opener::StoreExt;
-use chrono::{Local, NaiveDate, NaiveTime, TimeZone, Utc};
+use chrono::{NaiveDate, NaiveTime};
 use icalendar::{Calendar, Component, Event, EventLike, Property};
 use std::fs;
 
@@ -15,8 +14,11 @@ use std::fs;
 // `generate_handler!` table because Tauri v2 overwrites (not extends)
 // `Builder::invoke_handler`, so it can only be installed once.
 pub mod devices;
+pub mod invitees;
+pub mod invites;
 pub mod layout;
 pub mod meeting;
+pub mod messaging;
 pub mod participants;
 pub mod profile;
 pub mod safety;
@@ -33,6 +35,13 @@ pub struct LiveKitSettings {
     pub api_key: String,
     pub api_secret: String,
     pub identity: String, // The user's display name/ID
+    /// Optional external guest-token issuer (`packages/guest-token-issuer`,
+    /// ADR 0006). Empty — the default — means the app mints a signed LiveKit
+    /// token per guest and every invite link admits exactly one guest. Set, it
+    /// means invites carry a capability that each guest redeems for their own
+    /// short-lived token, so one link can be shared with a group.
+    #[serde(default)]
+    pub token_issuer_url: String,
 }
 
 /// Store file holding the user's own LiveKit server configuration.
@@ -44,8 +53,7 @@ pub struct LiveKitSettings {
 pub(crate) const STORE_FILE: &str = "livekit.json";
 pub(crate) const SETTINGS_KEY: &str = "livekit_config";
 
-// The payload we will send back to SolidJS.
-// `meeting_invite_link` is generated server-side, so requests may omit it.
+// The payload used to create an iCalendar event.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ICalendarEvent {
     pub ics_id: String,
@@ -63,81 +71,39 @@ pub struct ICalendarEvent {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ParsedInvite {
-    pub url: String,
-    pub room: String,
-    pub token: String,
-}
-// The payload we will send back to SolidJS
-#[derive(Debug, Serialize, Deserialize)]
-pub struct MeetingInvite {
-    pub room: String,
-    pub title: String,
-    #[serde(default)]
-    pub invite_link: String,
-}
-#[derive(Debug, Serialize, Deserialize)]
 pub struct HostMeetingData {
     pub url: String,
     pub token: String,
 }
 
-#[tauri::command]
-pub async fn create_meeting_invite(
-    app: AppHandle,
-    meeting: MeetingInvite,
-) -> Result<MeetingInvite, String> {
-    // 1. Load Host Settings (API Keys & URL)
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-    let value = store
-        .get(SETTINGS_KEY)
-        .ok_or("LiveKit settings not found. Please configure API keys in Settings first.")?;
-    let settings: LiveKitSettings = serde_json::from_value(value).map_err(|e| e.to_string())?;
-
-    // 2. Use the requested Room Code if provided, else generate a random one
-    //    (e.g., room-7137)
-    let room = if meeting.room.trim().is_empty() {
-        let random_id = rand::random::<u16>() % 10000;
-        format!("room-{}", random_id)
-    } else {
-        meeting.room.trim().to_string()
-    };
-    let title = meeting.title;
-
-    // 3. Generate the Guest Token using YOUR existing module!
-    // Identity is "guest", validity is 86400 seconds (24 hours)
-    let guest_token = token::generate_token(
-        &settings.api_key,
-        &settings.api_secret,
-        "guest",
-        &room,
-        86400,
-    )
-    .map_err(|e| format!("Token generation failed: {}", e))?;
-
-    // 4. Package it into a deep link / invite URL
-    // We use URL encoding so the JWT doesn't break the URL string
-    let encoded_token = urlencoding::encode(&guest_token);
-    let encoded_url = urlencoding::encode(&settings.url);
-
-    // Format: visualtalk://join?room=room-7137&url=wss%3A...&token=eyJ...
-    let invite_link = format!(
-        "visualtalk://join?room={}&url={}&token={}",
-        room, encoded_url, encoded_token
-    );
-
-    // 5. Return to SolidJS
-    Ok(MeetingInvite {
-        room,
-        title,
-        invite_link,
-    })
+/// What `load_settings` returns to the webview: everything except the secret.
+///
+/// The API secret is only ever read by Rust (token signing, egress, invites),
+/// so it must not cross the IPC boundary back into JavaScript — see
+/// `docs/decisions/0004-individual-livekit-invites.md`. This mirrors how
+/// `MessagingSettingsResponse` reports the SMTP password and Twilio token as
+/// booleans instead of values.
+#[derive(Debug, Serialize)]
+pub struct LiveKitSettingsView {
+    pub url: String,
+    pub api_key: String,
+    pub identity: String,
+    pub api_secret_configured: bool,
 }
 
 // 1. Save Settings
 #[tauri::command]
 pub async fn save_settings(app: AppHandle, settings: LiveKitSettings) -> Result<(), String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
+    // The form never receives the stored secret back, so it submits an empty
+    // one when the user only edited the URL/key/identity: keep what is stored.
+    let stored_secret = store
+        .get(SETTINGS_KEY)
+        .and_then(|value| serde_json::from_value::<LiveKitSettings>(value).ok())
+        .map(|stored| stored.api_secret);
+    let mut settings = settings;
+    settings.api_secret = resolve_api_secret(stored_secret.as_deref(), &settings.api_secret)?;
+
     store.set(SETTINGS_KEY, serde_json::to_value(&settings).unwrap());
     store.save().map_err(|e| e.to_string())?;
     Ok(())
@@ -145,62 +111,35 @@ pub async fn save_settings(app: AppHandle, settings: LiveKitSettings) -> Result<
 
 // 2. Load Settings
 #[tauri::command]
-pub async fn load_settings(app: AppHandle) -> Result<Option<LiveKitSettings>, String> {
+pub async fn load_settings(app: AppHandle) -> Result<Option<LiveKitSettingsView>, String> {
     let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
     match store.get(SETTINGS_KEY) {
         Some(value) => {
             let settings: LiveKitSettings =
                 serde_json::from_value(value).map_err(|e| e.to_string())?;
-            Ok(Some(settings))
+            Ok(Some(LiveKitSettingsView {
+                api_secret_configured: !settings.api_secret.trim().is_empty(),
+                url: settings.url,
+                api_key: settings.api_key,
+                identity: settings.identity,
+            }))
         }
         None => Ok(None),
     }
 }
 
-// Helper function to generate the magic link (DRY - Don't Repeat Yourself)
-pub(crate) fn generate_magic_link(
-    settings: &LiveKitSettings,
-    room: &str,
-) -> Result<String, String> {
-    // Generate 24h guest token
-    let guest_token = token::generate_token(
-        &settings.api_key,
-        &settings.api_secret,
-        "guest",
-        room,
-        86400,
-    )
-    .map_err(|e| format!("Token generation failed: {}", e))?;
-
-    let encoded_token = urlencoding::encode(&guest_token);
-    let encoded_url = urlencoding::encode(&settings.url);
-
-    Ok(format!(
-        "visualtalk://join?room={}&url={}&token={}",
-        room, encoded_url, encoded_token
-    ))
-}
-
-// Get Meeting Invite (For your PMI / Instant meetings)
-#[tauri::command]
-pub async fn get_meeting_invite(app: AppHandle, room: String) -> Result<String, String> {
-    // Load settings
-    let store = app.store(STORE_FILE).map_err(|e| e.to_string())?;
-    let value = store
-        .get(SETTINGS_KEY)
-        .ok_or("LiveKit settings not configured.")?;
-    let settings: LiveKitSettings = serde_json::from_value(value).map_err(|e| e.to_string())?;
-
-    // Generate magic link for the PMI room
-    let invite_link = generate_magic_link(&settings, &room)?;
-
-    // Format it nicely for clipboard copying
-    let invite_text = format!(
-        "Join my VisualTalk meeting!\nRoom: {}\nLink: {}",
-        room, invite_link
-    );
-
-    Ok(invite_text)
+/// Uses the submitted secret, or keeps the stored one when the submission is
+/// blank. Never resolves to an empty secret: signing would then fail later,
+/// far from the field the user actually left empty.
+fn resolve_api_secret(stored: Option<&str>, submitted: &str) -> Result<String, String> {
+    if !submitted.trim().is_empty() {
+        return Ok(submitted.trim().to_string());
+    }
+    stored
+        .map(str::trim)
+        .filter(|secret| !secret.is_empty())
+        .map(str::to_string)
+        .ok_or_else(|| "Enter the LiveKit API secret; none is stored yet.".to_string())
 }
 
 #[tauri::command]
@@ -230,41 +169,6 @@ pub async fn get_host_meeting_data(
         url: settings.url,
         token: host_token,
     })
-}
-
-#[tauri::command]
-pub fn parse_invite_link(invite_link: String) -> Result<ParsedInvite, String> {
-    // 1. Basic validation
-    if !invite_link.starts_with("visualtalk://join?") {
-        return Err("Invalid invite link format. Must start with visualtalk://join?".to_string());
-    }
-
-    // 2. Extract the query string (everything after the '?')
-    let query_str = invite_link
-        .split('?')
-        .nth(1)
-        .ok_or("Missing query parameters")?;
-
-    // 3. Parse the parameters (room, url, token)
-    let params: HashMap<String, String> = url::form_urlencoded::parse(query_str.as_bytes())
-        .into_owned()
-        .collect();
-
-    // 4. Extract and validate required fields
-    let url = params
-        .get("url")
-        .ok_or("Missing LiveKit URL in invite")?
-        .clone();
-    let room = params
-        .get("room")
-        .ok_or("Missing Room ID in invite")?
-        .clone();
-    let token = params
-        .get("token")
-        .ok_or("Missing Guest Token in invite")?
-        .clone();
-
-    Ok(ParsedInvite { url, room, token })
 }
 
 #[tauri::command]
@@ -332,4 +236,39 @@ pub async fn create_icalendar_event(app: AppHandle, ics: ICalendarEvent) -> Resu
         .map_err(|e| format!("Failed to write .ics file: {}", e))?;
 
     Ok(ics_path.to_string_lossy().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn blank_submission_keeps_the_stored_api_secret() {
+        assert_eq!(
+            resolve_api_secret(Some("stored-secret"), "").unwrap(),
+            "stored-secret"
+        );
+        assert_eq!(
+            resolve_api_secret(Some("stored-secret"), "   ").unwrap(),
+            "stored-secret"
+        );
+    }
+
+    #[test]
+    fn submitted_secret_replaces_the_stored_one_and_is_trimmed() {
+        assert_eq!(
+            resolve_api_secret(Some("old-secret"), " new-secret ").unwrap(),
+            "new-secret"
+        );
+        assert_eq!(
+            resolve_api_secret(None, "new-secret").unwrap(),
+            "new-secret"
+        );
+    }
+
+    #[test]
+    fn a_blank_secret_is_rejected_instead_of_being_saved_empty() {
+        assert!(resolve_api_secret(None, "").is_err());
+        assert!(resolve_api_secret(Some("   "), " ").is_err());
+    }
 }

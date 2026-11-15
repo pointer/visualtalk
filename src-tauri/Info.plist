@@ -6,6 +6,28 @@
     <string>VisualTalk needs access to your camera for video calls.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>VisualTalk needs access to your microphone for audio communication.</string>
+    <key>NSContactsUsageDescription</key>
+    <string>VisualTalk accesses contacts only when you choose contacts to invite to a meeting.</string>
+
+    <!-- Invite links: `visualtalk://join?…` opens the app instead of forcing the
+         guest to copy-paste (ADR 0007). Both macOS and iOS read this key;
+         tauri.conf.json (plugins.deep-link) covers Windows/Linux registration
+         and scripts/fix-android-project.py adds the Android intent-filter —
+         all four must name the same scheme. A custom scheme can be registered
+         by any other app, so the Join dialog still shows the room and asks for
+         a name before connecting, and nothing here bypasses LiveKit's own
+         token validation. -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.katebg.visualtalk.invite</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>visualtalk</string>
+            </array>
+        </dict>
+    </array>
 
     <!--
       NOTE: tauri.conf.json points BOTH bundle.macOS.infoPlist and

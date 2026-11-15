@@ -40,6 +40,16 @@ ALLOWLIST = (
     "docker/Dockerfile",
     "docker/.env.example",
     "scripts/livekit-local.py",
+    # Guest token issuer (opt-in `issuer` profile). The compose file builds it
+    # from the repository root as context, so the pnpm workspace files its
+    # Dockerfile copies must ship too — without them `docker compose build`
+    # fails for everyone who unpacks this bundle.
+    "packages/guest-token-issuer/Dockerfile",
+    "packages/guest-token-issuer/package.json",
+    "packages/guest-token-issuer/src/server.js",
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
 )
 
 # Rendered from this template into the bundle's top-level README.md.

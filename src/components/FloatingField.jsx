@@ -44,6 +44,8 @@ export function FloatingField(props) {
                         value={props.value ?? ""}
                         placeholder={props.placeholder}
                         readOnly={props.readOnly}
+                        autocomplete={props.autocomplete}
+                        inputmode={props.inputmode}
                         autofocus={props.autofocus}
                         onInput={handleInput}
                         {...focusProps}
@@ -57,6 +59,8 @@ export function FloatingField(props) {
                     value={props.value ?? ""}
                     placeholder={props.placeholder}
                     readOnly={props.readOnly}
+                    autocomplete={props.autocomplete}
+                    inputmode={props.inputmode}
                     autofocus={props.autofocus}
                     onInput={handleInput}
                     {...focusProps}

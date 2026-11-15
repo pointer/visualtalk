@@ -1,11 +1,14 @@
-import { createSignal, Show } from 'solid-js';
+import { createEffect, createSignal, Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
 import { useI18n } from '../i18n/I18nProvider';
+import { normalizeDisplayName } from '../lib/participantNames';
+import { consumePendingInviteLink } from '../lib/deepLink';
 
-export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
+export default function JoinMeetingModal(props) {
+    const { onClose, onJoinSuccess } = props;
     const { t } = useI18n();
     const [step, setStep] = createSignal('paste'); // 'paste' or 'details'
-    const [inviteLink, setInviteLink] = createSignal('');
+    const [inviteLink, setInviteLink] = createSignal(props.initialLink || '');
     const [parsedData, setParsedData] = createSignal(null);
     const [guestName, setGuestName] = createSignal('');
     const [loading, setLoading] = createSignal(false);
@@ -30,26 +33,79 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
         }
     };
 
+    // A link that arrived from the OS — clicked in a mail app, browser or chat —
+    // is parsed straight away, and again if another one arrives while this dialog
+    // is open. Parsing only decodes the room and the credential: the guest still
+    // sees the room code and types a name before anything connects, which is the
+    // one defence against another app registering our scheme (ADR 0007).
+    let autoParsedLink = '';
+    createEffect(() => {
+        const link = props.initialLink;
+        if (!link || link === autoParsedLink) return;
+        autoParsedLink = link;
+        consumePendingInviteLink();
+        setInviteLink(link);
+        handleParseLink();
+    });
+
     // Step 2: Final Join Action
-    const handleFinalJoin = () => {
+    const handleFinalJoin = async () => {
         if (!guestName().trim()) {
             setError(t("joinMeeting.enterName"));
             return;
         }
+        const displayName = normalizeDisplayName(guestName());
+        if (!displayName) {
+            setError(t("joinMeeting.invalidName"));
+            return;
+        }
 
         const data = parsedData();
-        if (!data) return;
+        if (!data) {
+            setError(t("joinMeeting.legacyInvite"));
+            return;
+        }
 
-        // Pass the clean data up to the parent component (MainWindow)
-        // The parent will handle opening the actual meeting window
-        onJoinSuccess({
-            url: data.url,
-            token: data.token,
-            room: data.room,
-            identity: guestName().trim()
-        });
+        setLoading(true);
+        setError('');
+        try {
+            let token = data.token;
+            let identity = data.identity;
 
-        onClose();
+            if (!token || !identity) {
+                // Issuer-backed invite (ADR 0006): redeem the capability now so
+                // this guest receives their own identity instead of sharing the
+                // link's — that sharing is what makes LiveKit disconnect the
+                // earlier guest (DUPLICATE_IDENTITY). The chosen display name
+                // travels with the request and is written into the token.
+                if (!data.issuer_url || !data.invite_capability) {
+                    setError(t("joinMeeting.legacyInvite"));
+                    return;
+                }
+                const issued = await invoke('exchange_invite_for_token', {
+                    issuerUrl: data.issuer_url,
+                    inviteCapability: data.invite_capability,
+                    displayName,
+                });
+                token = issued.token;
+                identity = issued.identity;
+            }
+
+            // The token's identity is immutable; the chosen name is a separate
+            // display label shared after connecting.
+            await onJoinSuccess({
+                url: data.url,
+                token,
+                room: data.room,
+                identity,
+                displayName,
+            });
+            onClose();
+        } catch (err) {
+            setError(err.toString().replace('Error: ', ''));
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -93,6 +149,9 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
                             <div class="bg-[#0f0f0f] p-4 rounded-xl border border-[#2a2a2a] flex flex-col gap-1">
                                 <span class="text-xs text-gray-500 uppercase tracking-wider font-semibold">{t("joinMeeting.room")}</span>
                                 <span class="text-white font-mono text-lg">{parsedData()?.room}</span>
+                                <Show when={parsedData()?.issuer_url}>
+                                    <span class="text-xs text-gray-500">{t("joinMeeting.sharedInviteNote")}</span>
+                                </Show>
                             </div>
 
                             <div class="flex flex-col gap-2 mt-2">
@@ -101,6 +160,7 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
                                     type="text"
                                     value={guestName()}
                                     onInput={(e) => setGuestName(e.currentTarget.value)}
+                                    maxlength="80"
                                     class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-xl p-3 text-white outline-none focus:border-blue-500 transition-colors"
                                     placeholder="e.g. Jane Doe"
                                     autofocus
@@ -141,10 +201,10 @@ export default function JoinMeetingModal({ onClose, onJoinSuccess }) {
                         </button>
                         <button
                             onClick={handleFinalJoin}
-                            disabled={!guestName().trim()}
+                            disabled={loading() || !guestName().trim()}
                             class="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-semibold transition-all active:scale-95"
                         >
-                            {t("joinMeeting.joinNow")}
+                            {loading() ? t("joinMeeting.connecting") : t("joinMeeting.joinNow")}
                         </button>
                     </Show>
                 </div>

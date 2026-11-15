@@ -51,7 +51,7 @@ cargo test                # run Rust tests
   `visualtalk.app/downloads/` with published SHA-256 sums. The procedure, the
   current signing status and the gotchas recorded from real releases live in
   [`docs/desktop-release-runbook.md`](./docs/desktop-release-runbook.md).
-- Android toolchain: NDK r23+ dropped the target-prefixed binutils, so the vendored OpenSSL Makefile cannot find `<triple>-ranlib` and dies with `make: *** [install_dev] Error 127`. Every `android:*` script and the CI android job therefore `eval "$(python3 scripts/android-toolchain-env.py)"` first, which exports `RANLIB_<target>` pointing at the NDK's `llvm-ranlib` (resolved from `ANDROID_HOME`, newest NDK). If an android build hits that error, the wiring or `ANDROID_HOME` is missing. `src-tauri/gen/android` is generated, gitignored, and patched by `fix-android-project.py` (upload-key signing + WebView media permissions); regenerate with `pnpm android:init`.
+- Android toolchain: NDK r23+ dropped the target-prefixed binutils, so OpenSSL/native dependencies cannot find `<triple>-ar` or `<triple>-ranlib`. Every `android:*` script and the CI android job therefore `eval "$(python3 scripts/android-toolchain-env.py)"` first, which maps `AR` / `AR_<target>` and `RANLIB_<target>` to the NDK's `llvm-ar` / `llvm-ranlib` (resolved from `ANDROID_HOME`, newest NDK). `src-tauri/gen/android` is generated, gitignored, and patched by `fix-android-project.py` (upload-key signing + WebView media permissions); regenerate with `pnpm android:init`.
 - **Never build or Run this project from Android Studio.** Studio's Gradle builds the same `gen/android` without Tauri's `custom-protocol` feature, installs a dev-mode APK that points the WebView at `http://localhost:1420` (white/black screen, "Failed to request …"), and writes dev-mode artifacts into the shared `src-tauri/target/<abi>/debug`, which a later CLI build can ship. It has overwritten a good CLI install twice during the 2026-11-07 session. Recovery: quit Studio, `adb uninstall com.katebg.visualtalk`, `cargo clean -p visualtalk`, rebuild via `pnpm android:*`, reinstall.
 - Android/iOS are single-Activity: Tauri cannot spawn a second window there, and the one `spawn_meeting_window` creates never surfaces (ghost behind the dashboard). `App.jsx` therefore renders `MeetingView` **in place** when `IS_MOBILE`, and leaving uses `leaveCall({ keepWindowOpen: true })` plus `onExit` back to the dashboard — closing the only window would quit the app.
 - **iOS dev on a physical device needs `TAURI_DEV_HOST`.** With a connected
@@ -94,7 +94,7 @@ src-tauri/
     lib.rs                # app setup, plugins, the ONE generate_handler! table
     commands.rs           # invite / LiveKit-store commands + declares commands/
     commands/             # #[tauri::command] wrappers grouped by domain:
-                          #   meeting profile schedule safety participants
+                          #   meeting invites profile schedule safety participants
                           #   devices layout translation(Pro) system
     ai.rs                 # OpenAI-compatible LLM client (ask_ai)
     chat.rs  meeting.rs  participant.rs  session.rs  token.rs
@@ -164,6 +164,7 @@ State lives in Solid signals/stores owned by `App.jsx` / `MainWindow.jsx` / `Mee
 ## 6. Tauri v2 / macOS specifics
 
 - **Camera & microphone** require the `NSCameraUsageDescription` / `NSMicrophoneUsageDescription` usage strings in `src-tauri/Info.plist` (and `Info-pro.plist` for Pro), the matching macOS sandbox entitlements in `Entitlements.plist`, and the webview capability to use the media-devices API. Keep these in sync across `Info*.plist`, `Entitlements.plist`, `capabilities/default.json`, and `tauri.conf.json`/`tauri.pro.conf.json` — drift here is the usual cause of permission failures.
+- **Deep links:** the `visualtalk://` invite scheme is declared in four places that must agree — `tauri.conf.json` (`plugins.deep-link`), `Info.plist` and `Info-pro.plist` (`CFBundleURLTypes`), and the Android intent-filter patched by `scripts/fix-android-project.py`. On desktop, `tauri-plugin-single-instance` must be registered **before every other plugin** (its `deep-link` feature forwards the URL), or a clicked link opens a second app instance on Windows/Linux. See `docs/decisions/0007-clickable-invite-links.md`.
 - **Sandbox:** if sandboxing is enabled, confirm the entitlements allow the access the feature needs before adding new file-system or device access.
 - **LiveKit:** wrap all LiveKit client calls in `src/lib/` so the rest of the app doesn't depend on the SDK directly. Always clean up tracks/participants on unmount.
 - **Security:** never hardcode secrets/tokens in the frontend. Keep API keys in Rust and expose them through commands if needed. The CSP is defined as an object under `app.security.csp` in `src-tauri/tauri.conf.json` — that file is the only source of truth; don't paste CSP strings elsewhere, and keep `media-src` (`blob:`, `mediastream:`) and `connect-src` (`wss:`, `ipc:`) entries intact or LiveKit and the Tauri IPC bridge break.

@@ -95,12 +95,14 @@ never paste it into chats, screenshots or emails.
 
 | Path | Purpose |
 | --- | --- |
-| `docker/docker-compose.yml` | livekit + redis, plus `recording` and `translation` profiles |
+| `docker/docker-compose.yml` | livekit + redis, plus `recording`, `translation`, `messaging` and `issuer` profiles |
 | `docker/compose.host.yml` | host-networking overlay for LAN use |
 | `docker/livekit.yaml`, `docker/egress.yaml` | server and recorder configuration |
 | `docker/Dockerfile` | auditable source build of the pinned LiveKit server |
 | `docker/.env.example` | every tunable, with defaults and comments |
 | `scripts/livekit-local.py` | up / down / restart / status / logs / creds / smoke |
+| `packages/guest-token-issuer/` | source of the optional guest-token issuer used by the `issuer` profile |
+| `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` | what that container's image build needs; not used by anything else here |
 | `README.md` | this file |
 
 Recordings land in `docker/recordings/` on this machine and nowhere else.
@@ -112,6 +114,39 @@ authentication**, so keep it loopback-bound, and note it translates into
 **English only** — captions in other target languages are not supported by this
 service. Details and measured limits: the contract document in the VisualTalk
 source repository.
+
+## Sharing one invite link (issuer profile)
+
+By default VisualTalk signs a **separate invite link for each guest**, and a link
+admits exactly one person. If two guests use the same link they share one
+identity, and the meeting server keeps only the newest connection — everyone else
+is dropped.
+
+`--issuer` starts one extra container that lets you share a **single** link with a
+whole group instead. Each guest who opens it is given their own pass when they
+join, so nobody shares an identity:
+
+```bash
+python3 scripts/livekit-local.py up --issuer
+python3 scripts/livekit-local.py creds --issuer   # prints the URL to paste
+```
+
+Paste that URL into VisualTalk ▸ Settings ▸ LiveKit ▸ **Guest token issuer URL**.
+Leave the field empty to keep one link per guest.
+
+Your guests have to be able to reach that address:
+
+- **Only this computer** — the default `http://127.0.0.1:7883/v1/token` is fine.
+- **Phones and tablets on your Wi-Fi** — set `TOKEN_ISSUER_BIND_ADDR=0.0.0.0` in
+  `docker/.env`, run `restart --issuer`, and use this computer's Wi-Fi address
+  (`creds --issuer` prints it).
+- **Guests anywhere else** — put the container behind an HTTPS reverse proxy and
+  hand out that `https://…/v1/token` address. The app refuses a plain `http://`
+  issuer that is not on this machine or your local network, because the link and
+  the pass it returns would otherwise travel unencrypted.
+
+The issuer holds your LiveKit API key and secret so it can sign passes. Keep it
+on your own machine or your own server; it is not operated by VisualTalk.
 
 ## Privacy and support
 

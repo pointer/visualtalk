@@ -24,6 +24,7 @@ import { IS_MOBILE } from "./lib/platform";
 export function MeetingView(props) {
   const { t, locale } = useI18n();
   const { room: roomName, token, url, identity } = props.meetingData;
+  const displayName = props.meetingData.displayName || identity;
 
   // ---- UI state (owned by this component) ----
   const [preJoin, setPreJoin] = createSignal(true);
@@ -151,6 +152,7 @@ export function MeetingView(props) {
     try {
       await room.connectToMeeting({
         identity,
+        displayName: props.meetingData.displayName,
         roomName,
         micId: media.selectedMic(),
         camId: media.selectedCam(),
@@ -246,7 +248,7 @@ export function MeetingView(props) {
         recordingId: activeRecordingId,
         mode: mode || "local",
         startedBy: identity,
-        name: identity,
+        name: displayName,
       });
     }
     activeRecordingId = null;
@@ -271,7 +273,7 @@ export function MeetingView(props) {
       recordingId: id,
       mode: "local",
       startedBy: identity,
-      name: identity,
+      name: displayName,
     });
   };
 
@@ -296,7 +298,7 @@ export function MeetingView(props) {
                 </Show>
                 <div class="text-xs sm:text-sm text-gray-400">#{roomName}</div>
               </div>
-              <span class="text-sm text-gray-400">{t("meeting.joinedAs")} {identity}</span>
+              <span class="text-sm text-gray-400">{t("meeting.joinedAs")} {displayName}</span>
             </header>
 
             {/* Recording notice. Shown to every participant — including the one
@@ -343,7 +345,7 @@ export function MeetingView(props) {
             <ChatPanel
               room={room.lkRoom()}
               onClose={toggleChat}
-              displayName={identity}
+              displayName={displayName}
               onE2EEStatus={setE2eeActive}
               onBlocked={(list) => room.setBlockedIdentities(list)}
             />

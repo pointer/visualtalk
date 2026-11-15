@@ -8,7 +8,15 @@ server and **no** embedded credentials.
 | Credential | Where it lives | Never in |
 |---|---|---|
 | LiveKit URL / API key / API secret | Tauri store: `livekit.json` in the OS app-config dir, entered via **Settings → LiveKit** | source code, `.env`, CI config, commits |
+| SMTP password / Twilio auth token | OS credential store (`keyring`, service `com.katebg.visualtalk.messaging`) | settings JSON, the webview, commits |
 | AI assistant API key | App settings; optional `AI_API_KEY` env for local dev only | commits |
+
+The LiveKit API secret is read by Rust only (token signing, egress, invites):
+`load_settings` returns a `LiveKitSettingsView` that reports *whether* a secret
+is stored, never the value, and saving with that field blank keeps the stored
+one. Likewise `MessagingSettingsResponse` reports the SMTP/Twilio credentials as
+booleans. Keep it that way — a secret that reaches the webview can reach logs,
+devtools and screenshots.
 
 Rules for contributors:
 
@@ -25,7 +33,9 @@ Rules for contributors:
    git config core.hooksPath scripts/git-hooks
    ```
 
-   Do not bypass it with `--no-verify`.
+   Do not bypass it with `--no-verify`. A proven false positive (a unit-test
+   fixture, for example) belongs in the repo-local `.gitleaks.toml` allowlist —
+   extend it with an exact literal, never with a path or a broad pattern.
 
    The same hook also blocks a staged `src-tauri/src/e2ee.rs` that holds the Pro
    E2EE implementation: that path is tracked in this public repository and must
@@ -36,6 +46,16 @@ Rules for contributors:
 4. Signing secrets must never be compiled into a shipped binary — they are
    recoverable by anyone with `strings`. Token minting for a distributed
    build belongs on a server the user controls.
+5. The optional guest-token issuer (`packages/guest-token-issuer`, Docker
+   `issuer` profile, ADR 0006) is the only place the LiveKit API secret lives
+   outside the organizer's app. Treat it accordingly: keep it loopback-bound or
+   on a trusted network, terminate TLS in front of it for any remote guest, and
+   remember an invitation capability is a **bearer credential** — it is capped
+   per invitation (50 participants) and rate limited (30 requests/min/address),
+   but it cannot be revoked before it expires. The app refuses `http://` issuer
+   URLs that are not loopback, `localhost` or RFC 1918
+   (`validate_token_issuer_url`). Never widen `TOKEN_ISSUER_BIND_ADDR` on a
+   machine you do not control.
 
 ## If a secret is ever committed
 

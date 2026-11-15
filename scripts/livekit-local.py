@@ -3,8 +3,8 @@
 livekit-local.py — Python management script for VisualTalk's self-hosted LiveKit stack.
 
 Usage:
-    python3 scripts/livekit-local.py up [--recording] [--translation] [--host]
-    python3 scripts/livekit-local.py restart [--recording] [--translation] [--host]
+    python3 scripts/livekit-local.py up [--recording] [--translation] [--messaging] [--issuer] [--host]
+    python3 scripts/livekit-local.py restart [--recording] [--translation] [--messaging] [--issuer] [--host]
     python3 scripts/livekit-local.py smoke [--recording]
     python3 scripts/livekit-local.py down
     python3 scripts/livekit-local.py status
@@ -31,6 +31,14 @@ ENV_EXAMPLE = os.path.join(DOCKER_DIR, ".env.example")
 RECORDINGS_DIR = os.path.join(DOCKER_DIR, "recordings")
 SERVER_CONTAINER = "visualtalk-livekit"
 EGRESS_CONTAINER = "visualtalk-egress"
+# Local SMTP sink (mailpit) for VisualTalk's invitation emails - opt-in via the
+# "messaging" compose profile. Its STARTTLS certificate lives here, git-ignored.
+MAILPIT_CONTAINER = "visualtalk-mailpit"
+MAILPIT_DIR = os.path.join(DOCKER_DIR, "mailpit")
+MAILPIT_CERT = os.path.join(MAILPIT_DIR, "localhost.crt")
+MAILPIT_KEY = os.path.join(MAILPIT_DIR, "localhost.key")
+# Guest token issuer (ADR 0006): one shared invite link, one identity per guest.
+ISSUER_CONTAINER = "visualtalk-guest-token-issuer"
 # How the docs and these messages tell the user to invoke us.
 SELF = "python3 scripts/livekit-local.py"
 
@@ -58,8 +66,102 @@ def ensure_env():
         os.chmod(ENV_FILE, 0o600)
 
 
+def ensure_mailpit_cert():
+    """Create the self-signed STARTTLS certificate the mail sink needs.
+
+    VisualTalk's SMTP transport is STARTTLS-*required* (lettre's
+    `starttls_relay` sets `Tls::Required`) and validates the certificate
+    against the host in Settings -> Invitations, so mailpit cannot serve
+    without one. 825 days is Apple's maximum for trusted leaf certificates;
+    the SAN matters more than the CN - macOS ignores a CN-only certificate.
+
+    Returns True when a new certificate was generated.
+    """
+    os.makedirs(MAILPIT_DIR, exist_ok=True)
+    if os.path.exists(MAILPIT_CERT) and os.path.exists(MAILPIT_KEY):
+        return False
+    if not shutil.which("openssl"):
+        die("openssl not found, but the mail sink needs a STARTTLS certificate "
+            "(macOS: brew install openssl; Debian/Ubuntu: apt install openssl)")
+    log("generating a self-signed STARTTLS certificate in docker/mailpit/ ...")
+    # capture_output: openssl prints key-generation progress dots to stderr,
+    # which would otherwise bury the message below. run_cmd still surfaces
+    # stderr if the command fails.
+    run_cmd(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+             "-keyout", MAILPIT_KEY, "-out", MAILPIT_CERT,
+             "-days", "825", "-subj", "/CN=localhost",
+             "-addext", "subjectAltName=DNS:localhost,DNS:mailpit,IP:127.0.0.1"],
+            capture_output=True)
+    os.chmod(MAILPIT_KEY, 0o600)
+    return True
+
+
+def wait_port(host, port, limit=30):
+    """Block until something accepts TCP connections on host:port."""
+    for _ in range(limit):
+        if _port_open(host, int(port)):
+            return True
+        time.sleep(1)
+    return False
+
+
+def cmd_messaging_creds(args):
+    """Print what to paste into Settings -> Invitations for the local sink.
+
+    Deliberately never touches the OS trust store: adding a certificate is the
+    user's decision, so the command is printed instead of run.
+    """
+    vals = read_env()
+    smtp_port = vals.get("MAILPIT_SMTP_PORT", "1025")
+    ui_port = vals.get("MAILPIT_UI_PORT", "8025")
+    user, _, password = vals.get("MAILPIT_SMTP_AUTH", "dev:dev").partition(":")
+    cert_rel = os.path.relpath(MAILPIT_CERT, REPO_ROOT)
+
+    log("Invitation email settings for the local mail sink (Settings -> Invitations):")
+    print("  SMTP server:      localhost")
+    print(f"  SMTP port:        {smtp_port}")
+    print("  Security:         STARTTLS")
+    print(f"  Username:         {user}")
+    print(f"  Password:         {password or '(empty)'}")
+    print("  From address:     dev@visualtalk.local")
+    print("  From name:        VisualTalk")
+    print(f"  Read the mail:    http://127.0.0.1:{ui_port}")
+    log("One-time step: that certificate is self-signed, and the app requires")
+    log("STARTTLS, so the OS must trust it or every send fails validation:")
+    if not os.path.exists(MAILPIT_CERT):
+        warn(f"{os.path.relpath(MAILPIT_CERT, REPO_ROOT)} does not exist yet - "
+             f"start the stack once with: {SELF} up --messaging")
+    print("  macOS:    security add-trusted-cert -r trustRoot -p ssl \\")
+    print(f"              -k ~/Library/Keychains/login.keychain-db {cert_rel}")
+    print(f"  Linux:    sudo cp {cert_rel} /usr/local/share/ca-certificates/visualtalk-mailpit.crt")
+    print("              && sudo update-ca-certificates")
+    print(f"  Windows:  certutil -user -addstore Root {cert_rel.replace('/', os.sep)}")
+    log(f"Re-run this any time with: {SELF} creds --messaging")
+
+
+def cmd_issuer_creds(args):
+    """Print the guest-token-issuer URL to paste into Settings -> LiveKit."""
+    vals = read_env()
+    port = vals.get("TOKEN_ISSUER_PORT", "7883")
+    bind = vals.get("TOKEN_ISSUER_BIND_ADDR", "127.0.0.1")
+    node_ip = vals.get("LIVEKIT_NODE_IP", "127.0.0.1")
+    log("Guest token issuer (Settings -> LiveKit -> Guest token issuer URL):")
+    print(f"  this machine:     http://127.0.0.1:{port}/v1/token")
+    if node_ip not in ("127.0.0.1", "localhost"):
+        print(f"  LAN (phones):     http://{node_ip}:{port}/v1/token")
+    if bind == "127.0.0.1":
+        log("NOTE: bound to loopback - guests on other devices cannot reach it.")
+        log("      set TOKEN_ISSUER_BIND_ADDR=0.0.0.0 in docker/.env, then restart.")
+    log("Guests beyond this machine/network need an HTTPS URL: the app rejects")
+    log("http:// issuers that are not loopback or private-range addresses.")
+    log(f"Re-run this any time with: {SELF} creds --issuer")
+
+
 def cmd_up(args):
     ensure_env()
+    if getattr(args, "messaging", False):
+        # Must exist before compose mounts it read-only into the sink.
+        ensure_mailpit_cert()
     log("starting local LiveKit stack...")
     run_cmd(build_compose_cmd(args, ["up", "-d", "--remove-orphans"]))
     log("waiting for healthy state...")
@@ -67,6 +169,17 @@ def cmd_up(args):
         res = run_cmd(["docker", "inspect", "-f", "{{.State.Health.Status}}", "visualtalk-livekit"], check=False, capture_output=True)
         if res.returncode == 0 and res.stdout.strip() == "healthy": break
         time.sleep(1)
+    if getattr(args, "messaging", False):
+        vals = read_env()
+        if not wait_port("127.0.0.1", vals.get("MAILPIT_SMTP_PORT", "1025")):
+            warn(f"{MAILPIT_CONTAINER} is not accepting SMTP connections - see: {SELF} logs mailpit")
+        cmd_messaging_creds(args)
+    if getattr(args, "issuer", False):
+        # First run builds the image from packages/guest-token-issuer, so allow
+        # longer than the prebuilt images need.
+        if not wait_healthy(ISSUER_CONTAINER, limit=240):
+            warn(f"{ISSUER_CONTAINER} did not report healthy - see: {SELF} logs token-issuer")
+        cmd_issuer_creds(args)
 
 
 def cmd_down(args):
@@ -87,6 +200,8 @@ def wait_healthy(name, limit=120):
 
 def cmd_restart(args):
     ensure_env()
+    if getattr(args, "messaging", False):
+        ensure_mailpit_cert()
     log("recreating containers (picks up docker/*.yaml and docker/.env edits)")
     run_cmd(build_compose_cmd(args, ["up", "-d", "--force-recreate", "--remove-orphans"]))
     log("waiting for healthy state...")
@@ -152,6 +267,12 @@ def cmd_creds(args):
         log("         send media to their OWN loopback. Start with --host instead.")
     print(f"  LIVEKIT_API_KEY:         {vals.get('LIVEKIT_API_KEY')}")
     print(f"  LIVEKIT_API_SECRET:      {vals.get('LIVEKIT_API_SECRET')}")
+    if getattr(args, "messaging", False):
+        print()
+        cmd_messaging_creds(args)
+    if getattr(args, "issuer", False):
+        print()
+        cmd_issuer_creds(args)
 
 
 def _lk(lk_args):
@@ -329,12 +450,18 @@ def main():
     up_p = subparsers.add_parser("up")
     up_p.add_argument("-r", "--recording", action="store_true")
     up_p.add_argument("-t", "--translation", action="store_true")
+    up_p.add_argument("-m", "--messaging", action="store_true",
+                      help="also start the local mailpit SMTP sink for invitation emails")
+    up_p.add_argument("-i", "--issuer", action="store_true",
+                      help="also start the guest token issuer (shareable invite links)")
     up_p.add_argument("--host", action="store_true")
     # Same profile flags as `up`: restart recreates whatever the stack was started
     # with, so it has to be able to name the same profiles.
     restart_p = subparsers.add_parser("restart")
     restart_p.add_argument("-r", "--recording", action="store_true")
     restart_p.add_argument("-t", "--translation", action="store_true")
+    restart_p.add_argument("-m", "--messaging", action="store_true")
+    restart_p.add_argument("-i", "--issuer", action="store_true")
     restart_p.add_argument("--host", action="store_true")
     smoke_p = subparsers.add_parser("smoke", aliases=["test"])
     smoke_p.add_argument("-r", "--recording", action="store_true",
@@ -345,7 +472,11 @@ def main():
     logs_p = subparsers.add_parser("logs")
     logs_p.add_argument("-f", "--follow", action="store_true")
     logs_p.add_argument("service", nargs="?")
-    subparsers.add_parser("creds")
+    creds_p = subparsers.add_parser("creds")
+    creds_p.add_argument("-m", "--messaging", action="store_true",
+                         help="also print the Settings -> Invitations values for the mail sink")
+    creds_p.add_argument("-i", "--issuer", action="store_true",
+                         help="also print the guest token issuer URL for Settings -> LiveKit")
 
     args, extra = parser.parse_known_args()
     if args.command == "up": cmd_up(args)
@@ -368,6 +499,8 @@ def build_compose_cmd(args, extra_docker_args=None):
     if getattr(args, "host", False): cmd.extend(["-f", os.path.join(DOCKER_DIR, "compose.host.yml")])
     if getattr(args, "recording", False): cmd.extend(["--profile", "recording"])
     if getattr(args, "translation", False): cmd.extend(["--profile", "translation"])
+    if getattr(args, "messaging", False): cmd.extend(["--profile", "messaging"])
+    if getattr(args, "issuer", False): cmd.extend(["--profile", "issuer"])
     if extra_docker_args: cmd.extend(extra_docker_args)
     return cmd
 

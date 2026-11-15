@@ -1,6 +1,6 @@
 VISUALTALK — PRIVACY POLICY
 
-Last Updated: October 13, 2026
+Last Updated: November 15, 2026
 Applies to: VisualTalk Community Edition and VisualTalk Pro Edition
             (macOS, Windows, Linux, iOS and Android)
 
@@ -84,22 +84,39 @@ All of the following stays on your device and is never sent to us:
   - Local recordings you make, saved in the app's recordings folder.
   - Calendar (.ics) files you generate, which may contain the email
     addresses of the attendees you invited.
+  - Non-secret SMTP and SMS provider settings. SMTP passwords and
+    Twilio authentication tokens are stored in your operating system's
+    secure credential store instead of the app configuration files.
 
-These files live in your operating system's per-user application
-configuration directory for VisualTalk.
+Other settings files live in your operating system's per-user
+application configuration directory for VisualTalk.
 
-IMPORTANT — PLAINTEXT STORAGE. These values, including your server API
-secret and any AI API key, are stored as plaintext configuration files
-and are not held in the operating system keychain. Anyone with access
-to your device or user account can read them. Protect your device with
-full-disk encryption and a strong login password. We cannot retrieve,
-rotate or reset these credentials for you, because we never receive
-them.
+IMPORTANT — PLAINTEXT STORAGE. Your LiveKit server API secret and AI
+API key are stored as plaintext configuration values and are not held in
+the operating system keychain. Anyone with access to your device or user
+account can read them. Protect your device with full-disk encryption and
+a strong login password. SMTP passwords and Twilio authentication tokens
+are the exception: VisualTalk stores those in the operating-system
+credential store. We cannot retrieve, rotate or reset any of these
+credentials for you, because we never receive them.
 
 If you schedule a meeting and add attendees, their email addresses are
-written into the generated .ics file on your device and are included in
-the invitation you choose to send. You are responsible for having a
-lawful basis to share those addresses.
+written into the generated .ics file on your device. If you choose Send,
+the recipient address, invitation link and meeting details are sent to
+the SMTP server you configured. For SMS, the recipient phone number,
+invitation link and meeting details are sent to Twilio using your account.
+Those providers process the data under their own terms and privacy
+policies; Miradata receives none of it. You are responsible for having a
+lawful basis to contact invitees and for any provider charges.
+
+If you configure the optional guest token issuer (Settings → LiveKit →
+Guest token issuer URL), your invitation links carry a signed capability
+instead of a participant pass, and each guest's app contacts that issuer
+directly when they join, sending the capability and the display name they
+chose. The issuer is software from this repository that you host yourself,
+normally beside your meeting server, and it holds your LiveKit API key and
+secret in order to sign guest passes. Miradata does not operate it and
+receives none of those requests.
 
 DELETION. This data persists until you remove it. You can delete
 individual items in the app (notes, scheduled meetings, recordings),
@@ -115,6 +132,9 @@ app's configuration directory or uninstalling the Software.
   - Screen sharing: captured only after you explicitly start sharing,
     and stops when you end it.
   - Clipboard: written to only when you copy a meeting ID or invitation.
+  - Contacts: accessed only when you choose the contact picker to select
+    invitees. Only the selected email addresses or phone numbers are used
+    to prepare invitation recipients.
 
 You can revoke any permission at any time in your operating system's
 privacy settings. The Software will continue to run with the affected

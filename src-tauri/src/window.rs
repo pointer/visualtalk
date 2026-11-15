@@ -48,6 +48,7 @@ pub fn spawn_meeting_window(
     token: Option<String>,
     url: Option<String>,
     identity: Option<String>,
+    display_name: Option<String>,
     _width: Option<f64>,
     _height: Option<f64>,
 ) -> Result<String, String> {
@@ -55,18 +56,23 @@ pub fn spawn_meeting_window(
     let window_title = format!("VisualTalk - {}", room);
 
     // 1. Build the target URL with all LiveKit credentials
-    let mut target_path = format!("index.html?mode=meeting&room={}", room);
-
-    if let Some(t) = token {
-        target_path.push_str(&format!("&token={}", t));
+    let mut query = url::form_urlencoded::Serializer::new(String::new());
+    query
+        .append_pair("mode", "meeting")
+        .append_pair("room", &room);
+    if let Some(token) = token {
+        query.append_pair("token", &token);
     }
-    if let Some(u) = url {
-        // CRITICAL: URL encode the wss:// string so it doesn't break the query params
-        target_path.push_str(&format!("&url={}", urlencoding::encode(&u)));
+    if let Some(url) = url {
+        query.append_pair("url", &url);
     }
-    if let Some(i) = identity {
-        target_path.push_str(&format!("&identity={}", i));
+    if let Some(identity) = identity {
+        query.append_pair("identity", &identity);
     }
+    if let Some(display_name) = display_name {
+        query.append_pair("displayName", &display_name);
+    }
+    let target_path = format!("index.html?{}", query.finish());
 
     // Fallback for force-quit / crashed meeting windows: the JS-side
     // `notify_meeting_ended` never runs in those cases, so without this hook

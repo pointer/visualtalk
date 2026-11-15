@@ -11,6 +11,7 @@
     "build": "vite build",
     "check:pro-frontend": "VITE_EDITION=pro VITE_ENABLE_E2EE=true vite build",
     "preview": "vite preview",
+    "test": "node --test",
     "desktop": "tauri dev",
     "desktop:build": "tauri build",
     "desktop:build:debug": "tauri build --debug",
@@ -74,7 +75,7 @@
   "license": "PolyForm-Noncommercial-1.0.0",
   "dependencies": {
     "@tauri-apps/api": "^2.12.3",
-    "@tauri-apps/plugin-clipboard-manager": "^2.4.1",
+    "@tauri-apps/plugin-deep-link": "^2.6.3",
     "@tauri-apps/plugin-dialog": "^2.8.2",
     "@tauri-apps/plugin-opener": "^2.7.1",
     "@tauri-apps/plugin-store": "^2.5.0",
@@ -91,5 +92,5 @@
     "vite": "^8.3.1",
     "vite-plugin-solid": "^2.11.14"
   },
-    "packageManager": "pnpm@12.15.0"
+  "packageManager": "pnpm@12.15.0"
 }

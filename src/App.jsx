@@ -1,8 +1,9 @@
-import { createSignal, onMount, lazy, Suspense, ErrorBoundary } from "solid-js";
+import { createSignal, onMount, onCleanup, lazy, Suspense, ErrorBoundary } from "solid-js";
 import { MainWindow } from "./MainWindow";
 import { invoke } from "./lib/ipc";
 import { IS_MOBILE } from "./lib/platform";
 import { IS_PRO_EDITION } from "./lib/edition";
+import { initDeepLinks } from "./lib/deepLink";
 import EfficiencyStats from "./components/EfficiencyStats";
 import "./App.css";
 
@@ -10,13 +11,16 @@ const MeetingView = lazy(() => import("./MeetingView"));
 
 function App() {
   const [showMeeting, setShowMeeting] = createSignal(false);
+  // Set once the deep-link subscription is up; unsubscribes on teardown.
+  let stopDeepLinks = () => {};
 
   // Expand state to hold all LiveKit connection details
   const [meetingData, setMeetingData] = createSignal({
     room: "general",
     token: null,
     url: null,
-    identity: "Guest"
+    identity: "Guest",
+    displayName: "Guest",
   });
 
   onMount(() => {
@@ -29,10 +33,20 @@ function App() {
         room: params.get("room") || "general",
         token: params.get("token"),
         url: params.get("url"),
-        identity: params.get("identity") || "Guest"
+        identity: params.get("identity") || "Guest",
+        displayName: params.get("displayName") || params.get("identity") || "Guest",
       });
+      // A meeting window must not steal invite links from the main window.
+      return;
     }
+
+    // Main window: `visualtalk://join?…` opens the Join dialog (ADR 0007).
+    initDeepLinks().then((stop) => {
+      stopDeepLinks = stop;
+    });
   });
+
+  onCleanup(() => stopDeepLinks());
 
   // UPDATED: Accepts the rich object from MainWindow
   const joinMeeting = async (data) => {
@@ -51,7 +65,8 @@ function App() {
         room: data.room,
         token: data.token,
         url: data.url,
-        identity: data.identity
+        identity: data.identity,
+        displayName: data.displayName,
       });
     } catch (err) {
       console.error("Failed to open meeting window via Rust:", err);

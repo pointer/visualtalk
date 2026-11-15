@@ -70,6 +70,25 @@ MEDIA_PERMISSIONS = """
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 """
+CONTACT_PERMISSION = """\
+    <!-- Contact access is needed only for the user-triggered invitee picker. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+"""
+# Invite links open the app instead of forcing a copy-paste. Any app can claim a
+# custom scheme on Android, which is why the Join dialog still shows the room and
+# asks for a name before connecting — see ADR 0007 and Info.plist.
+DEEP_LINK_INTENT_FILTER = """\
+
+            <!-- Invite links (visualtalk://join?…). Added by
+                 scripts/fix-android-project.py; keep the scheme in sync with
+                 tauri.conf.json (plugins.deep-link) and Info.plist. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="visualtalk" />
+            </intent-filter>
+"""
 
 
 def replace_once(source: str, anchor: str, replacement: str, path: Path, after: bool = False) -> str:
@@ -185,6 +204,27 @@ def main() -> int:
             "android.permission.RECORD_AUDIO",
             ((INTERNET_PERMISSION, INTERNET_PERMISSION + MEDIA_PERMISSIONS, False),),
             "media permission",
+            args.check,
+        )
+        failed |= not patch(
+            manifest,
+            "android.permission.READ_CONTACTS",
+            (
+                (
+                    '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n',
+                    '    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n'
+                    + CONTACT_PERMISSION,
+                    True,
+                ),
+            ),
+            "contacts permission",
+            args.check,
+        )
+        failed |= not patch(
+            manifest,
+            'android:scheme="visualtalk"',
+            (("            </intent-filter>\n", DEEP_LINK_INTENT_FILTER, True),),
+            "deep link intent filter",
             args.check,
         )
         failed |= not patch_version_code(gradle, args.check)

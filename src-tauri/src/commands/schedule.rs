@@ -4,9 +4,7 @@
 //! that lives there; the domain logic stays in the sibling module it wraps.
 
 use tauri::{AppHandle, State};
-use tauri_plugin_store::StoreExt;
 
-use crate::commands::{self, LiveKitSettings};
 use crate::events::{emit as emit_event, VtEvent};
 use crate::meeting::{MeetingRecord, ScheduledMeeting};
 use crate::state::AppState;
@@ -23,16 +21,9 @@ pub fn schedule_meeting(
     room_id: String,
     start_time: String,
     duration_minutes: u32,
+    invite_link: String,
     state: State<'_, AppState>,
 ) -> Result<ScheduledMeeting, String> {
-    // Load LiveKit settings to generate the invite link
-    let store = app.store(commands::STORE_FILE).map_err(|e| e.to_string())?;
-    let value = store
-        .get(commands::SETTINGS_KEY)
-        .ok_or("LiveKit settings not configured. Please set your API keys in Settings first.")?;
-    let settings: LiveKitSettings = serde_json::from_value(value).map_err(|e| e.to_string())?;
-    let invite_link = commands::generate_magic_link(&settings, &room_id)?;
-
     // Two `?`: the outer is the lock, the inner is the meetings.json write
     // that `add_scheduled` performs.
     let meeting = state.with_meetings(|meetings| {
@@ -46,14 +37,8 @@ pub fn schedule_meeting(
         )
     })??;
 
-    // [CONCERN: schedule_meeting already has AppHandle from the store
-    //  lookup above, so reusing it here is fine.  But note that the
-    //  invoke response already returns the ScheduledMeeting to the
-    //  caller.  The event is for OTHER windows that didn't initiate
-    //  the schedule.  The caller's local `setScheduledMeetings(prev =>
-    //  [...prev, newMeeting])` and this event will both add it.
-    //  Must ensure the JS handler checks for duplicates or is
-    //  idempotent.]
+    // The event synchronizes other windows; the initiating window also gets
+    // this meeting from the invoke response and deduplicates by ID.
     emit_event(
         &app,
         VtEvent::MeetingScheduled {

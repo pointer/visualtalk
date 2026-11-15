@@ -31,10 +31,12 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
  * @typedef {import("../models").MeetingInvite} MeetingInvite
  * @typedef {import("../models").HostMeetingData} HostMeetingData
  * @typedef {import("../models").ParsedInvite} ParsedInvite
+ * @typedef {import("../models").IssuedParticipantToken} IssuedParticipantToken
  * @typedef {import("../models").UserProfile} UserProfile
  * @typedef {import("../models").UserSettings} UserSettings
  * @typedef {import("../models").AiSettings} AiSettings
  * @typedef {import("../models").TranslationSettings} TranslationSettings
+ * @typedef {import("../models").MessagingSettingsResponse} MessagingSettingsResponse
  * @typedef {import("../models").RecordingsDirInfo} RecordingsDirInfo
  * @typedef {import("../models").ReportContact} ReportContact
  * @typedef {import("../models").RecordingFileInfo} RecordingFileInfo
@@ -45,6 +47,7 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
  * @typedef {import("../models").BackgroundSettings} BackgroundSettings
  * @typedef {import("../models").FileInfo} FileInfo
  * @typedef {import("../models").LiveKitSettings} LiveKitSettings
+ * @typedef {import("../models").LiveKitSettingsView} LiveKitSettingsView
  */
 
 /**
@@ -57,6 +60,11 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
  * @property {void} notify_meeting_ended
  * @property {ParsedInvite} parse_invite_link
  * @property {MeetingInvite} create_meeting_invite
+ * @property {IssuedParticipantToken} exchange_invite_for_token
+ * @property {string[]} normalize_invitees
+ * @property {MessagingSettingsResponse} get_messaging_settings
+ * @property {MessagingSettingsResponse} update_messaging_settings
+ * @property {void} send_meeting_invite
  * @property {string} create_icalendar_event
  * @property {string} get_meeting_invite
  * @property {HostMeetingData} get_host_meeting_data
@@ -127,7 +135,7 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
  * @property {BackgroundSettings} get_background
  * @property {BackgroundSettings} set_background
  * @property {FileInfo} get_file_info
- * @property {LiveKitSettings|null} load_settings
+ * @property {LiveKitSettingsView|null} load_settings
  * @property {void} save_settings
  */
 

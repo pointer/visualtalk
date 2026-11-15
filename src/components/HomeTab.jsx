@@ -1,8 +1,9 @@
-import { createSignal, onMount, onCleanup, Show } from "solid-js";
+import { createEffect, createSignal, onMount, onCleanup, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { useI18n } from "../i18n/I18nProvider";
 import { useTauriEvents } from "../lib/useTauriEvents";
 import { useScheduledMeetings } from "../lib/useScheduledMeetings";
+import { pendingInviteLink } from "../lib/deepLink";
 import { NewMeetingMenu } from "./NewMeetingMenu";
 import { MeetingsPanel } from "./MeetingsPanel";
 import JoinMeetingModal from "./JoinMeeting";
@@ -30,6 +31,13 @@ export function HomeTab(props) {
   });
   const [showJoinModal, setShowJoinModal] = createSignal(false);
   const [showScheduleModal, setShowScheduleModal] = createSignal(false);
+
+  // A clicked invite link (ADR 0007) opens the Join dialog with the link
+  // pre-filled. The dialog parses it and clears the pending value; the guest
+  // still confirms the room and their name before anything connects.
+  createEffect(() => {
+    if (pendingInviteLink()) setShowJoinModal(true);
+  });
 
   const [currentTime, setCurrentTime] = createSignal(new Date());
   const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -217,6 +225,7 @@ export function HomeTab(props) {
       {/* Modals */}
       <Show when={showJoinModal()}>
         <JoinMeetingModal
+          initialLink={pendingInviteLink()}
           onClose={() => setShowJoinModal(false)}
           onJoinSuccess={props.onJoinMeeting}
         />

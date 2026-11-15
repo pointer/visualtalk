@@ -95,7 +95,7 @@
  * @property {string} id
  * @property {string} title
  * @property {string} room_id
- * @property {string} invite_link - `visualtalk://join?...` deep link.
+ * @property {string} invite_link - Single-guest link, or empty for multi-invite meetings.
  * @property {string} start_time
  * @property {number} duration_minutes
  * @property {string} created_at
@@ -109,12 +109,38 @@
  */
 
 /**
- * Payload for `create_meeting_invite` and its resolved value, with
- * `invite_link` filled in by the core.
- * @typedef {Object} MeetingInvite
+ * Input payload for `create_meeting_invite`.
+ * @typedef {Object} CreateMeetingInviteRequest
  * @property {string} room - Empty means "generate a room code".
  * @property {string} title
- * @property {string} [invite_link]
+ * @property {string[]} [attendees] - One invite is created per distinct recipient.
+ * @property {"email" | "sms"} [delivery_method]
+ * @property {string} [start_time] - RFC 3339 start, used to set token expiry.
+ * @property {number} [duration_minutes]
+ */
+
+/** @typedef {"email" | "sms"} InviteDeliveryMethod */
+
+/**
+ * @typedef {Object} AttendeeInvite
+ * @property {string|null} recipient
+ * @property {InviteDeliveryMethod} delivery_method
+ * @property {string} identity - Direct mode: signed into this attendee's LiveKit
+ *   token. Issuer mode: only a unique key for the Schedule dialog's row state,
+ *   since the issuer assigns the real identity at join time.
+ * @property {string} invite_link
+ */
+
+/**
+ * Result returned by `create_meeting_invite`.
+ * @typedef {Object} MeetingInvite
+ * @property {string} room
+ * @property {string} title
+ * @property {string} invite_link - Direct mode: populated only when exactly one
+ *   link exists. Issuer mode: always the single shareable link.
+ * @property {AttendeeInvite[]} attendee_invites
+ * @property {boolean} shared_link - True when an external issuer produced these
+ *   links, so one link may be sent to every guest (ADR 0006).
  */
 
 /**
@@ -127,7 +153,20 @@
  * @typedef {Object} ParsedInvite
  * @property {string} url
  * @property {string} room
+ * @property {string|null} token - Direct invite: the signed LiveKit token.
+ * @property {string|null} identity - Direct invite: the identity in that token.
+ * @property {string|null} issuer_url - Issuer invite: where to redeem the
+ *   capability at join time (ADR 0006).
+ * @property {string|null} invite_capability - Issuer invite: the capability.
+ */
+
+/**
+ * A participant token the external guest-token issuer minted for one guest
+ * (`exchange_invite_for_token`). The identity is fresh per redemption, which is
+ * what makes a shared invitation link safe.
+ * @typedef {Object} IssuedParticipantToken
  * @property {string} token
+ * @property {string} identity
  */
 
 /**
@@ -191,6 +230,29 @@
  */
 
 /** @typedef {"cloud" | "docker" | "serverAgent"} TranslationStrategy */
+
+/** @typedef {"startTls" | "tls"} SmtpSecurity */
+
+/**
+ * Non-secret mail/SMS provider configuration. Provider passwords and tokens
+ * remain in the platform secure store and are never returned over IPC.
+ * @typedef {Object} MessagingConfig
+ * @property {string} smtp_host
+ * @property {number} smtp_port
+ * @property {SmtpSecurity} smtp_security
+ * @property {string} smtp_username
+ * @property {string} smtp_from_email
+ * @property {string} smtp_from_name
+ * @property {string} twilio_account_sid
+ * @property {string} twilio_from_phone
+ */
+
+/**
+ * @typedef {Object} MessagingSettingsResponse
+ * @property {MessagingConfig} settings
+ * @property {boolean} smtp_password_configured
+ * @property {boolean} twilio_auth_token_configured
+ */
 
 /**
  * camelCase on the wire — the one settings struct with `rename_all`.
@@ -280,12 +342,24 @@
 /**
  * The user's own LiveKit server, kept in `livekit.json` via the Tauri store
  * plugin — deliberately NOT `settings.json`, which `AppData` rewrites wholesale
- * (see `commands.rs`). `load_settings` resolves to `null` when unconfigured.
+ * (see `commands.rs`). This is the shape `save_settings` accepts; submit an
+ * empty `api_secret` to keep the stored one.
  * @typedef {Object} LiveKitSettings
  * @property {string} url
  * @property {string} api_key
  * @property {string} api_secret
  * @property {string} identity
+ */
+
+/**
+ * What `load_settings` resolves to — `null` when unconfigured. The API secret
+ * is deliberately absent: Rust reports only whether one is stored, so the
+ * secret never crosses back into the webview (ADR 0004).
+ * @typedef {Object} LiveKitSettingsView
+ * @property {string} url
+ * @property {string} api_key
+ * @property {string} identity
+ * @property {boolean} api_secret_configured
  */
 
 export {};

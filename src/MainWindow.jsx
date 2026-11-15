@@ -1,9 +1,10 @@
-import { createSignal, Show } from "solid-js";
+import { createEffect, createSignal, Show } from "solid-js";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { NotesTab } from "./components/NotesTab";
 import { HomeTab } from "./components/HomeTab";
 import { MeetingsTab } from "./components/MeetingsTab";
 import { useI18n } from "./i18n/I18nProvider";
+import { pendingInviteLink } from "./lib/deepLink";
 
 /**
  * Main-window shell: sidebar + bottom tab bar and tab routing only.
@@ -13,6 +14,12 @@ import { useI18n } from "./i18n/I18nProvider";
 export function MainWindow(props) {
   const { t } = useI18n();
   const [activeTab, setActiveTab] = createSignal("home");
+
+  // An invite link clicked in another app is handled by the Join dialog, which
+  // lives on the Home tab — so bring the guest there first.
+  createEffect(() => {
+    if (pendingInviteLink()) setActiveTab("home");
+  });
 
   return (
     <div class="flex h-screen bg-[#111111] text-white select-none overflow-hidden">

@@ -6,6 +6,25 @@
     <string>VisualTalk Pro needs access to your camera for video calls.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>VisualTalk Pro needs access to your microphone for audio communication.</string>
+    <key>NSContactsUsageDescription</key>
+    <string>VisualTalk Pro accesses contacts only when you choose contacts to invite to a meeting.</string>
+
+    <!-- Invite links: `visualtalk://join?…` opens the app instead of forcing the
+         guest to copy-paste (ADR 0007). Kept key-for-key in sync with
+         Info.plist except for the bundle-identifier-derived URL name below;
+         tauri.conf.json (plugins.deep-link) covers Windows/Linux and
+         scripts/fix-android-project.py adds the Android intent-filter. -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>com.katebg.visualtalk.pro.invite</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>visualtalk</string>
+            </array>
+        </dict>
+    </array>
 
     <!-- PRO VARIANT of Info.plist, pointed at by src-tauri/tauri.pro.conf.json
          (bundle.macOS.infoPlist / bundle.iOS.infoPlist); the community edition

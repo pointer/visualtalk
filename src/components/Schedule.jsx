@@ -1,9 +1,10 @@
-import { createSignal, onMount, Show } from 'solid-js';
+import { createSignal, For, onMount, Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
-import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { openPath, openUrl } from '@tauri-apps/plugin-opener';
+import { openPath } from '@tauri-apps/plugin-opener';
 import { useI18n } from '../i18n/I18nProvider';
 import { FloatingField } from './FloatingField';
+import { errorMessage } from '../lib/errors';
+import { IS_MOBILE } from '../lib/platform';
 
 const pad = (n) => String(n).padStart(2, "0");
 
@@ -11,9 +12,18 @@ export default function Schedule({ onClose }) {
     const { t } = useI18n();
     const [loading, setLoading] = createSignal(false);
     const [inviteData, setInviteData] = createSignal(null);
-    const [copied, setCopied] = createSignal(false);
+    const [copied, setCopied] = createSignal("");
     const [icsPath, setIcsPath] = createSignal(null);
     const [userEmail, setUserEmail] = createSignal("");
+    const [contactsError, setContactsError] = createSignal("");
+    const [sendState, setSendState] = createSignal({});
+    const deliveryMethod = IS_MOBILE ? "sms" : "email";
+    const contactProperty = IS_MOBILE ? "tel" : "email";
+
+    const supportsContactPicker = () =>
+        typeof navigator !== "undefined" &&
+        typeof navigator.contacts?.select === "function" &&
+        typeof navigator.contacts?.getProperties === "function";
 
     // Fetch the user's profile email so we can set it as ORGANIZER in the .ics
     onMount(async () => {
@@ -33,8 +43,7 @@ export default function Schedule({ onClose }) {
     // Native time inputs work with 24h "HH:MM" values.
     const local_time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
-    // Field names mirror the Rust `MeetingInvite` struct so the form state can
-    // be sent to `create_meeting_invite` as-is.
+    // Field names mirror the Rust `CreateMeetingInviteRequest` payload.
     const [scheduleData, setScheduleData] = createSignal({
         meeting_title: "",
         meeting_summary: "",
@@ -48,6 +57,40 @@ export default function Schedule({ onClose }) {
 
     const updateScheduleField = (field, value) =>
         setScheduleData({ ...scheduleData(), [field]: value });
+
+    const handleChooseContacts = async () => {
+        setContactsError("");
+        try {
+            const picker = navigator.contacts;
+            const properties = await picker.getProperties();
+            if (!properties.includes(contactProperty)) {
+                setContactsError(t("schedule.contactsNoRecipients"));
+                return;
+            }
+
+            const contacts = await picker.select([contactProperty], { multiple: true });
+            if (!contacts.length) return;
+
+            const recipients = await invoke("normalize_invitees", {
+                rawRecipients: scheduleData().meeting_attendees,
+                contacts,
+                deliveryMethod,
+            });
+            if (!recipients.length) {
+                setContactsError(t("schedule.contactsNoRecipients"));
+                return;
+            }
+
+            updateScheduleField(
+                "meeting_attendees",
+                recipients.join(IS_MOBILE ? ";\n" : ", "),
+            );
+        } catch (err) {
+            if (err?.name === "AbortError") return;
+            console.error("Could not select meeting invite contacts:", err);
+            setContactsError(err?.toString?.().replace(/^Error: /, "") || t("schedule.contactsPickerFailed"));
+        }
+    };
 
     const handleSchedule = async () => {
         const meeting_title = scheduleData().meeting_title.trim();
@@ -71,11 +114,21 @@ export default function Schedule({ onClose }) {
 
         setLoading(true);
         try {
-            // Call Rust to generate the room and the magic link!
+            const attendees = await invoke("normalize_invitees", {
+                rawRecipients: scheduleData().meeting_attendees,
+                contacts: [],
+                deliveryMethod,
+            });
+
+            // Rust signs a distinct LiveKit token for each guest.
             const result = await invoke('create_meeting_invite', {
                 meeting: {
                     room: scheduleData().meeting_room.trim(),
                     title: meeting_title,
+                    attendees,
+                    delivery_method: deliveryMethod,
+                    start_time: startDate.toISOString(),
+                    duration_minutes: durationMinutes,
                 }
             });
 
@@ -86,6 +139,7 @@ export default function Schedule({ onClose }) {
                 roomId: result.room,
                 startTime: startDate.toISOString(),
                 durationMinutes,
+                inviteLink: result.invite_link,
             });
 
             // Store the result together with the date/time for display purposes
@@ -95,15 +149,15 @@ export default function Schedule({ onClose }) {
             // succeeds even if this fails).
             try {
                 const icsId = `${result.room}-${Date.now()}`;
-                const attendees = scheduleData().meeting_attendees
-                    .split(",")
-                    .map((e) => e.trim())
+                const icsAttendees = result.attendee_invites
+                    .filter((invite) => invite.delivery_method === "email")
+                    .map((invite) => invite.recipient)
                     .filter(Boolean);
                 const path = await invoke('create_icalendar_event', {
                     ics: {
                         ics_id: icsId,
                         ics_organizer: userEmail(),
-                        ics_attendees: attendees,
+                        ics_attendees: icsAttendees,
                         ics_room: result.room,
                         ics_title: result.title,
                         ics_summary: scheduleData().meeting_summary || result.title,
@@ -120,24 +174,28 @@ export default function Schedule({ onClose }) {
             }
         } catch (err) {
             console.error("Failed to schedule meeting:", err);
-            alert(t("mainWindow.scheduleFailed"));
+            alert(`${t("mainWindow.scheduleFailed")}\n${err}`);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleCopyLink = async () => {
+    const handleCopyLink = async (attendeeInvite) => {
         const invite = inviteData();
         if (!invite) return;
         try {
             const invite_link =
                 `${invite.title} — ${invite.room} — ` +
                 `${invite.meeting_date} at ${invite.meeting_time} — ` +
-                `${t("schedule.shareLink")} ${invite.invite_link}`;
+                `${attendeeInvite.recipient ? `${attendeeInvite.recipient}\n` : ""}` +
+                `${t("schedule.shareLink")} ${attendeeInvite.invite_link}`;
 
-            await writeText(invite_link);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            // Webview clipboard, same as HomeTab/useScheduledMeetings: the Rust
+            // `tauri-plugin-clipboard-manager` is not registered in this app, so
+            // the plugin's `writeText` IPC would be rejected.
+            await navigator.clipboard.writeText(invite_link);
+            setCopied(attendeeInvite.identity);
+            setTimeout(() => setCopied(""), 2000);
         } catch (err) {
             console.error("Failed to copy:", err);
         }
@@ -153,27 +211,30 @@ export default function Schedule({ onClose }) {
         }
     };
 
-    const handleSendEmail = async () => {
+    const handleSendInvite = async (attendeeInvite) => {
         const invite = inviteData();
         if (!invite) return;
-        const attendees = scheduleData().meeting_attendees
-            .split(",")
-            .map((e) => e.trim())
-            .filter(Boolean);
-        const subject = encodeURIComponent(invite.title);
-        const body = encodeURIComponent(
-            `${invite.title}\n\n` +
-            `${t("schedule.shareLink")} ${invite.invite_link}\n\n` +
-            `Room: ${invite.room}\n` +
-            `Date: ${invite.meeting_date} at ${invite.meeting_time}\n`
-        );
-        const mailtoUrl = attendees.length > 0
-            ? `mailto:?bcc=${attendees.join(",")}&subject=${subject}&body=${body}`
-            : `mailto:?subject=${subject}&body=${body}`;
+        if (!attendeeInvite.recipient) return;
+        const identity = attendeeInvite.identity;
+        setSendState({ ...sendState(), [identity]: { loading: true } });
         try {
-            await openUrl(mailtoUrl);
+            await invoke("send_meeting_invite", {
+                request: {
+                    invite: attendeeInvite,
+                    meeting_title: invite.title,
+                    meeting_room: invite.room,
+                    meeting_date: invite.meeting_date,
+                    meeting_time: invite.meeting_time,
+                    share_link_label: t("schedule.shareLink"),
+                },
+            });
+            setSendState({
+                ...sendState(),
+                [identity]: { message: t("schedule.inviteSent"), success: true },
+            });
         } catch (err) {
-            console.error("Failed to open email client:", err);
+            console.error("Failed to send meeting invite:", err);
+            setSendState({ ...sendState(), [identity]: { message: errorMessage(err) } });
         }
     };
 
@@ -241,14 +302,34 @@ export default function Schedule({ onClose }) {
                             onInput={(value) => updateScheduleField("meeting_room", value)}
                         />
 
-                        <FloatingField
-                            id="meeting-attendees"
-                            label={t("schedule.attendees")}
-                            placeholder={t("schedule.attendeesPlaceholder")}
-                            fieldClass="md:col-span-2"
-                            value={scheduleData().meeting_attendees}
-                            onInput={(value) => updateScheduleField("meeting_attendees", value)}
-                        />
+                        <div class="md:col-span-2 flex items-end gap-2">
+                            <FloatingField
+                                textarea
+                                id="meeting-attendees"
+                                autocomplete={IS_MOBILE ? "tel" : "email"}
+                                inputmode={IS_MOBILE ? "tel" : "email"}
+                                rows={2}
+                                label={t(IS_MOBILE ? "schedule.phoneNumbers" : "schedule.attendees")}
+                                placeholder={t(IS_MOBILE ? "schedule.phoneNumbersPlaceholder" : "schedule.attendeesPlaceholder")}
+                                fieldClass="min-w-0 flex-1"
+                                value={scheduleData().meeting_attendees}
+                                onInput={(value) => updateScheduleField("meeting_attendees", value)}
+                            />
+                            <Show when={supportsContactPicker()}>
+                                <button
+                                    type="button"
+                                    onClick={handleChooseContacts}
+                                    class="shrink-0 rounded-md border border-[#404040] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#292929] focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                                >
+                                    {t("schedule.chooseContacts")}
+                                </button>
+                            </Show>
+                        </div>
+                        <Show when={contactsError()}>
+                            <p role="status" class="md:col-span-2 text-xs text-amber-300">
+                                {contactsError()}
+                            </p>
+                        </Show>
 
                         <FloatingField
                             id="meeting-startdate"
@@ -275,27 +356,67 @@ export default function Schedule({ onClose }) {
                         />
                     </div>
 
-                    {/* Invite link (appears once the meeting is scheduled) */}
+                    {/* Each attendee gets a distinct token and invite link. */}
                     <Show when={inviteData()}>
                         <div class="mt-6">
-                            <div class="flex items-stretch gap-2">
-                                <FloatingField
-                                    id="invite-link"
-                                    label={t("schedule.shareLink")}
-                                    readOnly
-                                    class="text-sm text-gray-200"
-                                    fieldClass="min-w-0 flex-1"
-                                    value={inviteData().invite_link}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={handleCopyLink}
-                                    class={`shrink-0 self-stretch rounded-md border px-4 text-sm font-medium text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 ${copied() ? 'border-green-600 bg-green-600 hover:bg-green-500' : 'border-[#404040] hover:bg-[#292929]'}`}
-                                >
-                                    {copied() ? t("common.copied") : t("common.copy")}
-                                </button>
-                            </div>
-                            <p class="mt-1.5 text-xs text-gray-500">{t("schedule.linkNote")}</p>
+                            <For each={inviteData().attendee_invites}>
+                                {(attendeeInvite) => (
+                                    <div class="mb-3 rounded-lg border border-[#2a2a2a] bg-[#151515] p-3">
+                                        <div class="mb-2 text-xs font-medium text-gray-300">
+                                            {attendeeInvite.recipient || t("schedule.singleGuest")}
+                                        </div>
+                                        <div class="flex flex-col gap-2 sm:flex-row">
+                                            <input
+                                                aria-label={t("schedule.shareLink")}
+                                                readOnly
+                                                value={attendeeInvite.invite_link}
+                                                class="min-w-0 flex-1 rounded-md border border-[#2a2a2a] bg-[#0f0f0f] p-2 text-xs text-gray-200 outline-none"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleCopyLink(attendeeInvite)}
+                                                class={`rounded-md border px-3 py-2 text-sm font-medium text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 ${copied() === attendeeInvite.identity ? 'border-green-600 bg-green-600 hover:bg-green-500' : 'border-[#404040] hover:bg-[#292929]'}`}
+                                            >
+                                                {copied() === attendeeInvite.identity ? t("common.copied") : t("common.copy")}
+                                            </button>
+                                            <Show when={attendeeInvite.recipient}>
+                                                <button
+                                                    type="button"
+                                                    disabled={
+                                                        sendState()[attendeeInvite.identity]?.loading ||
+                                                        sendState()[attendeeInvite.identity]?.success
+                                                    }
+                                                    onClick={() => handleSendInvite(attendeeInvite)}
+                                                    class="rounded-md border border-[#404040] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#292929] disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                                                >
+                                                    {sendState()[attendeeInvite.identity]?.loading
+                                                        ? t("schedule.sending")
+                                                        : sendState()[attendeeInvite.identity]?.success
+                                                            ? t("schedule.inviteSent")
+                                                            : t(IS_MOBILE ? "schedule.smsInvite" : "schedule.emailInvite")}
+                                                </button>
+                                            </Show>
+                                        </div>
+                                        <Show when={!attendeeInvite.recipient}>
+                                            <p class="mt-2 text-xs text-gray-500">{t("schedule.addRecipientToSend")}</p>
+                                        </Show>
+                                        <Show when={sendState()[attendeeInvite.identity]?.message}>
+                                            <p
+                                                role={sendState()[attendeeInvite.identity]?.success ? "status" : "alert"}
+                                                class={`mt-2 text-xs ${sendState()[attendeeInvite.identity]?.success ? "text-green-300" : "text-amber-300"}`}
+                                            >
+                                                {sendState()[attendeeInvite.identity].message}
+                                            </p>
+                                        </Show>
+                                    </div>
+                                )}
+                            </For>
+                            <p class="mt-1.5 text-xs text-gray-500">{t(inviteData().shared_link ? "schedule.sharedLinkNote" : "schedule.linkNote")}</p>
+                            <Show when={!inviteData().shared_link && inviteData().attendee_invites.length > 1}>
+                                <p class="mt-1.5 text-xs text-gray-500">
+                                    {t("schedule.icsIndividualLinksNote")}
+                                </p>
+                            </Show>
 
                             {/* iCalendar download */}
                             <Show when={icsPath()}>
@@ -309,15 +430,6 @@ export default function Schedule({ onClose }) {
                                 </button>
                             </Show>
 
-                            {/* Send via Email */}
-                            <button
-                                type="button"
-                                onClick={handleSendEmail}
-                                class="mt-3 ml-2 flex items-center gap-2 rounded-md border border-[#404040] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#292929] focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
-                            >
-                                <span aria-hidden="true">📧</span>
-                                {t("schedule.sendEmail")}
-                            </button>
                         </div>
                     </Show>
                 </div>

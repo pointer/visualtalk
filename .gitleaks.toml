@@ -1,0 +1,22 @@
+# Repo-local gitleaks configuration.
+#
+# scripts/git-hooks/pre-commit runs `gitleaks git --pre-commit --staged`, which
+# picks this file up automatically from the repository root.
+#
+# `[extend] use-default = true` is required: supplying a config at all would
+# otherwise REPLACE gitleaks' built-in ruleset with nothing, silently disabling
+# the scan. Keep every real rule; only allowlist proven false positives, and
+# keep each entry as narrow as possible (an exact literal, never a path or a
+# broad pattern). See SECURITY.md for the credential policy.
+
+[extend]
+use-default = true
+
+[allowlist]
+description = "Proven false positives: fixed, obviously fake values in tests."
+regexes = [
+    # src-tauri/src/commands/invites.rs — `test_settings()` fixture. HS256
+    # rejects a short key, so the test needs a secret-shaped literal; this one
+    # is not a credential and appears nowhere else.
+    '''test-secret-long-enough-for-hs256''',
+]

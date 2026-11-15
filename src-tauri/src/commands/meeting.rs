@@ -32,12 +32,21 @@ pub fn open_meeting_window(
     token: Option<String>,
     url: Option<String>,
     identity: Option<String>,
+    display_name: Option<String>,
     width: Option<f64>,
     height: Option<f64>,
 ) -> Result<String, String> {
     // Pass the new arguments down to the spawn function
-    let result =
-        window::spawn_meeting_window(&app, room.clone(), token, url, identity, width, height);
+    let result = window::spawn_meeting_window(
+        &app,
+        room.clone(),
+        token,
+        url,
+        identity,
+        display_name,
+        width,
+        height,
+    );
 
     // [CONCERN: We emit MeetingStarted only if the window was created
     //  successfully.  If spawn fails, no event is emitted — correct

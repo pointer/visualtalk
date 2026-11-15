@@ -34,7 +34,14 @@ urlencoding = "2.1"
 tauri-plugin-store = "2.5.0"
 url = "2.5.8"
 tauri-plugin-dialog = "2.8.1"
-reqwest = { version = "0.13.5", features = ["json"] }
+reqwest = { version = "0.13.5", features = ["json", "form"] }
+lettre = { version = "0.11", default-features = false, features = [
+    "builder",
+    "smtp-transport",
+    "tokio1",
+    "tokio1-native-tls",
+] }
+keyring = { version = "4.2", default-features = false, features = ["cli", "v1"] }
 tokio = { version = "1", features = ["process", "io-util"] }
 # Official LiveKit Rust SDK — spec-compliant AccessToken signing (replaces the
 # hand-rolled JWT in token.rs) and the server API client (replaces the manual
@@ -56,6 +63,11 @@ livekit-protocol = "0.8"
 p256 = { version = "0.14.0", features = ["ecdh"], optional = true }
 aes-gcm = { version = "0.11.1", optional = true }
 icalendar = "0.17"
+# `visualtalk://join?…` invite links open the app instead of forcing the guest to
+# copy-paste (ADR 0007). The scheme is declared in tauri.conf.json
+# (plugins.deep-link), Info.plist / Info-pro.plist (CFBundleURLTypes) and, for
+# Android, by scripts/fix-android-project.py — all four must agree.
+tauri-plugin-deep-link = "2.6.3"
 
 # Android cross-compile: livekit-api's native-tls backend needs OpenSSL, which
 # does not exist in the NDK sysroot — build it from source (openssl-src) only
@@ -68,6 +80,14 @@ openssl = { version = "0.10", features = ["vendored"] }
 # measures via Mach task_info directly in commands/system.rs and only Android
 # needs this crate. Keeping it unconditional broke EVERY iOS build.
 sysinfo = "0.33"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+# Desktop only, and it must be registered BEFORE every other plugin: on Windows
+# and Linux the OS launches a *new* process for a deep link rather than
+# messaging the running one. The `deep-link` feature makes this forward that URL
+# to tauri-plugin-deep-link and focus the existing window instead of opening a
+# second copy of the app. macOS/iOS/Android deliver URLs natively.
+tauri-plugin-single-instance = { version = "2.5.5", features = ["deep-link"] }
 
 [features]
 default = []

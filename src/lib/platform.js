@@ -7,10 +7,16 @@
  * synchronously. Keep this module the single source of truth for those sniffs.
  */
 
-/** True inside the iOS (WKWebView) and Android (System WebView) shells. */
-export const IS_MOBILE =
-  typeof navigator !== "undefined" &&
-  /iPhone|iPad|iPod|Android/.test(navigator.userAgent);
+const USER_AGENT = typeof navigator === "undefined" ? "" : navigator.userAgent;
+
+/** True inside the iOS (WKWebView) shell. */
+export const IS_IOS = /iPhone|iPad|iPod/.test(USER_AGENT);
+
+/** True inside the Android System WebView shell. */
+export const IS_ANDROID = /Android/.test(USER_AGENT);
+
+/** True inside a mobile webview. */
+export const IS_MOBILE = IS_IOS || IS_ANDROID;
 
 /**
  * True when the webview can actually capture the screen.

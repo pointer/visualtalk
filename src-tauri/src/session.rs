@@ -205,7 +205,7 @@ impl SessionService {
         let identity = if !app_data.profile.identity.is_empty() {
             app_data.profile.identity.clone()
         } else {
-            format!("User-{}", chrono::Utc::now().timestamp_millis() % 10000)
+            crate::settings::generated_identity()
         };
 
         let display_name = if !app_data.profile.display_name.is_empty() {

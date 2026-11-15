@@ -55,10 +55,37 @@ impl UserProfile {
     }
 }
 
+/// Builds a fresh, collision-resistant LiveKit identity: `User-` + 12 hex.
+///
+/// 48 bits from the CSPRNG (~2.8e14 values). This used to be
+/// `timestamp_millis() % 9000` — **9,000 possible identities derived from the
+/// install clock** — so two installs landing in the same 9-second-modulo window
+/// received the *same* identity. LiveKit disconnects the older of two
+/// participants sharing an identity (`DisconnectReason::DUPLICATE_IDENTITY`),
+/// which reaches the user as "everyone except the last guest keeps getting
+/// kicked". Identities are persistent, so a collision lasts until the profile
+/// is re-rolled — hence the migration in [`AppData::load_or_default`].
+pub(crate) fn generated_identity() -> String {
+    format!("User-{:012x}", rand::random::<u64>() & 0xffff_ffff_ffff)
+}
+
+/// True for identities the old clock-derived generators produced: `User-`
+/// followed by 1-4 digits (`% 9000` in the profile default, `% 10000` in the
+/// session fallback). A 12-hex identity, or anything the user typed, is not.
+fn is_legacy_generated_identity(identity: &str) -> bool {
+    match identity.strip_prefix("User-") {
+        Some(suffix) => {
+            !suffix.is_empty()
+                && suffix.len() <= 4
+                && suffix.chars().all(|character| character.is_ascii_digit())
+        }
+        None => false,
+    }
+}
+
 impl Default for UserProfile {
     fn default() -> Self {
-        let rand_suffix = (chrono::Utc::now().timestamp_millis() % 9000) + 1000;
-        let identity = format!("User-{}", rand_suffix);
+        let identity = generated_identity();
         let pmi_prefix = (chrono::Utc::now().timestamp_millis() % 900) + 100;
         let pmi_mid = (chrono::Utc::now().timestamp_subsec_millis() % 900) + 100;
         let pmi_end = (chrono::Utc::now().timestamp_subsec_micros() % 9000) + 1000;
@@ -123,6 +150,57 @@ impl Default for TranslationSettings {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum SmtpSecurity {
+    StartTls,
+    Tls,
+}
+
+impl Default for SmtpSecurity {
+    fn default() -> Self {
+        Self::StartTls
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MessagingConfig {
+    #[serde(default)]
+    pub smtp_host: String,
+    #[serde(default = "default_smtp_port")]
+    pub smtp_port: u16,
+    #[serde(default)]
+    pub smtp_security: SmtpSecurity,
+    #[serde(default)]
+    pub smtp_username: String,
+    #[serde(default)]
+    pub smtp_from_email: String,
+    #[serde(default)]
+    pub smtp_from_name: String,
+    #[serde(default)]
+    pub twilio_account_sid: String,
+    #[serde(default)]
+    pub twilio_from_phone: String,
+}
+
+fn default_smtp_port() -> u16 {
+    587
+}
+
+impl Default for MessagingConfig {
+    fn default() -> Self {
+        Self {
+            smtp_host: String::new(),
+            smtp_port: default_smtp_port(),
+            smtp_security: SmtpSecurity::default(),
+            smtp_username: String::new(),
+            smtp_from_email: String::new(),
+            smtp_from_name: "VisualTalk".to_string(),
+            twilio_account_sid: String::new(),
+            twilio_from_phone: String::new(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserSettings {
@@ -173,6 +251,8 @@ impl Default for UserSettings {
 pub struct AppData {
     pub profile: UserProfile,
     pub settings: UserSettings,
+    #[serde(default)]
+    pub messaging: MessagingConfig,
     pub notes: String,
     /// AI assistant config — `#[serde(default)]` keeps old settings.json files loadable.
     #[serde(default)]
@@ -190,11 +270,22 @@ pub struct AppData {
 impl AppData {
     pub fn load_or_default(config_dir: &PathBuf) -> Self {
         if let Some(mut data) = persistence::load_json::<AppData>(config_dir, "settings.json") {
-            // If the stored identity was generic "User1", generate a unique one
-            if data.profile.identity == "User1" || data.profile.identity.is_empty() {
-                let rand_suffix = (chrono::Utc::now().timestamp_millis() % 9000) + 1000;
-                data.profile.identity = format!("User-{}", rand_suffix);
-                if data.profile.display_name == "You" || data.profile.display_name == "User1" {
+            // Re-roll identities the old clock-derived generator produced: they
+            // collide across installs, and LiveKit disconnects the older of two
+            // participants that share an identity. Only an *untouched* default
+            // is replaced (identity == display_name), so a name the user chose
+            // in Settings is never renamed behind their back.
+            let stale_identity = data.profile.identity == "User1"
+                || data.profile.identity.is_empty()
+                || (is_legacy_generated_identity(&data.profile.identity)
+                    && data.profile.display_name == data.profile.identity);
+            if stale_identity {
+                let previous_identity = data.profile.identity.clone();
+                data.profile.identity = generated_identity();
+                if data.profile.display_name == "You"
+                    || data.profile.display_name == "User1"
+                    || data.profile.display_name == previous_identity
+                {
                     data.profile.display_name = data.profile.identity.clone();
                 }
                 let _ = data.save(config_dir);
@@ -217,6 +308,36 @@ impl AppData {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Identities must be unique across installs: the previous
+    /// `User-{timestamp_millis() % 9000}` gave 9,000 possible values, and two
+    /// participants sharing one identity makes LiveKit disconnect the older
+    /// connection (`DUPLICATE_IDENTITY`).
+    #[test]
+    fn generated_identities_are_unique_and_well_formed() {
+        let identities: std::collections::HashSet<String> =
+            (0..2_000).map(|_| generated_identity()).collect();
+        assert_eq!(identities.len(), 2_000, "identity generation must not repeat");
+        for identity in &identities {
+            let suffix = identity.strip_prefix("User-").expect("User- prefix");
+            assert_eq!(suffix.len(), 12);
+            assert!(suffix.chars().all(|c| c.is_ascii_hexdigit()));
+        }
+    }
+
+    /// The migration must catch the old clock-derived identities without
+    /// renaming anything a user typed themselves.
+    #[test]
+    fn legacy_generated_identities_are_recognised_and_chosen_ones_are_not() {
+        assert!(is_legacy_generated_identity("User-1234"));
+        assert!(is_legacy_generated_identity("User-1"));
+        assert!(is_legacy_generated_identity("User-9999"));
+        assert!(!is_legacy_generated_identity("User-12345"));
+        assert!(!is_legacy_generated_identity("User-3f9a1c7b2e40"));
+        assert!(!is_legacy_generated_identity("User-"));
+        assert!(!is_legacy_generated_identity("kate"));
+        assert!(!is_legacy_generated_identity(""));
+    }
 
     #[cfg(feature = "pro")]
     #[test]
@@ -345,6 +466,19 @@ mod tests {
         assert!(data.blocked_identities.is_empty());
         assert_eq!(data.settings.recordings_dir, None);
         assert!(!data.settings.demo_mode);
+        assert_eq!(data.messaging.smtp_port, 587);
+    }
+
+    #[test]
+    fn legacy_app_data_defaults_new_messaging_settings() {
+        let value = serde_json::json!({
+            "profile": UserProfile::default(),
+            "settings": UserSettings::default(),
+            "notes": ""
+        });
+        let data: AppData = serde_json::from_value(value).unwrap();
+        assert_eq!(data.messaging.smtp_port, 587);
+        assert_eq!(data.messaging.smtp_security, SmtpSecurity::StartTls);
     }
 
     #[test]

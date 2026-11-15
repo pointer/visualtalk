@@ -29,10 +29,10 @@ use state::{AppState, MediaState};
 //
 // Every `#[tauri::command]` lives in a domain module, not here: the invite /
 // LiveKit-store commands are in `commands.rs` itself and the rest are grouped
-// under `commands/` (meeting, profile, schedule, safety, participants, devices,
-// layout, translation, system), alongside the non-command modules that already
-// held the domain logic they wrap (`ai`, `chat`, `recording`, `egress`, `e2ee`,
-// `backgrounds`).
+// under `commands/` (meeting, invites, invitees, messaging, profile, schedule,
+// safety, participants, devices, layout, translation, system), alongside the
+// non-command modules that already held the domain logic they wrap (`ai`, `chat`,
+// `recording`, `egress`, `e2ee`, `backgrounds`).
 //
 // The `generate_handler!` table below is deliberately the ONE place commands are
 // registered. Tauri v2's `Builder::invoke_handler` assigns rather than extends
@@ -78,7 +78,27 @@ fn migrate_livekit_store(app: &AppHandle) {
 pub fn run() {
     dotenvy::dotenv().ok();
 
-    tauri::Builder::default()
+    // Desktop only, and registered first: on Windows/Linux a deep link launches
+    // a NEW process, so this forwards the URL to the window that is already open
+    // (the `deep-link` feature hands it to tauri-plugin-deep-link) instead of
+    // starting a second copy of the app.
+    #[cfg(desktop)]
+    let builder = tauri::Builder::default().plugin(tauri_plugin_single_instance::init(
+        |app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        },
+    ));
+    #[cfg(not(desktop))]
+    let builder = tauri::Builder::default();
+
+    builder
+        // Invite links (`visualtalk://join?…`). The URL is never trusted: it is
+        // handed to `parse_invite_link`, and LiveKit still validates the token —
+        // or the issuer validates the capability — before anyone gets in.
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -140,8 +160,14 @@ pub fn run() {
             commands::meeting::get_meeting_session,
             commands::meeting::open_meeting_window,
             commands::meeting::notify_meeting_ended,
-            commands::parse_invite_link,
-            commands::create_meeting_invite,
+            commands::invites::parse_invite_link,
+            commands::invites::exchange_invite_for_token,
+            commands::invites::create_meeting_invite,
+            commands::invites::get_meeting_invite,
+            commands::invitees::normalize_invitees,
+            commands::messaging::get_messaging_settings,
+            commands::messaging::update_messaging_settings,
+            commands::messaging::send_meeting_invite,
             commands::create_icalendar_event,
             // User Management
             commands::profile::get_user_profile,
@@ -155,7 +181,6 @@ pub fn run() {
             commands::schedule::schedule_meeting,
             commands::schedule::delete_scheduled_meeting,
             commands::schedule::get_meeting_history,
-            commands::get_meeting_invite,
             // Participant Management
             commands::participants::get_all_participants,
             commands::participants::add_participant,

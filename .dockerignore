@@ -1,0 +1,11 @@
+.git
+.gitignore
+.dockerignore
+node_modules
+**/node_modules
+dist
+dist-cloudflare
+src-tauri/target
+src-tauri/gen
+docker/.env
+docker/recordings
