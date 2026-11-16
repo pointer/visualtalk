@@ -388,26 +388,7 @@ export default function Schedule({ onClose }) {
                     {/* Each attendee gets a distinct token and invite link. */}
                     <Show when={inviteData()}>
                         <div class="mt-6">
-                            {/* <For each={inviteData().attendee_invites}>
-                                {(attendeeInvite) => ( */}
                             <div class="mb-3 rounded-lg border border-[#2a2a2a] bg-[#151515] p-3">
-                                {/* <div class="mb-2 text-xs font-medium text-gray-300">
-                                    {attendeeInvite.recipient || t("schedule.singleGuest")}
-                                </div> */}
-                                {/* <div class="flex flex-col gap-2 sm:flex-row"> */}
-                                {/* <input
-                                        aria-label={t("schedule.shareLink")}
-                                        readOnly
-                                        value={attendeeInvite.invite_link}
-                                        class="min-w-0 flex-1 rounded-md border border-[#2a2a2a] bg-[#0f0f0f] p-2 text-xs text-gray-200 outline-none"
-                                    /> */}
-                                {/* <button
-                                                type="button"
-                                                onClick={() => handleCopyLink(attendeeInvite)}
-                                                class={`rounded-md border px-3 py-2 text-sm font-medium text-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 ${copied() === attendeeInvite.identity ? 'border-green-600 bg-green-600 hover:bg-green-500' : 'border-[#404040] hover:bg-[#292929]'}`}
-                                            >
-                                                {copied() === attendeeInvite.identity ? t("common.copied") : t("common.copy")}
-                                            </button> */}
 
                                 <button
                                     type="button"
@@ -420,21 +401,7 @@ export default function Schedule({ onClose }) {
                                         ? t("schedule.sending")
                                         : t(IS_MOBILE ? "schedule.smsInvite" : "schedule.emailInvite")}
                                 </button>
-                                {/* </div> */}
-                                {/* <Show when={!attendeeInvite.recipient}>
-                                            <p class="mt-2 text-xs text-gray-500">{t("schedule.addRecipientToSend")}</p>
-                                        </Show>
-                                        <Show when={sendState()[attendeeInvite.identity]?.message}>
-                                            <p
-                                                role={sendState()[attendeeInvite.identity]?.success ? "status" : "alert"}
-                                                class={`mt-2 text-xs ${sendState()[attendeeInvite.identity]?.success ? "text-green-300" : "text-amber-300"}`}
-                                            >
-                                                {sendState()[attendeeInvite.identity].message}
-                                            </p>
-                                        </Show> */}
                             </div>
-                            {/*//     )}
-                            // </For> */}
                             <p class="mt-1.5 text-xs text-gray-500">{t(inviteData().shared_link ? "schedule.sharedLinkNote" : "schedule.linkNote")}</p>
                             <Show when={!inviteData().shared_link && inviteData().attendee_invites.length > 1}>
                                 <p class="mt-1.5 text-xs text-gray-500">
