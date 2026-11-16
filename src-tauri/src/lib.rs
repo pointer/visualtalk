@@ -83,14 +83,13 @@ pub fn run() {
     // (the `deep-link` feature hands it to tauri-plugin-deep-link) instead of
     // starting a second copy of the app.
     #[cfg(desktop)]
-    let builder = tauri::Builder::default().plugin(tauri_plugin_single_instance::init(
-        |app, _args, _cwd| {
+    let builder =
+        tauri::Builder::default().plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();
                 let _ = window.set_focus();
             }
-        },
-    ));
+        }));
     #[cfg(not(desktop))]
     let builder = tauri::Builder::default();
 
@@ -270,6 +269,7 @@ pub fn run() {
             ai::update_ai_settings,
             ai::test_ai_connection,
             ai::get_available_models,
+            commands::schedule::send_invitations,
             // Translation
             #[cfg(feature = "pro")]
             commands::translation::update_translation_settings,

@@ -48,7 +48,6 @@
   "mainWindow.recentCount": "{count} recent",
   "mainWindow.recentEmpty": "Rooms you join will appear here.",
   "mainWindow.recentRoom": "Room: #{room}",
-
   "meeting.title": "VisualTalk Meeting",
   "meeting.joinedAs": "Joined as:",
   "meeting.audioBlocked": "Sound is blocked by the browser.",
@@ -219,7 +218,7 @@
   "schedule.shareLink": "Share this Invite Link:",
   "schedule.linkNote": "Each link admits one guest. It stays valid through the meeting and expires two hours after it ends (at least 24 hours; the meeting and grace period must fit within 30 days).",
   "schedule.sharedLinkNote": "One link for every guest: each person who opens it receives their own pass. It stays valid through the meeting and expires two hours after it ends (at least 24 hours; the meeting and grace period must fit within 30 days).",
-  "schedule.singleGuest": "Single-guest invite",
+  "schedule.sendInvite": "Send Invitation",
   "schedule.emailInvite": "Send email",
   "schedule.smsInvite": "Send SMS",
   "schedule.sending": "Sending...",

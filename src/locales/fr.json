@@ -48,7 +48,6 @@
   "mainWindow.recentCount": "{count} récentes",
   "mainWindow.recentEmpty": "Les salles que vous rejoignez apparaîtront ici.",
   "mainWindow.recentRoom": "Salle : #{room}",
-
   "meeting.title": "Réunion VisualTalk",
   "meeting.joinedAs": "Connecté en tant que :",
   "meeting.audioBlocked": "Le son est bloqué par le navigateur.",
@@ -219,7 +218,7 @@
   "schedule.shareLink": "Partagez ce lien d'invitation :",
   "schedule.linkNote": "Chaque lien permet à une personne de rejoindre la réunion. Il reste valide pendant la réunion et expire deux heures après sa fin (au moins 24 heures ; réunion et délai de grâce dans les 30 jours).",
   "schedule.sharedLinkNote": "Un seul lien pour tous les invités : chacun reçoit son propre accès en l'ouvrant. Il reste valide pendant la réunion et expire deux heures après sa fin (au moins 24 heures ; réunion et délai de grâce dans les 30 jours).",
-  "schedule.singleGuest": "Invitation individuelle",
+  "schedule.sendInvite": "Envoyer l'invitation",
   "schedule.emailInvite": "Envoyer un e-mail",
   "schedule.smsInvite": "Envoyer un SMS",
   "schedule.sending": "Envoi...",
