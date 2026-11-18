@@ -1,6 +1,6 @@
 import { For, Show, createEffect, onCleanup } from "solid-js";
 import { useI18n } from "../i18n/I18nProvider";
-import { IS_WKWEBVIEW_MAC, startCanvasVideo } from "../lib/canvasVideoFallback";
+import { USE_CANVAS_VIDEO, startCanvasVideo } from "../lib/canvasVideoFallback";
 
 /**
  * Pre-join screen with video preview, device selection, and join button.
@@ -18,9 +18,9 @@ export function PreJoinScreen(props) {
     if (videoRef && stream) {
       videoRef.srcObject = stream;
       videoRef.play().catch(() => {});
-      // WKWebView macOS: mirror frames to canvas (native video layer may
+      // WKWebView macOS/iOS: mirror frames to canvas (native video layer may
       // never composite on screen).
-      if (IS_WKWEBVIEW_MAC && canvasRef) {
+      if (USE_CANVAS_VIDEO && canvasRef) {
         if (stopCanvas) stopCanvas();
         stopCanvas = startCanvasVideo(videoRef, canvasRef, {
           mirror: false,
@@ -64,13 +64,13 @@ export function PreJoinScreen(props) {
                 }}
                 style="transform: scaleX(1); -webkit-transform: scaleX(1);"
                 class={
-                  IS_WKWEBVIEW_MAC
+                  USE_CANVAS_VIDEO
                     ? "absolute inset-0 w-full h-full opacity-0 pointer-events-none"
                     : "w-full h-full object-cover"
                 }
               />
-              {/* Canvas mirror for WKWebView macOS (video layer compositing bug) */}
-              <Show when={IS_WKWEBVIEW_MAC}>
+              {/* Canvas mirror for WKWebView macOS/iOS (video layer compositing bug) */}
+              <Show when={USE_CANVAS_VIDEO}>
                 <canvas
                   ref={(el) => {
                     canvasRef = el;

@@ -1,5 +1,5 @@
 import { For, createEffect, createSignal, onCleanup, Show, createMemo } from "solid-js";
-import { IS_WKWEBVIEW_MAC, startCanvasVideo } from "../lib/canvasVideoFallback";
+import { USE_CANVAS_VIDEO, startCanvasVideo } from "../lib/canvasVideoFallback";
 
 /**
  * Start playback with WKWebView/Safari autoplay fallbacks.
@@ -94,11 +94,11 @@ function VideoTile(props) {
       currentEl.srcObject = null;
     }
 
-    // WKWebView on macOS may decode frames fine but never composite the
-    // native <video> layer on screen (black tile). Mirror the frames into
-    // the canvas overlay, which uses the regular paint path.
+    // WKWebView (macOS desktop and the iOS shell) may decode frames fine but
+    // never composite the native <video> layer on screen (black tile). Mirror
+    // the frames into the canvas overlay, which uses the regular paint path.
     let stopCanvas = null;
-    if (IS_WKWEBVIEW_MAC) {
+    if (USE_CANVAS_VIDEO) {
       stopCanvas = startCanvasVideo(currentEl, canvasEl(), {
         mirror: isMirror(),
         contain: isScreen(),
@@ -184,13 +184,13 @@ function VideoTile(props) {
           transform: isMirror() ? "scaleX(-1)" : "none",
         }}
         class={
-          IS_WKWEBVIEW_MAC
+          USE_CANVAS_VIDEO
             ? "absolute inset-0 w-full h-full opacity-0 pointer-events-none"
             : `w-full h-full ${isScreen() ? "object-contain bg-black" : "object-cover"}`
         }
       />
-      {/* Canvas mirror for WKWebView macOS (native video layer never composites) */}
-      <Show when={IS_WKWEBVIEW_MAC}>
+      {/* Canvas mirror for WKWebView macOS/iOS (native video layer never composites) */}
+      <Show when={USE_CANVAS_VIDEO}>
         <canvas
           ref={setCanvasEl}
           class="absolute inset-0 w-full h-full pointer-events-none"
