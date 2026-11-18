@@ -330,8 +330,12 @@ fn generate_shared_invites(
     };
 
     let expires_at = Utc::now().timestamp() + token_ttl as i64;
-    let capability =
-        token::generate_invite_capability(&settings.api_key, &settings.api_secret, room, expires_at)?;
+    let capability = token::generate_invite_capability(
+        &settings.api_key,
+        &settings.api_secret,
+        room,
+        expires_at,
+    )?;
     let mut query = url::form_urlencoded::Serializer::new(String::new());
     query
         .append_pair("room", room)
@@ -347,7 +351,9 @@ fn generate_shared_invites(
             // There is no fixed identity in this mode — the issuer assigns one
             // per join. This value only keys the Schedule dialog's per-row
             // copy/send state, so it must be unique and non-empty.
-            identity: recipient.clone().unwrap_or_else(|| format!("guest-{}", index + 1)),
+            identity: recipient
+                .clone()
+                .unwrap_or_else(|| format!("guest-{}", index + 1)),
             recipient,
             delivery_method,
             invite_link: invite_link.clone(),
@@ -630,7 +636,9 @@ mod tests {
             .contains("unusable guest token issuer"));
 
         // Neither shape complete: no token, and an issuer with no capability.
-        assert!(parse_invite_link("visualtalk://join?room=r&url=wss%3A%2F%2Fx".to_string()).is_err());
+        assert!(
+            parse_invite_link("visualtalk://join?room=r&url=wss%3A%2F%2Fx".to_string()).is_err()
+        );
         assert!(parse_invite_link(
             "visualtalk://join?room=r&url=wss%3A%2F%2Fx&issuer=https%3A%2F%2Fi.example%2Fv1%2Ftoken"
                 .to_string()
