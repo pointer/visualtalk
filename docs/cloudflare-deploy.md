@@ -263,6 +263,16 @@ manifest and the meeting-link handoff page:
 | `/j/?room=<code>` | Meeting-link handoff: shows the room code with a copy button. Query-string form on purpose — a static host cannot route `/j/<code>`. |
 | `/.well-known/assetlinks.json` | Android App Links verification for `com.katebg.visualtalk`, using the Play upload-key fingerprint. |
 | `/` | Minimal product page. |
+| `/robots.txt` | Crawler policy: allow everything except the `/j/` handoff utility (unbounded query space, no indexable content); points at the sitemap. |
+| `/sitemap.xml` | Every indexable page with `lastmod`, plus `hreflang` alternates for the EN/FR guide. |
+| `/llms.txt` | llmstxt.org-style index for AI agents: per-page summaries, machine-readable endpoints (sitemap, JSON-LD, SHA256SUMS) and credential-handling notes. |
+
+Every page carries semantic HTML5 (`nav`/`main`/`footer`, one `h1`,
+`thead`/`scope` on tables), a canonical link, Open Graph + Twitter meta and
+schema.org JSON-LD (`Organization` + `WebSite` + `SoftwareApplication` on the
+home page, `HowTo` on the guide in both languages, `TechArticle` on
+why-tauri, `SoftwareApplication` on downloads, `WebPage` on the policy). The
+`/j/` handoff page is `robots=noindex` on purpose.
 
 Deploy with `pnpm cf:site` (`wrangler deploy`; the output directory comes from
 `wrangler.jsonc`'s `assets.directory`, which is why the dashboard shows no
@@ -276,6 +286,7 @@ pandoc PRIVACY.md -f markdown -t html5 -s \
   --metadata title="VisualTalk — Privacy Policy" \
   --include-in-header=site/_partials/head.html \
   --include-before-body=site/_partials/nav.html \
+  --include-after-body=site/_partials/foot.html \
   -o site/privacy.html
 ```
 

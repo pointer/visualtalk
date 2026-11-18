@@ -55,6 +55,10 @@ config.json
 .env*
 .env.*
 *.txt
+# The public site is committed static files (docs/cloudflare-deploy.md §9):
+# crawler policy, the AI-agent index and the download checksum manifest must
+# live in the repo, not only on the deploy machine.
+!site/**/*.txt
 Notes.txt
 *.lock
 *.md

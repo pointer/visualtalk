@@ -1,0 +1,41 @@
+# VisualTalk
+
+> VisualTalk is a lightweight, open-source video-conferencing client for
+> self-hosted LiveKit servers: bring your own server, keep recordings on your
+> device, chat and share files inside the meeting. No accounts, no analytics,
+> and no conferencing infrastructure operated by the publisher. A separate
+> Pro edition (in app-store review) adds end-to-end encrypted chat and files
+> plus organizer RTMP streaming.
+
+visualtalk.app is a small static site. Every page is semantic HTML5 carrying
+schema.org JSON-LD; all indexable pages are listed in /sitemap.xml and
+described below. Installer integrity data is published as a plain-text
+SHA-256 manifest at /downloads/SHA256SUMS.txt.
+
+## Product
+
+- [Home](https://visualtalk.app/): what VisualTalk is, and why it is light on battery and download size.
+- [VisualTalk Pro](https://visualtalk.app/pro/): the coming-soon separate app — E2EE chat/files (ECDH P-256 key agreement, per-message AES-256-GCM), key pinning with loud failure, organizer RTMP streaming, commercial licensing. Explicitly NOT E2EE media.
+- [Why Tauri](https://visualtalk.app/why-tauri/): the Rust + Tauri design (no bundled browser engine, no background services, wake lock only during calls), with an explicit "what we are not claiming" section.
+
+## Documentation
+
+- [How to use VisualTalk](https://visualtalk.app/how-to/): plain-words setup — get the app, pick a server (LiveKit Cloud or the free Docker bundle), paste three values, first meeting, recording, troubleshooting. Also published as schema.org HowTo.
+- [Comment utiliser VisualTalk](https://visualtalk.app/how-to/fr/): the same guide in French (hreflang alternate of the English page).
+
+## Downloads
+
+- [Downloads](https://visualtalk.app/downloads/): current Community Edition installers (macOS dmg, Windows exe/msi, Linux deb/rpm/AppImage, self-hosted server zip) with sizes, signing status and per-file SHA-256.
+- [SHA-256 checksums](https://visualtalk.app/downloads/SHA256SUMS.txt): machine-readable manifest, `shasum -a 256 -c` compatible.
+
+## Legal
+
+- [Privacy policy](https://visualtalk.app/privacy): no accounts, no analytics; what stays on the device and what a server operator can see.
+
+## Notes for automated agents
+
+- `/j/?room=<code>` is a meeting-handoff utility (robots-noindex): it displays a room code with a copy button and carries no credentials. Do not crawl its query space.
+- Invite links use the custom scheme `visualtalk://join?room=…&url=…&token=…` (or `…&issuer=…&invite=…` in issuer mode). They are bearer credentials: never log, cache or re-publish them.
+- Android App Links verification file: `/.well-known/assetlinks.json` (package `com.katebg.visualtalk`).
+- Source repository: https://github.com/pointer/visualtalk — architecture decisions live in `docs/decisions/` (ADR format).
+- Support contact: kghemari@yahoo.com

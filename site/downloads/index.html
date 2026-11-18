@@ -4,6 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Download VisualTalk 3.3.43</title>
+<meta name="description" content="Download VisualTalk 3.3.43 Community Edition: macOS, Windows and Linux installers plus the self-hosted server stack, with SHA-256 checksums and signing status.">
+<link rel="canonical" href="https://visualtalk.app/downloads/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VisualTalk">
+<meta property="og:title" content="Download VisualTalk 3.3.43">
+<meta property="og:description" content="Community Edition installers for the VisualTalk self-hosted video-conferencing client, with SHA-256 checksums and signing status.">
+<meta property="og:url" content="https://visualtalk.app/downloads/">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "VisualTalk",
+  "version": "3.3.43",
+  "operatingSystem": "macOS, Windows, Linux",
+  "applicationCategory": "CommunicationApplication",
+  "description": "Community Edition installers for the VisualTalk self-hosted video-conferencing client, with sizes, signing status and SHA-256 checksums.",
+  "url": "https://visualtalk.app/downloads/",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "publisher": { "@type": "Organization", "name": "VisualTalk", "url": "https://visualtalk.app/" }
+}
+</script>
 <style>
   :root { color-scheme: light dark; }
   body { margin: 0; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -23,7 +47,7 @@
 </style>
 </head>
 <body>
-<header class="site"><strong>VisualTalk</strong> &middot; <a href="/">Home</a> &middot; <a href="/how-to/">How to</a> &middot; <a href="/why-tauri/">Why Tauri</a> &middot; <a href="/pro/">Pro</a> &middot; <a href="/privacy">Privacy</a></header>
+<header class="site"><nav aria-label="Site"><strong>VisualTalk</strong> &middot; <a href="/">Home</a> &middot; <a href="/downloads/">Downloads</a> &middot; <a href="/how-to/">How to</a> &middot; <a href="/why-tauri/">Why Tauri</a> &middot; <a href="/pro/">Pro</a> &middot; <a href="/privacy">Privacy</a></nav></header>
 <main>
   <h1>Download VisualTalk 3.3.43</h1>
   <p>Community Edition. Bring your own LiveKit server; recordings stay on your
@@ -31,7 +55,10 @@
      and the EULA shown at first launch.</p>
   <p class="warn"><strong>Neither build is notarized nor code-signed yet.</strong> macOS will refuse to open the app until you right-click &rarr; Open; Windows SmartScreen will warn &ldquo;unknown publisher&rdquo;. Always verify the SHA-256 of what you download against this page.</p>
   <table>
-    <tr><th>Platform</th><th>Installer</th><th>Size</th><th>SHA-256 (first 16)</th></tr>
+    <thead>
+    <tr><th scope="col">Platform</th><th scope="col">Installer</th><th scope="col">Size</th><th scope="col">SHA-256 (first 16)</th></tr>
+    </thead>
+    <tbody>
     <tr><td>macOS (Apple Silicon)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_aarch64.dmg">visualtalk_3.3.43_aarch64.dmg</a></td><td>6.3 MiB</td><td><code>e450280c045dd014&hellip;</code></td></tr>
     <tr><td>macOS (Intel)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_x64.dmg">visualtalk_3.3.43_x64.dmg</a></td><td>6.5 MiB</td><td><code>d858a8abc5599a52&hellip;</code></td></tr>
     <tr><td>Windows (x64)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_x64-setup.exe">visualtalk_3.3.43_x64-setup.exe</a></td><td>4.2 MiB</td><td><code>433951eefb79c914&hellip;</code></td></tr>
@@ -40,11 +67,19 @@
     <tr><td>Linux (x64)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_amd64.AppImage">visualtalk_3.3.43_amd64.AppImage</a></td><td>83.7 MiB</td><td><code>477933fca0f191fe&hellip;</code></td></tr>
     <tr><td>Linux (x64)</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk_3.3.43_amd64.deb">visualtalk_3.3.43_amd64.deb</a></td><td>7.7 MiB</td><td><code>33fe10a2f222c282&hellip;</code></td></tr>
     <tr><td>Self-hosted server stack</td><td><a href="https://github.com/pointer/visualtalk/releases/download/v3.3.43/visualtalk-server-3.3.43.zip">visualtalk-server-3.3.43.zip</a></td><td>19.3 KiB</td><td><code>798803556bc426d9&hellip;</code></td></tr>
+    </tbody>
   </table>
   <h2>Verify your download</h2>
   <pre>shasum -a 256 &lt;file&gt;             # macOS / Linux
 certutil -hashfile &lt;file&gt; SHA256   # Windows</pre>
   <p>Full checksums: <a href="SHA256SUMS.txt">SHA256SUMS.txt</a>.</p>
+  <footer class="note">
+    <p>VisualTalk is free, open-source software (Community Edition).
+       <a href="/pro/">VisualTalk Pro</a> adds end-to-end encrypted chat and files.</p>
+    <p>&copy; 2026 VisualTalk &middot; <a href="/privacy">Privacy policy</a> &middot;
+       <a href="mailto:kghemari@yahoo.com">Support</a> &middot;
+       <a href="https://github.com/pointer/visualtalk">Source repository</a></p>
+  </footer>
 </main>
 </body>
 </html>

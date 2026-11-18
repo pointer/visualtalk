@@ -5,6 +5,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Comment faire — VisualTalk</title>
 <meta name="description" content="Guide en langage simple : obtenir VisualTalk, le connecter à LiveKit Cloud ou à votre propre serveur Docker, et lancer votre première réunion.">
+<link rel="canonical" href="https://visualtalk.app/how-to/fr/">
+<link rel="alternate" hreflang="fr" href="https://visualtalk.app/how-to/fr/">
+<link rel="alternate" hreflang="en" href="https://visualtalk.app/how-to/">
+<link rel="alternate" hreflang="x-default" href="https://visualtalk.app/how-to/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="VisualTalk">
+<meta property="og:title" content="Comment faire — VisualTalk">
+<meta property="og:description" content="Guide en langage simple : obtenir VisualTalk, le connecter à LiveKit Cloud ou à votre propre serveur Docker, et lancer votre première réunion.">
+<meta property="og:url" content="https://visualtalk.app/how-to/fr/">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "Comment utiliser VisualTalk",
+  "description": "Guide en langage simple : obtenir l'application, choisir un serveur LiveKit, coller trois valeurs dans les réglages et lancer votre première réunion.",
+  "inLanguage": "fr",
+  "mainEntityOfPage": "https://visualtalk.app/how-to/fr/",
+  "publisher": { "@type": "Organization", "name": "VisualTalk", "url": "https://visualtalk.app/" },
+  "step": [
+    { "@type": "HowToStep", "position": 1, "name": "Obtenir l'application", "text": "Téléchargez l'installateur de votre système depuis la page Téléchargements. Android est en test fermé et iOS en examen ; en attendant, tout fonctionne sur ordinateur." },
+    { "@type": "HowToStep", "position": 2, "name": "Choisir un serveur", "text": "Créez un projet gratuit sur LiveKit Cloud (URL du serveur, clé API, secret API) ou lancez le bundle Docker gratuit sur votre propre ordinateur et lisez ses identifiants avec python3 scripts/livekit-local.py creds." },
+    { "@type": "HowToStep", "position": 3, "name": "Prévenir l'application", "text": "Dans VisualTalk, ouvrez Paramètres puis LiveKit, collez l'URL du serveur, la clé API et le secret API, puis appuyez sur Enregistrer la configuration." },
+    { "@type": "HowToStep", "position": 4, "name": "Votre première réunion", "text": "Nouvelle réunion démarre immédiatement et Copier le lien partage une page avec le code de salle ; Rejoindre saisit un code ou un lien d'invitation ; Planifier programme une réunion." },
+    { "@type": "HowToStep", "position": 5, "name": "Enregistrer et sous-titrer (optionnel)", "text": "L'organisateur peut enregistrer ; avec le bundle Docker les enregistrements restent dans docker/recordings sur la machine serveur. Le module optionnel de reconnaissance vocale fournit des sous-titres en direct." },
+    { "@type": "HowToStep", "position": 6, "name": "Corriger les problèmes courants", "text": "Les téléphones ont besoin de l'adresse Wi-Fi du serveur, pas de localhost ; une erreur d'authentification signifie une clé ou un secret recopié à la main ; un serveur qui fonctionnait hier peut être en veille ; les permissions caméra ou micro refusées doivent être réautorisées dans les réglages système." }
+  ]
+}
+</script>
 <style>
   :root { color-scheme: light dark; }
   body { margin: 0; font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -28,7 +59,7 @@
 </style>
 </head>
 <body>
-<header class="site"><strong>VisualTalk</strong> &middot; <a href="/">Accueil</a> &middot; <a href="/downloads/">Téléchargements</a> &middot; <a href="/how-to/">Guide</a> &middot; <a href="/why-tauri/">Pourquoi Tauri</a> &middot; <a href="/pro/">Pro</a> &middot; <a href="/privacy">Confidentialité</a></header>
+<header class="site"><nav aria-label="Site"><strong>VisualTalk</strong> &middot; <a href="/">Accueil</a> &middot; <a href="/downloads/">Téléchargements</a> &middot; <a href="/how-to/">Guide</a> &middot; <a href="/why-tauri/">Pourquoi Tauri</a> &middot; <a href="/pro/">Pro</a> &middot; <a href="/privacy">Confidentialité</a></nav></header>
 <main>
 <h1>Comment utiliser VisualTalk</h1>
 <p class="lang">Read in: <a href="/how-to/">English</a></p>
@@ -82,10 +113,14 @@ dans un éditeur de texte &mdash; sur Mac, appuyez sur Cmd+Maj+. dans le
 Finder une fois pour révéler les fichiers cachés.) L'adresse à utiliser
 dépend de l'endroit où tourne l'application :</p>
 <table>
-  <tr><th>L'application tourne sur&hellip;</th><th>Collez cette adresse</th></tr>
+  <thead>
+  <tr><th scope="col">L'application tourne sur&hellip;</th><th scope="col">Collez cette adresse</th></tr>
+  </thead>
+  <tbody>
   <tr><td>Le même ordinateur que le serveur</td><td><code>ws://localhost:7880</code></td></tr>
   <tr><td>Un téléphone ou une tablette sur votre Wi-Fi domestique</td><td><code>ws://&lt;adresse Wi-Fi de l'ordinateur serveur&gt;:7880</code>, par ex. <code>ws://192.168.1.20:7880</code>. La trouver &mdash; Mac : Réglages Système &rarr; Wi-Fi &rarr; Détails&hellip; &rarr; Adresse IP ; Windows : Paramètres &rarr; Réseau et Internet &rarr; votre connexion &rarr; Adresse IPv4. Démarrez le serveur avec <code>--host</code> pour que les téléphones l'atteignent.</td></tr>
   <tr><td>Un émulateur Android sur l'ordinateur serveur</td><td><code>ws://10.0.2.2:7880</code></td></tr>
+  </tbody>
 </table>
 <h2>3. Prévenir l'application (une fois)</h2>
 <p>Dans VisualTalk, ouvrez <strong>Paramètres &rarr; LiveKit</strong> (l'icône
@@ -148,6 +183,14 @@ voyez à l'écran. L'assistance est gratuite et au mieux de nos possibilités.</
 <p class="note">VisualTalk ne contient ni compte ni analytique, et l'éditeur ne
 voit jamais le contenu des réunions. Détails : <a href="/privacy">politique de
 confidentialité</a>.</p>
+<footer class="note">
+  <p>VisualTalk est un logiciel libre et gratuit (&eacute;dition communautaire).
+     <a href="/pro/">VisualTalk Pro</a> ajoute le chiffrement de bout en bout
+     des messages et des fichiers.</p>
+  <p>&copy; 2026 VisualTalk &middot; <a href="/privacy">Politique de confidentialit&eacute;</a> &middot;
+     <a href="mailto:kghemari@yahoo.com">Assistance</a> &middot;
+     <a href="https://github.com/pointer/visualtalk">Code source</a></p>
+</footer>
 </main>
 </body>
 </html>

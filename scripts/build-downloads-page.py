@@ -115,6 +115,30 @@ def render(assets: list[dict], tag: str, macos_signing: str, windows_signing: st
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Download VisualTalk {version}</title>
+<meta name="description" content="Download VisualTalk {version} Community Edition: macOS, Windows and Linux installers plus the self-hosted server stack, with SHA-256 checksums and signing status.">
+<link rel="canonical" href="https://visualtalk.app/downloads/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="VisualTalk">
+<meta property="og:title" content="Download VisualTalk {version}">
+<meta property="og:description" content="Community Edition installers for the VisualTalk self-hosted video-conferencing client, with SHA-256 checksums and signing status.">
+<meta property="og:url" content="https://visualtalk.app/downloads/">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">
+{{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "VisualTalk",
+  "version": "{version}",
+  "operatingSystem": "macOS, Windows, Linux",
+  "applicationCategory": "CommunicationApplication",
+  "description": "Community Edition installers for the VisualTalk self-hosted video-conferencing client, with sizes, signing status and SHA-256 checksums.",
+  "url": "https://visualtalk.app/downloads/",
+  "isAccessibleForFree": true,
+  "offers": {{ "@type": "Offer", "price": "0", "priceCurrency": "USD" }},
+  "publisher": {{ "@type": "Organization", "name": "VisualTalk", "url": "https://visualtalk.app/" }}
+}}
+</script>
 <style>
   :root {{ color-scheme: light dark; }}
   body {{ margin: 0; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -134,7 +158,7 @@ def render(assets: list[dict], tag: str, macos_signing: str, windows_signing: st
 </style>
 </head>
 <body>
-<header class="site"><strong>VisualTalk</strong> &middot; <a href="/">Home</a> &middot; <a href="/privacy">Privacy</a></header>
+<header class="site"><nav aria-label="Site"><strong>VisualTalk</strong> &middot; <a href="/">Home</a> &middot; <a href="/downloads/">Downloads</a> &middot; <a href="/how-to/">How to</a> &middot; <a href="/why-tauri/">Why Tauri</a> &middot; <a href="/pro/">Pro</a> &middot; <a href="/privacy">Privacy</a></nav></header>
 <main>
   <h1>Download VisualTalk {version}</h1>
   <p>Community Edition. Bring your own LiveKit server; recordings stay on your
@@ -142,13 +166,24 @@ def render(assets: list[dict], tag: str, macos_signing: str, windows_signing: st
      and the EULA shown at first launch.</p>
   <p class="warn">{note}</p>
   <table>
-    <tr><th>Platform</th><th>Installer</th><th>Size</th><th>SHA-256 (first 16)</th></tr>
+    <thead>
+    <tr><th scope="col">Platform</th><th scope="col">Installer</th><th scope="col">Size</th><th scope="col">SHA-256 (first 16)</th></tr>
+    </thead>
+    <tbody>
 {chr(10).join(rows)}
+    </tbody>
   </table>
   <h2>Verify your download</h2>
   <pre>shasum -a 256 &lt;file&gt;             # macOS / Linux
 certutil -hashfile &lt;file&gt; SHA256   # Windows</pre>
   <p>Full checksums: <a href="SHA256SUMS.txt">SHA256SUMS.txt</a>.</p>
+  <footer class="note">
+    <p>VisualTalk is free, open-source software (Community Edition).
+       <a href="/pro/">VisualTalk Pro</a> adds end-to-end encrypted chat and files.</p>
+    <p>&copy; 2026 VisualTalk &middot; <a href="/privacy">Privacy policy</a> &middot;
+       <a href="mailto:kghemari@yahoo.com">Support</a> &middot;
+       <a href="https://github.com/pointer/visualtalk">Source repository</a></p>
+  </footer>
 </main>
 </body>
 </html>

@@ -1,0 +1,9 @@
+# VisualTalk — public static site (visualtalk.app)
+User-agent: *
+Allow: /
+
+# Meeting-handoff utility: an unbounded query space (?room=…) with no
+# indexable content of its own. Kept out of indexes on purpose.
+Disallow: /j/
+
+Sitemap: https://visualtalk.app/sitemap.xml

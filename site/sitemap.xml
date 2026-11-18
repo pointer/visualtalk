@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://visualtalk.app/</loc>
+    <lastmod>2026-11-18</lastmod>
+  </url>
+  <url>
+    <loc>https://visualtalk.app/downloads/</loc>
+    <lastmod>2026-11-18</lastmod>
+  </url>
+  <url>
+    <loc>https://visualtalk.app/how-to/</loc>
+    <lastmod>2026-11-18</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://visualtalk.app/how-to/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://visualtalk.app/how-to/fr/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://visualtalk.app/how-to/"/>
+  </url>
+  <url>
+    <loc>https://visualtalk.app/how-to/fr/</loc>
+    <lastmod>2026-11-18</lastmod>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://visualtalk.app/how-to/fr/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://visualtalk.app/how-to/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://visualtalk.app/how-to/"/>
+  </url>
+  <url>
+    <loc>https://visualtalk.app/why-tauri/</loc>
+    <lastmod>2026-11-18</lastmod>
+  </url>
+  <url>
+    <loc>https://visualtalk.app/pro/</loc>
+    <lastmod>2026-11-18</lastmod>
+  </url>
+  <url>
+    <loc>https://visualtalk.app/privacy</loc>
+    <lastmod>2026-11-18</lastmod>
+  </url>
+</urlset>
