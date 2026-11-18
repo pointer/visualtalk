@@ -76,42 +76,75 @@ pub fn update_messaging_settings(
     Ok(response)
 }
 
+/// Meeting-level details shared by every invitation in a batch.
+///
+/// Kept apart from `AttendeeInvite` (which is per-guest) so bulk sending does
+/// not repeat the same strings on every row — that duplication is what made
+/// `schedule::send_invitations` deserialize-fail once already.
+#[derive(Debug)]
+pub(super) struct InviteContext {
+    pub meeting_title: String,
+    pub meeting_room: String,
+    pub meeting_date: String,
+    pub meeting_time: String,
+    pub share_link_label: String,
+}
+
 #[tauri::command]
 pub async fn send_meeting_invite(
     request: SendInviteRequest,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let settings = validate_messaging_config(state.read_data(|data| data.messaging.clone())?)?;
-    let recipient = request
-        .invite
+    let context = InviteContext {
+        meeting_title: request.meeting_title,
+        meeting_room: request.meeting_room,
+        meeting_date: request.meeting_date,
+        meeting_time: request.meeting_time,
+        share_link_label: request.share_link_label,
+    };
+    deliver_invite(&settings, &request.invite, &context).await
+}
+
+/// Validate one invitation and hand it to the transport its guest was invited
+/// on.
+///
+/// Shared by `send_meeting_invite` (single row) and `schedule::send_invitations`
+/// (bulk) so the two paths cannot drift on validation rules or message format.
+pub(super) async fn deliver_invite(
+    settings: &MessagingConfig,
+    invite: &AttendeeInvite,
+    context: &InviteContext,
+) -> Result<(), String> {
+    let recipient = invite
         .recipient
         .as_deref()
         .map(str::trim)
         .filter(|recipient| !recipient.is_empty())
         .ok_or("Add a recipient before sending this invitation.")?;
-    let link = request.invite.invite_link.trim();
+    let link = invite.invite_link.trim();
     if !link.starts_with("visualtalk://join?") || link.len() > 8_192 {
         return Err("The invitation link is invalid.".to_string());
     }
-    let subject = request.meeting_title.trim();
+    let subject = context.meeting_title.trim();
     if subject.is_empty()
         || subject.len() > 200
         || subject.chars().any(char::is_control)
-        || request.meeting_room.len() > 128
-        || request.meeting_date.len() > 64
-        || request.meeting_time.len() > 64
+        || context.meeting_room.len() > 128
+        || context.meeting_date.len() > 64
+        || context.meeting_time.len() > 64
     {
         return Err("The invitation title or meeting details are invalid.".to_string());
     }
 
     let body = format!(
         "{}\n\n{} {}\n\nRoom: {}\nDate: {} at {}\n",
-        request.meeting_title.trim(),
-        request.share_link_label.trim(),
+        subject,
+        context.share_link_label.trim(),
         link,
-        request.meeting_room.trim(),
-        request.meeting_date.trim(),
-        request.meeting_time.trim()
+        context.meeting_room.trim(),
+        context.meeting_date.trim(),
+        context.meeting_time.trim()
     );
     if body.chars().count() > MAX_MESSAGE_LENGTH {
         return Err(format!(
@@ -119,13 +152,15 @@ pub async fn send_meeting_invite(
         ));
     }
 
-    match request.invite.delivery_method {
-        InviteDeliveryMethod::Email => send_email(&settings, recipient, subject, &body).await,
-        InviteDeliveryMethod::Sms => send_sms(&settings, recipient, &body).await,
+    match invite.delivery_method {
+        InviteDeliveryMethod::Email => send_email(settings, recipient, subject, &body).await,
+        InviteDeliveryMethod::Sms => send_sms(settings, recipient, &body).await,
     }
 }
 
-fn validate_messaging_config(mut settings: MessagingConfig) -> Result<MessagingConfig, String> {
+pub(super) fn validate_messaging_config(
+    mut settings: MessagingConfig,
+) -> Result<MessagingConfig, String> {
     if settings.smtp_port == 0 {
         return Err("SMTP port must be between 1 and 65535.".to_string());
     }
@@ -223,6 +258,7 @@ async fn send_email(
         .body(body.to_string())
         .map_err(|error| format!("Could not build the invitation email: {error}"))?;
     let credentials = Credentials::new(settings.smtp_username.clone(), password);
+
     let builder = match settings.smtp_security {
         SmtpSecurity::StartTls => {
             AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&settings.smtp_host)

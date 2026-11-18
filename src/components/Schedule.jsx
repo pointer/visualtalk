@@ -246,23 +246,36 @@ export default function Schedule({ onClose }) {
         setSendError("");
         setSendResults([]);
 
-        const invites = inviteData()?.attendee_invites;
+        const invite = inviteData();
+        const invites = invite?.attendee_invites;
 
         if (!Array.isArray(invites) || invites.length === 0) {
-            setSendError("There are no invitations to send.");
+            setSendError(t("schedule.noInvitationsToSend"));
             return;
         }
 
         setSending(true);
 
         try {
+            // `invites` is forwarded verbatim from `create_meeting_invite`; the
+            // meeting-level context travels alongside it as separate arguments
+            // because the Rust `AttendeeInvite` only carries per-guest data.
             const results = await invoke("send_invitations", {
-                invites
+                invites,
+                title: invite.title,
+                room: invite.room,
+                meetingDate: invite.meeting_date,
+                meetingTime: invite.meeting_time,
+                shareLinkLabel: t("schedule.shareLink"),
             });
 
             setSendResults(results);
         } catch (error) {
-            setSendError(String(error));
+            // Surface the rejection: an IPC argument mismatch fails before the
+            // Rust handler runs, which is otherwise indistinguishable from the
+            // command never being called at all.
+            console.error("Failed to send invitations:", error);
+            setSendError(errorMessage(error));
         } finally {
             setSending(false);
         }
@@ -388,20 +401,44 @@ export default function Schedule({ onClose }) {
                     {/* Each attendee gets a distinct token and invite link. */}
                     <Show when={inviteData()}>
                         <div class="mt-6">
-                            <div class="mb-3 rounded-lg border border-[#2a2a2a] bg-[#151515] p-3">
+                            {/* <div class="mb-3 rounded-lg border border-[#2a2a2a] bg-[#151515] p-3"> */}
 
-                                <button
-                                    type="button"
-                                    onClick={handleSendInvitations}
-                                    disabled={sending()}
-                                    aria-busy={sending()}
-                                    class="rounded-md border border-[#404040] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
-                                >
-                                    {sending()
-                                        ? t("schedule.sending")
-                                        : t(IS_MOBILE ? "schedule.smsInvite" : "schedule.emailInvite")}
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onClick={handleSendInvitations}
+                                disabled={sending()}
+                                aria-busy={sending()}
+                                class="rounded-md border border-[#404040] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                            >
+                                {sending() ? t("schedule.sending") : t("schedule.sendInvite")}
+                            </button>
+                            {/* </div> */}
+
+                            {/* Bulk-send outcome. Without this the IPC rejection
+                                is swallowed and the command looks "not called". */}
+                            <Show when={sendError()}>
+                                <p role="alert" class="mt-2 text-xs text-red-400">
+                                    {sendError()}
+                                </p>
+                            </Show>
+                            <Show when={sendResults().length > 0}>
+                                <ul class="mt-2 space-y-1 text-xs">
+                                    <For each={sendResults()}>
+                                        {(result) => (
+                                            <li class={result.accepted ? "text-emerald-400" : "text-red-400"}>
+                                                {result.recipient || t("schedule.unknownRecipient")}
+                                                <Show when={result.channel}>
+                                                    <span class="text-gray-500"> ({result.channel})</span>
+                                                </Show>
+                                                {" — "}
+                                                {result.accepted
+                                                    ? t("schedule.inviteSent")
+                                                    : result.error || t("schedule.inviteFailed")}
+                                            </li>
+                                        )}
+                                    </For>
+                                </ul>
+                            </Show>
                             <p class="mt-1.5 text-xs text-gray-500">{t(inviteData().shared_link ? "schedule.sharedLinkNote" : "schedule.linkNote")}</p>
                             <Show when={!inviteData().shared_link && inviteData().attendee_invites.length > 1}>
                                 <p class="mt-1.5 text-xs text-gray-500">

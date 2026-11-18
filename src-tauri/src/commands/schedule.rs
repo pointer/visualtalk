@@ -3,17 +3,23 @@
 //! Extracted from lib.rs so command registration is not the only thing
 //! that lives there; the domain logic stays in the sibling module it wraps.
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+
 use tauri::{AppHandle, State};
 
+use super::invitees::InviteDeliveryMethod;
+// The canonical invite shape produced by `create_meeting_invite`. Reusing it
+// keeps the IPC payload in sync with what the webview actually sends; a local
+// duplicate drifted once and made `send_invitations` unreachable, because
+// serde rejected the arguments before the handler body could run.
+use super::invites::AttendeeInvite;
+// Bulk sending reuses the single-send transport (SMTP via `lettre`, SMS via
+// Twilio) and its validation, so the two paths cannot drift.
+use super::messaging::{deliver_invite, validate_messaging_config, InviteContext};
 use crate::events::{emit as emit_event, VtEvent};
 use crate::meeting::{MeetingRecord, ScheduledMeeting};
+use crate::settings::MessagingConfig;
 use crate::state::AppState;
-#[derive(Debug, Deserialize)]
-pub struct AttendeeInvite {
-    recipient: Option<String>,
-    invite_link: String,
-}
 
 #[derive(Debug, Serialize)]
 pub struct InviteResult {
@@ -91,36 +97,65 @@ pub fn get_meeting_history(state: State<'_, AppState>) -> Result<Vec<MeetingReco
 }
 
 #[tauri::command]
-pub async fn send_invitations(invites: Vec<AttendeeInvite>) -> Result<Vec<InviteResult>, String> {
+pub async fn send_invitations(
+    invites: Vec<AttendeeInvite>,
+    title: String,
+    room: String,
+    meeting_date: String,
+    meeting_time: String,
+    share_link_label: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<InviteResult>, String> {
     if invites.is_empty() {
         return Err("No invitations provided.".into());
     }
 
+    // Resolve and validate the transport configuration once, up front. A
+    // misconfigured provider fails every row identically, so abort the batch
+    // with one clear message instead of returning up to 50 copies of it.
+    let settings = validate_messaging_config(state.read_data(|data| data.messaging.clone())?)?;
+
+    // Meeting-level context is identical for every attendee, so it travels
+    // once as command arguments rather than being duplicated onto each invite.
+    let context = InviteContext {
+        meeting_title: title,
+        meeting_room: room,
+        meeting_date,
+        meeting_time,
+        share_link_label,
+    };
+
+    Ok(dispatch_invitations(&settings, &invites, &context).await)
+}
+
+/// Send each invitation in turn and report one row per invite.
+///
+/// Delivery is deliberately sequential: a batch can hold up to 50 guests
+/// (`invitees::MAX_INVITEES`), and fanning out would hammer the SMTP server and
+/// the Twilio rate limit at once. Split out from the command wrapper so it can
+/// be tested without a live Tauri `State`.
+async fn dispatch_invitations(
+    settings: &MessagingConfig,
+    invites: &[AttendeeInvite],
+    context: &InviteContext,
+) -> Vec<InviteResult> {
     let mut results = Vec::with_capacity(invites.len());
 
-    for (index, invite) in invites.into_iter().enumerate() {
-        let recipient = invite.recipient.unwrap_or_default().trim().to_owned();
-
-        let link = invite.invite_link.trim();
-
-        let (channel, outcome) = if recipient.is_empty() {
-            (None, Err("Missing recipient.".to_owned()))
-        } else if link.is_empty() {
-            (None, Err("Missing invitation link.".to_owned()))
-        } else if recipient.contains('@') {
-            (Some("email".to_owned()), send_email(&recipient, link).await)
-        } else if looks_like_international_phone(&recipient) {
-            (Some("sms".to_owned()), send_sms(&recipient, link).await)
-        } else {
-            (
-                None,
-                Err("Enter an email address or an international \
-                     phone number beginning with +."
-                    .to_owned()),
-            )
+    for (index, invite) in invites.iter().enumerate() {
+        let recipient = invite
+            .recipient
+            .as_deref()
+            .map(str::trim)
+            .unwrap_or_default()
+            .to_owned();
+        // Reported even on failure: it is the channel this guest was invited
+        // on, which is what the UI groups the outcome under.
+        let channel = match invite.delivery_method {
+            InviteDeliveryMethod::Email => "email",
+            InviteDeliveryMethod::Sms => "sms",
         };
 
-        let (accepted, error) = match outcome {
+        let (accepted, error) = match deliver_invite(settings, invite, context).await {
             Ok(()) => (true, None),
             Err(message) => (false, Some(message)),
         };
@@ -128,29 +163,137 @@ pub async fn send_invitations(invites: Vec<AttendeeInvite>) -> Result<Vec<Invite
         results.push(InviteResult {
             index,
             recipient,
-            channel,
+            channel: Some(channel.to_owned()),
             accepted,
             error,
         });
     }
 
-    Ok(results)
+    results
 }
 
-// A routing check, not full phone-number validation.
-fn looks_like_international_phone(value: &str) -> bool {
-    match value.strip_prefix('+') {
-        Some(digits) => !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()),
-        None => false,
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Regression guard: `send_invitations` receives exactly the JSON that
+    /// `create_meeting_invite` emits for `attendee_invites`, and the webview
+    /// forwards it verbatim. If the two shapes diverge, Tauri rejects the
+    /// arguments before the handler runs and the command silently appears
+    /// "not called" — which is what happened when this module carried its own
+    /// duplicate `AttendeeInvite` with extra required fields.
+    #[test]
+    fn send_invitations_accepts_the_create_meeting_invite_wire_shape() {
+        let emitted = serde_json::json!([{
+            "recipient": "guest@example.com",
+            "delivery_method": "email",
+            "identity": "guest-00000000000000000000000000000000",
+            "invite_link": "visualtalk://join?room=demo&url=https%3A%2F%2Flk&token=abc",
+        }]);
+
+        let invites: Vec<AttendeeInvite> = serde_json::from_value(emitted).unwrap();
+
+        assert_eq!(invites.len(), 1);
+        assert_eq!(invites[0].recipient.as_deref(), Some("guest@example.com"));
+        assert_eq!(invites[0].delivery_method, InviteDeliveryMethod::Email);
+        assert!(invites[0].invite_link.starts_with("visualtalk://join?"));
     }
-}
 
-// Replace this body with your actual email service integration.
-async fn send_email(_recipient: &str, _invite_link: &str) -> Result<(), String> {
-    Err("Email delivery service is not configured.".into())
-}
+    /// Shared-link invites (ADR 0006) carry no recipient. They must still
+    /// deserialize, so one link-less invite cannot fail the whole batch —
+    /// it is reported per-row through `InviteResult` instead.
+    #[test]
+    fn send_invitations_accepts_shared_link_invites_without_a_recipient() {
+        let emitted = serde_json::json!([{
+            "recipient": null,
+            "delivery_method": "sms",
+            "identity": "guest-11111111111111111111111111111111",
+            "invite_link": "visualtalk://join?room=demo",
+        }]);
 
-// Replace this body with your actual SMS service integration.
-async fn send_sms(_recipient: &str, _invite_link: &str) -> Result<(), String> {
-    Err("SMS delivery service is not configured.".into())
+        let invites: Vec<AttendeeInvite> = serde_json::from_value(emitted).unwrap();
+
+        assert!(invites[0].recipient.is_none());
+        assert_eq!(invites[0].delivery_method, InviteDeliveryMethod::Sms);
+    }
+
+    fn test_context() -> InviteContext {
+        InviteContext {
+            meeting_title: "Weekly sync".into(),
+            meeting_room: "demo".into(),
+            meeting_date: "2026-11-20".into(),
+            meeting_time: "14:30".into(),
+            share_link_label: "Share this Invite Link:".into(),
+        }
+    }
+
+    /// A batch reports one row per invite and never fails wholesale: the
+    /// recipient-less row is rejected on its own terms while the other is still
+    /// attempted.
+    ///
+    /// Deliberately email-only with default (unconfigured) settings — `send_email`
+    /// fails fast on an empty SMTP host, so the test touches neither the network
+    /// nor the OS keychain. `send_sms` reads the Twilio token from the keychain
+    /// before its own guard, so it must stay out of unit tests.
+    #[test]
+    fn dispatch_reports_each_row_instead_of_failing_the_batch() {
+        let invites: Vec<AttendeeInvite> = serde_json::from_value(serde_json::json!([
+            {
+                "recipient": "guest@example.com",
+                "delivery_method": "email",
+                "identity": "guest-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "invite_link": "visualtalk://join?room=demo",
+            },
+            {
+                "recipient": null,
+                "delivery_method": "email",
+                "identity": "guest-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "invite_link": "visualtalk://join?room=demo",
+            },
+        ]))
+        .unwrap();
+
+        // Tauri's own runtime: the crate does not enable tokio's `macros`/`rt`
+        // test features, and adding a dev-dependency for one test is not worth it.
+        let results = tauri::async_runtime::block_on(dispatch_invitations(
+            &MessagingConfig::default(),
+            &invites,
+            &test_context(),
+        ));
+
+        assert_eq!(results.len(), 2);
+
+        // Row 0 passed validation and reached the transport, which is not
+        // configured here. Assert on the cause, not the exact copy.
+        assert_eq!(results[0].index, 0);
+        assert_eq!(results[0].recipient, "guest@example.com");
+        assert_eq!(results[0].channel.as_deref(), Some("email"));
+        assert!(!results[0].accepted);
+        let error = results[0].error.as_deref().unwrap();
+        assert!(
+            error.contains("SMTP"),
+            "expected an SMTP configuration error, got: {error}"
+        );
+
+        // Row 1 was rejected by shared validation before any transport ran.
+        assert_eq!(results[1].index, 1);
+        assert_eq!(results[1].recipient, "");
+        assert_eq!(results[1].channel.as_deref(), Some("email"));
+        assert!(!results[1].accepted);
+        assert_eq!(
+            results[1].error.as_deref(),
+            Some("Add a recipient before sending this invitation.")
+        );
+    }
+
+    #[test]
+    fn dispatch_of_an_empty_batch_produces_no_rows() {
+        let results = tauri::async_runtime::block_on(dispatch_invitations(
+            &MessagingConfig::default(),
+            &[],
+            &test_context(),
+        ));
+
+        assert!(results.is_empty());
+    }
 }

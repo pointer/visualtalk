@@ -29,6 +29,7 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
  * @typedef {import("../models").ScheduledMeeting} ScheduledMeeting
  * @typedef {import("../models").MeetingRecord} MeetingRecord
  * @typedef {import("../models").MeetingInvite} MeetingInvite
+ * @typedef {import("../models").InviteResult} InviteResult
  * @typedef {import("../models").HostMeetingData} HostMeetingData
  * @typedef {import("../models").ParsedInvite} ParsedInvite
  * @typedef {import("../models").IssuedParticipantToken} IssuedParticipantToken
@@ -78,6 +79,7 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
  * @property {ScheduledMeeting} schedule_meeting
  * @property {boolean} delete_scheduled_meeting
  * @property {MeetingRecord[]} get_meeting_history
+ * @property {InviteResult[]} send_invitations
  * @property {Participant[]} get_all_participants
  * @property {boolean} add_participant
  * @property {boolean} remove_participant

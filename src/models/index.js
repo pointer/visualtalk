@@ -144,6 +144,20 @@
  */
 
 /**
+ * Per-attendee outcome returned by `send_invitations`. The command reports one
+ * row per invite instead of failing the batch, so a single bad recipient never
+ * hides the others.
+ * @typedef {Object} InviteResult
+ * @property {number} index - Position in the submitted `invites` array.
+ * @property {string} recipient - Empty string when the invite had none
+ *   (shared-link mode, ADR 0006).
+ * @property {string|null} channel - `"email"` / `"sms"`, or null when the row
+ *   was rejected before a channel was chosen.
+ * @property {boolean} accepted
+ * @property {string|null} error
+ */
+
+/**
  * @typedef {Object} HostMeetingData
  * @property {string} url
  * @property {string} token
