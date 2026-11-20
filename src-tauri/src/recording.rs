@@ -4,13 +4,16 @@
 //! recording data as base64 chunks. This module saves to disk and provides
 //! optional FFmpeg transcoding.
 
+#[cfg(feature = "pro")]
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+#[cfg(feature = "pro")]
 use tauri::{AppHandle, Manager};
 
 /// State for tracking active local recordings
 pub struct RecordingState {
+    #[cfg(feature = "pro")]
     pub active_recordings: Mutex<Vec<ActiveRecording>>,
     /// Built-in location for this platform. Kept so Settings can tell whether
     /// the user has relocated recordings and offer a "use default" reset.
@@ -31,6 +34,7 @@ pub fn default_recordings_dir(config_dir: &Path) -> PathBuf {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg(feature = "pro")]
 pub struct ActiveRecording {
     pub id: String,
     pub room_name: String,
@@ -47,6 +51,7 @@ pub struct ActiveRecording {
 /// needs the *absolute* path: it only ever knows the file name it suggested,
 /// and a bare name is useless to `ffmpeg_transcode` / `delete_recording`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg(feature = "pro")]
 pub struct ChunkReceipt {
     pub file_path: String,
     pub bytes_written: u64,
@@ -60,6 +65,7 @@ impl RecordingState {
         let recordings_dir = resolve_recordings_dir(&default_dir, dir_override.as_deref());
         let _ = std::fs::create_dir_all(&recordings_dir);
         Self {
+            #[cfg(feature = "pro")]
             active_recordings: Mutex::new(Vec::new()),
             default_dir,
             recordings_dir: Mutex::new(recordings_dir),
@@ -111,6 +117,7 @@ pub fn resolve_recordings_dir(default_dir: &Path, dir_override: Option<&str>) ->
 /// Neutralise anything that could escape `recordings_dir`. Room names arrive
 /// from the frontend and ultimately from invite links, so `../../foo` must not
 /// be able to redirect a recording write outside the recordings folder.
+#[cfg(feature = "pro")]
 fn sanitize_component(value: &str) -> String {
     let cleaned: String = value
         .chars()
@@ -129,6 +136,7 @@ fn sanitize_component(value: &str) -> String {
 }
 
 /// Canonical absolute path of a local recording.
+#[cfg(feature = "pro")]
 fn recording_path(recordings_dir: &Path, room_name: &str, recording_id: &str) -> PathBuf {
     recordings_dir.join(format!(
         "{}-{}.webm",
@@ -138,6 +146,7 @@ fn recording_path(recordings_dir: &Path, room_name: &str, recording_id: &str) ->
 }
 
 /// Insert or refresh the registry entry for a recording.
+#[cfg(feature = "pro")]
 fn register_active(
     state: &RecordingState,
     recording_id: &str,
@@ -171,6 +180,7 @@ fn register_active(
 }
 
 /// Save a recording chunk to disk (append mode)
+#[cfg(feature = "pro")]
 #[tauri::command]
 pub async fn save_recording_chunk(
     app: AppHandle,
@@ -232,6 +242,7 @@ pub async fn save_recording_chunk(
 
 /// Finalize a local recording: resolve its real path, verify the media bytes
 /// actually reached disk, and register it as complete.
+#[cfg(feature = "pro")]
 #[tauri::command]
 pub async fn finalize_recording(
     app: AppHandle,
@@ -295,6 +306,7 @@ pub async fn finalize_recording(
 }
 
 /// Get list of local recordings
+#[cfg(feature = "pro")]
 #[tauri::command]
 pub async fn get_local_recordings(app: AppHandle) -> Result<Vec<RecordingFileInfo>, String> {
     let state = app.state::<RecordingState>();
@@ -337,6 +349,7 @@ pub async fn get_local_recordings(app: AppHandle) -> Result<Vec<RecordingFileInf
 // ── FFmpeg integration ──────────────────────────────────────────
 
 /// Check if FFmpeg is available on the system
+#[cfg(feature = "pro")]
 #[tauri::command]
 pub async fn check_ffmpeg_available() -> Result<FfmpegInfo, String> {
     let output = tokio::process::Command::new("ffmpeg")
@@ -367,6 +380,7 @@ pub async fn check_ffmpeg_available() -> Result<FfmpegInfo, String> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg(feature = "pro")]
 pub struct FfmpegInfo {
     pub available: bool,
     pub version: String,
@@ -374,6 +388,7 @@ pub struct FfmpegInfo {
 }
 
 /// Transcode a recording using FFmpeg (e.g., webm -> mp4)
+#[cfg(feature = "pro")]
 #[tauri::command]
 pub async fn ffmpeg_transcode(
     input_path: String,
@@ -437,6 +452,7 @@ pub async fn ffmpeg_transcode(
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[cfg(feature = "pro")]
 pub struct TranscodeOptions {
     pub video_codec: Option<String>,
     pub audio_codec: Option<String>,
@@ -447,6 +463,7 @@ pub struct TranscodeOptions {
 }
 
 /// Stream to RTMP using FFmpeg (pipe local capture to RTMP endpoint)
+#[cfg(feature = "pro")]
 #[tauri::command]
 pub async fn ffmpeg_stream_to_rtmp(
     input_path: String,
@@ -489,6 +506,7 @@ pub async fn ffmpeg_stream_to_rtmp(
 }
 
 /// Delete a local recording file
+#[cfg(feature = "pro")]
 #[tauri::command]
 pub async fn delete_recording(file_path: String) -> Result<(), String> {
     std::fs::remove_file(&file_path)
@@ -496,6 +514,7 @@ pub async fn delete_recording(file_path: String) -> Result<(), String> {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg(feature = "pro")]
 pub struct RecordingFileInfo {
     pub path: String,
     pub name: String,

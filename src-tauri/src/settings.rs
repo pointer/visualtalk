@@ -1,3 +1,4 @@
+#[cfg(feature = "pro")]
 use crate::ai::AiSettings;
 use crate::persistence;
 use serde::{Deserialize, Serialize};
@@ -102,54 +103,6 @@ impl Default for UserProfile {
     }
 }
 
-#[cfg(feature = "pro")]
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub enum TranslationStrategy {
-    Cloud,
-    Docker,
-    ServerAgent,
-}
-
-#[cfg(feature = "pro")]
-impl Default for TranslationStrategy {
-    fn default() -> Self {
-        Self::Cloud
-    }
-}
-
-#[cfg(feature = "pro")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TranslationSettings {
-    pub enabled: bool,
-    pub strategy: TranslationStrategy,
-    #[serde(default = "default_source_language")]
-    pub source_language: String,
-    pub target_language: String,
-    pub api_key: Option<String>,
-    pub custom_url: Option<String>,
-}
-
-#[cfg(feature = "pro")]
-fn default_source_language() -> String {
-    "auto".to_string()
-}
-
-#[cfg(feature = "pro")]
-impl Default for TranslationSettings {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            strategy: TranslationStrategy::default(),
-            source_language: default_source_language(),
-            target_language: "en".to_string(),
-            api_key: None,
-            custom_url: None,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum SmtpSecurity {
@@ -218,10 +171,6 @@ pub struct UserSettings {
     /// control to relocate it and to reveal the current folder.
     #[serde(default)]
     pub recordings_dir: Option<String>,
-    /// Pro-only live translation settings.
-    #[serde(default)]
-    #[cfg(feature = "pro")]
-    pub translation: TranslationSettings,
     /// Use the build-time demo LiveKit project instead of the user's own
     /// credentials. Only ever functional in a build compiled with
     /// `VISUALTALK_DEMO_*`; see `demo.rs`. Off by default and never consulted
@@ -240,8 +189,6 @@ impl Default for UserSettings {
             preferred_mic_id: None,
             preferred_cam_id: None,
             recordings_dir: None,
-            #[cfg(feature = "pro")]
-            translation: TranslationSettings::default(),
             demo_mode: false,
         }
     }
@@ -254,8 +201,10 @@ pub struct AppData {
     #[serde(default)]
     pub messaging: MessagingConfig,
     pub notes: String,
-    /// AI assistant config — `#[serde(default)]` keeps old settings.json files loadable.
+    /// AI assistant config — Pro only (ADR 0008). `#[serde(default)]` keeps old
+    /// settings.json files loadable in both editions.
     #[serde(default)]
+    #[cfg(feature = "pro")]
     pub ai: AiSettings,
     /// Participants the user has blocked.
     ///
@@ -337,76 +286,6 @@ mod tests {
         assert!(!is_legacy_generated_identity("User-"));
         assert!(!is_legacy_generated_identity("kate"));
         assert!(!is_legacy_generated_identity(""));
-    }
-
-    #[cfg(feature = "pro")]
-    #[test]
-    fn translation_settings_default_missing_source_language_to_auto() {
-        let legacy = r#"{
-            "enabled": false,
-            "strategy": "cloud",
-            "targetLanguage": "en",
-            "apiKey": null,
-            "customUrl": null
-        }"#;
-        let settings: TranslationSettings = serde_json::from_str(legacy).unwrap();
-        assert_eq!(settings.source_language, "auto");
-    }
-
-    /// The strategy selector in `SettingsPanel.jsx` switches on the literal
-    /// string, so the wire spelling is part of the contract with the frontend.
-    ///
-    /// `rename_all = "camelCase"` lowercases the first letter and preserves the
-    /// internal word boundary: `ServerAgent` becomes `serverAgent`, **not**
-    /// `serveragent`. A UI comparison against the all-lowercase spelling can
-    /// never match, and fails silently (the conditional block just never
-    /// renders).
-    #[cfg(feature = "pro")]
-    #[test]
-    fn translation_strategy_wire_spelling_is_camel_case() {
-        assert_eq!(
-            serde_json::to_string(&TranslationStrategy::Cloud).unwrap(),
-            "\"cloud\""
-        );
-        assert_eq!(
-            serde_json::to_string(&TranslationStrategy::Docker).unwrap(),
-            "\"docker\""
-        );
-        assert_eq!(
-            serde_json::to_string(&TranslationStrategy::ServerAgent).unwrap(),
-            "\"serverAgent\""
-        );
-    }
-
-    /// Round-trip the whole settings block through JSON to pin every field name
-    /// the frontend reads. `src/models/index.js` documents these shapes; this
-    /// test is what keeps that documentation true.
-    #[cfg(feature = "pro")]
-    #[test]
-    fn translation_settings_field_names_on_the_wire() {
-        let json = serde_json::to_value(TranslationSettings::default()).unwrap();
-        let mut keys: Vec<&str> = json
-            .as_object()
-            .unwrap()
-            .keys()
-            .map(String::as_str)
-            .collect();
-        keys.sort_unstable();
-        // serde_json's Map is a BTreeMap without the `preserve_order` feature,
-        // so compare sorted: this pins the field *names*, not their order.
-        let mut expected = vec![
-            "apiKey",
-            "customUrl",
-            "enabled",
-            "sourceLanguage",
-            "strategy",
-            "targetLanguage",
-        ];
-        expected.sort_unstable();
-        assert_eq!(
-            keys, expected,
-            "camelCase field names are what the frontend must use"
-        );
     }
 
     /// A `settings.json` written before `report_email` existed must still load,

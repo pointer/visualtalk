@@ -36,7 +36,6 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
  * @typedef {import("../models").UserProfile} UserProfile
  * @typedef {import("../models").UserSettings} UserSettings
  * @typedef {import("../models").AiSettings} AiSettings
- * @typedef {import("../models").TranslationSettings} TranslationSettings
  * @typedef {import("../models").MessagingSettingsResponse} MessagingSettingsResponse
  * @typedef {import("../models").RecordingsDirInfo} RecordingsDirInfo
  * @typedef {import("../models").ReportContact} ReportContact
@@ -126,8 +125,6 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
  * @property {void} update_ai_settings
  * @property {string} test_ai_connection
  * @property {string[]} get_available_models
- * @property {TranslationSettings} get_translation_settings
- * @property {void} update_translation_settings
  * @property {string|null} pick_file
  * @property {string} read_file_chunk
  * @property {string} save_download

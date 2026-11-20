@@ -5,8 +5,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { requestMediaPermissions } from "./Permissions";
 import { LicenseScreen } from "./LicenseScreen";
-import { IS_PRO_EDITION, IS_TRANSLATION_AVAILABLE } from "../lib/edition";
-import { TranslationSection } from "./settings/TranslationSection";
+import { IS_PRO_EDITION } from "../lib/edition";
 import { AiSection } from "./settings/AiSection";
 import { RecordingsSection } from "./settings/RecordingsSection";
 import { MessagingSection } from "./settings/MessagingSection";
@@ -340,10 +339,13 @@ export function SettingsPanel(props) {
               { id: "profile", label: "Profile", icon: "👤" },
               { id: "livekit", label: "LiveKit", icon: "⏚" },
               { id: "messaging", label: t("settings.messaging.tab"), icon: "✉️" },
-              { id: "recordings", label: "Recordings", icon: "⏺" },
-              { id: "ai", label: "AI Assistant", icon: "✨" },
-              ...(IS_PRO_EDITION && IS_TRANSLATION_AVAILABLE
-                ? [{ id: "translation", label: "Live Translation", icon: "🌐" }]
+              // Recording and the AI assistant are Pro features (ADR 0008):
+              // their screens would be empty in a Community build.
+              ...(IS_PRO_EDITION
+                ? [
+                    { id: "recordings", label: "Recordings", icon: "⏺" },
+                    { id: "ai", label: "AI Assistant", icon: "✨" },
+                  ]
                 : []),
               { id: "about", label: "About", icon: "ℹ️" },
             ].map((section) => (
@@ -366,6 +368,13 @@ export function SettingsPanel(props) {
       {/* Main Settings Content */}
       <main class="flex-1 overflow-y-auto">
         <div class="max-w-3xl mx-auto p-4 md:p-6 space-y-4 md:space-y-6">
+          {/* Community builds: say plainly what the paid edition adds (ADR 0008). */}
+          <Show when={!IS_PRO_EDITION}>
+            <div class="rounded-lg border border-blue-900/60 bg-blue-950/30 px-4 py-3">
+              <p class="text-sm font-medium text-blue-300">{t("settings.pro.upsellTitle")}</p>
+              <p class="mt-1 text-xs leading-5 text-gray-400">{t("settings.pro.upsellBody")}</p>
+            </div>
+          </Show>
           {/* Audio & Video Settings */}
           <Show when={activeSection() === "audio-video"}>
             <div class="space-y-6">
@@ -814,7 +823,7 @@ export function SettingsPanel(props) {
             </div>
           </Show>
 
-          <Show when={activeSection() === "ai"}>
+          <Show when={IS_PRO_EDITION && activeSection() === "ai"}>
             <AiSection />
           </Show>
 
@@ -822,14 +831,8 @@ export function SettingsPanel(props) {
             <MessagingSection />
           </Show>
 
-<Show when={activeSection() === "recordings"}>
+          <Show when={IS_PRO_EDITION && activeSection() === "recordings"}>
             <RecordingsSection />
-          </Show>
-
-          {/* Live Translation — hidden until the runtime pipeline exists
-              (IS_TRANSLATION_AVAILABLE, see src/lib/edition.js). */}
-          <Show when={IS_PRO_EDITION && IS_TRANSLATION_AVAILABLE && activeSection() === "translation"}>
-            <TranslationSection />
           </Show>
 
           {/* About */}

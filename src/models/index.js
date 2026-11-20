@@ -10,13 +10,9 @@
  *     field names verbatim: `Participant.is_local`, `UserSettings.use_pmi`,
  *     `RecordingFileInfo.size_bytes`.
  *  2. `#[serde(rename_all = "camelCase")]` switches that struct to camelCase and
- *     lowercases only the first letter of an enum variant, so
- *     `TranslationSettings.targetLanguage` and `ServerAgent` becomes
- *     `"serverAgent"` — NOT `"serveragent"`. Four types opt in:
- *     TranslationSettings, TranslationStrategy, BackgroundSettings and
- *     BackgroundKind. The two Translation spellings are pinned by the Rust
- *     tests `translation_strategy_wire_spelling_is_camel_case` and
- *     `translation_settings_field_names_on_the_wire`; the Background payloads by
+ *     lowercases only the first letter of an enum variant, so `ServerAgent`
+ *     becomes `"serverAgent"` — NOT `"serveragent"`. Two types opt in today:
+ *     BackgroundSettings and BackgroundKind, pinned by the Rust test
  *     `background_kind_matches_the_frontend_payloads`.
  *
  * Enums carrying an explicit `#[serde(rename = "...")]` use that literal instead
@@ -221,8 +217,6 @@
  * @property {string|null} preferred_mic_id
  * @property {string|null} preferred_cam_id
  * @property {string|null} recordings_dir - `null` means the built-in default.
- * @property {TranslationSettings} [translation] - Present only in Pro builds
- *   (`#[cfg(feature = "pro")]`); `undefined` in Community.
  * @property {boolean} demo_mode
  */
 
@@ -243,7 +237,6 @@
  * @property {string} content
  */
 
-/** @typedef {"cloud" | "docker" | "serverAgent"} TranslationStrategy */
 
 /** @typedef {"startTls" | "tls"} SmtpSecurity */
 
@@ -266,17 +259,6 @@
  * @property {MessagingConfig} settings
  * @property {boolean} smtp_password_configured
  * @property {boolean} twilio_auth_token_configured
- */
-
-/**
- * camelCase on the wire — the one settings struct with `rename_all`.
- * @typedef {Object} TranslationSettings
- * @property {boolean} enabled
- * @property {TranslationStrategy} strategy
- * @property {string} sourceLanguage - `"auto"` or a BCP-47 tag.
- * @property {string} targetLanguage
- * @property {string|null} apiKey
- * @property {string|null} customUrl
  */
 
 // ── Recordings, safety & layout ──────────────────────────────────────────────

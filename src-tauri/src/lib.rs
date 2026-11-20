@@ -1,7 +1,11 @@
 use tauri::{AppHandle, Manager};
 use tauri_plugin_store::StoreExt;
 
+// The AI assistant and camera backgrounds are paid Pro features (ADR 0008):
+// Community builds compile the whole modules out, not just their commands.
+#[cfg(feature = "pro")]
 mod ai;
+#[cfg(feature = "pro")]
 mod backgrounds;
 mod chat;
 mod commands;
@@ -22,6 +26,7 @@ mod state;
 mod token;
 mod window;
 
+#[cfg(feature = "pro")]
 use backgrounds::BackgroundState;
 use state::{AppState, MediaState};
 
@@ -30,7 +35,7 @@ use state::{AppState, MediaState};
 // Every `#[tauri::command]` lives in a domain module, not here: the invite /
 // LiveKit-store commands are in `commands.rs` itself and the rest are grouped
 // under `commands/` (meeting, invites, invitees, messaging, profile, schedule,
-// safety, participants, devices, layout, translation, system), alongside the
+// safety, participants, devices, layout, system), alongside the
 // non-command modules that already held the domain logic they wrap (`ai`, `chat`,
 // `recording`, `egress`, `e2ee`, `backgrounds`).
 //
@@ -93,15 +98,24 @@ pub fn run() {
     #[cfg(not(desktop))]
     let builder = tauri::Builder::default();
 
-    builder
+    // `mut` is only exercised in Pro builds, where the backgrounds state is
+    // added to the chain (ADR 0008).
+    #[allow(unused_mut)]
+    let mut builder = builder
         // Invite links (`visualtalk://join?…`). The URL is never trusted: it is
         // handed to `parse_invite_link`, and LiveKit still validates the token —
         // or the issuer validates the capability — before anyone gets in.
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init())
-        .manage(BackgroundState(Default::default()))
+        .plugin(tauri_plugin_dialog::init());
+    // Camera backgrounds are a Pro feature (ADR 0008): the state and its two
+    // commands only exist in Pro builds.
+    #[cfg(feature = "pro")]
+    {
+        builder = builder.manage(BackgroundState(Default::default()));
+    }
+    builder
         .setup(|app| {
             let config_dir = app
                 .path()
@@ -221,8 +235,10 @@ pub fn run() {
             commands::system::get_system_locale,
             #[cfg(feature = "pro")]
             commands::system::get_energy_efficiency_stats,
-            // Backgrounds
+            // Backgrounds are a paid Pro feature (docs/decisions/0008).
+            #[cfg(feature = "pro")]
             backgrounds::get_background,
+            #[cfg(feature = "pro")]
             backgrounds::set_background,
             commands::get_host_meeting_data,
             //Settings
@@ -248,13 +264,22 @@ pub fn run() {
             egress::start_room_egress,
             egress::stop_egress,
             egress::list_egress,
-            // Local Recording & FFmpeg
+            // Local Recording & FFmpeg are paid Pro features (ADR 0008). This
+            // includes ffmpeg_stream_to_rtmp, which used to be reachable from a
+            // Community build and bypassed the streaming gate of ADR 0002.
+            #[cfg(feature = "pro")]
             recording::save_recording_chunk,
+            #[cfg(feature = "pro")]
             recording::finalize_recording,
+            #[cfg(feature = "pro")]
             recording::get_local_recordings,
+            #[cfg(feature = "pro")]
             recording::check_ffmpeg_available,
+            #[cfg(feature = "pro")]
             recording::ffmpeg_transcode,
+            #[cfg(feature = "pro")]
             recording::ffmpeg_stream_to_rtmp,
+            #[cfg(feature = "pro")]
             recording::delete_recording,
             // Recordings folder, reporting & blocking
             commands::safety::get_recordings_dir,
@@ -263,18 +288,18 @@ pub fn run() {
             commands::safety::get_blocked_participants,
             commands::safety::set_participant_blocked,
             commands::safety::get_demo_available,
-            // AI Assistant (OpenAI-compatible endpoint)
+            // AI Assistant is a paid Pro feature (docs/decisions/0008).
+            #[cfg(feature = "pro")]
             ai::ask_ai,
+            #[cfg(feature = "pro")]
             ai::get_ai_settings,
+            #[cfg(feature = "pro")]
             ai::update_ai_settings,
+            #[cfg(feature = "pro")]
             ai::test_ai_connection,
+            #[cfg(feature = "pro")]
             ai::get_available_models,
             commands::schedule::send_invitations,
-            // Translation
-            #[cfg(feature = "pro")]
-            commands::translation::update_translation_settings,
-            #[cfg(feature = "pro")]
-            commands::translation::get_translation_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

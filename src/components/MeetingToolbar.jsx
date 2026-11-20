@@ -1,6 +1,7 @@
 import { Show } from "solid-js";
 import { useI18n } from "../i18n/I18nProvider";
 import { SUPPORTS_SCREEN_SHARE } from "../lib/platform";
+import { IS_PRO_EDITION } from "../lib/edition";
 
 /**
  * Meeting action toolbar with 7 buttons:
@@ -144,45 +145,47 @@ export function MeetingToolbar(props) {
         </span>
       </button>
 
-      {/* 6. Record */}
-      <button
-        // SolidJS binds event handlers once at render — a bare
-        // `props.isRecording() ? onStop : onStart` ternary would freeze the
-        // click behaviour to whatever the state was when the toolbar first
-        // rendered (not recording → always re-open the start dialog). Read
-        // the signal inside a closure so the choice is made at click time.
-        onClick={() =>
-          props.isRecording() ? props.onStopRecording() : props.onStartRecording()
-        }
-        class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 relative select-none"
-      >
-        <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
-          props.isRecording()
-            ? "bg-red-600 text-white animate-pulse"
-            : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
-        }`}>
-          {props.isRecording() ? (
-            /* Stop icon (square) */
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <rect x="6" y="6" width="12" height="12" rx="1" />
-            </svg>
-          ) : (
-            /* Record icon (circle) */
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="6" />
-            </svg>
-          )}
-        </div>
-        <Show when={props.isRecording()} fallback={
-          <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-gray-400 text-center truncate w-full">
-            {t("toolbar.record")}
-          </span>
-        }>
-          <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-red-400 text-center truncate w-full tabular-nums">
-            {props.recordingDuration?.() || "00:00"}
-          </span>
-        </Show>
-      </button>
+      {/* 6. Record — Pro only (ADR 0008) */}
+      <Show when={IS_PRO_EDITION}>
+        <button
+          // SolidJS binds event handlers once at render — a bare
+          // `props.isRecording() ? onStop : onStart` ternary would freeze the
+          // click behaviour to whatever the state was when the toolbar first
+          // rendered (not recording → always re-open the start dialog). Read
+          // the signal inside a closure so the choice is made at click time.
+          onClick={() =>
+            props.isRecording() ? props.onStopRecording() : props.onStartRecording()
+          }
+          class="flex flex-col items-center w-full !bg-transparent group border-none outline-none shadow-none p-0 relative select-none"
+        >
+          <div class={`w-11 h-11 sm:w-12 sm:h-12 rounded-[16px] sm:rounded-[18px] flex items-center justify-center mb-1 shadow-md transition-all duration-200 active:scale-95 ${
+            props.isRecording()
+              ? "bg-red-600 text-white animate-pulse"
+              : "bg-[#2a2a2a] text-gray-200 group-hover:bg-[#3a3a3a]"
+          }`}>
+            {props.isRecording() ? (
+              /* Stop icon (square) */
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="1" />
+              </svg>
+            ) : (
+              /* Record icon (circle) */
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="6" />
+              </svg>
+            )}
+          </div>
+          <Show when={props.isRecording()} fallback={
+            <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-gray-400 text-center truncate w-full">
+              {t("toolbar.record")}
+            </span>
+          }>
+            <span class="text-[9px] sm:text-[10px] font-medium tracking-wide text-red-400 text-center truncate w-full tabular-nums">
+              {props.recordingDuration?.() || "00:00"}
+            </span>
+          </Show>
+        </button>
+      </Show>
 
       {/* 7. Leave */}
       <button

@@ -1,5 +1,9 @@
 # VisualTalk Pro — Live Translation Architecture & Store Policy
 
+> **Status: superseded by [0009](./0009-live-translation-withdrawn.md)
+> (2026-11-20).** Live Translation was withdrawn from the application; kept here
+> as the record of why the original design looked the way it did.
+
 VisualTalk Pro offers live speech translation. To comply with strict App Store sandboxing rules (Apple App Store, Google Play, Microsoft Store) and maintain a lightweight (~17 MB) client binary, the translation architecture is segmented by distribution channel:
 
 ## 1. App Store Distributions (iOS, Android, macOS App Store, Windows Store)

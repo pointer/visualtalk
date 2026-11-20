@@ -1,5 +1,5 @@
 import { createSignal, createEffect, onMount, For, Show } from "solid-js";
-import { IS_E2EE_ENABLED } from "../lib/edition";
+import { IS_E2EE_ENABLED, IS_PRO_EDITION } from "../lib/edition";
 import { invoke } from "@tauri-apps/api/core";
 import { errorI18nKey, errorMessage } from "../lib/errors";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
@@ -100,10 +100,14 @@ export function ChatPanel(props) {
   let aiConsentGiven = false; // One-time consent for cloud AI while E2EE is active
 
   onMount(async () => {
-    try {
-      setAiSettings(await invoke("get_ai_settings"));
-    } catch (err) {
-      console.warn("AI settings unavailable:", err);
+    // The AI assistant is a Pro feature (ADR 0008): `get_ai_settings` is
+    // compiled out of Community builds, so never call it there.
+    if (IS_PRO_EDITION) {
+      try {
+        setAiSettings(await invoke("get_ai_settings"));
+      } catch (err) {
+        console.warn("AI settings unavailable:", err);
+      }
     }
     // Moderation state. Loaded independently of the AI settings above and
     // non-fatally: if either fails, chat must still work — the report button

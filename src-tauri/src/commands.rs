@@ -24,10 +24,6 @@ pub mod profile;
 pub mod safety;
 pub mod schedule;
 pub mod system;
-// Pro-only: a Community build must contain no translation code path at all
-// (Guidance.md, two-switch convention; ADR 0003).
-#[cfg(feature = "pro")]
-pub mod translation;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LiveKitSettings {

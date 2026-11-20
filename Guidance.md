@@ -44,7 +44,7 @@ cargo check               # type-check Rust backend
 cargo test                # run Rust tests
 ```
 
-- `*:pro` on desktop/mobile means a **full** Pro build: source swap + `--features pro` + the Pro config overlay. There is deliberately **no** vite-only Pro dev mode — a Pro UI with no Pro Rust core renders commands that cannot exist (`e2ee_*`, translation), so it only ever errors. The frontend-only check carries a distinct name (`check:pro-frontend`) so it cannot be mistaken for a Pro build.
+- `*:pro` on desktop/mobile means a **full** Pro build: source swap + `--features pro` + the Pro config overlay. There is deliberately **no** vite-only Pro dev mode — a Pro UI with no Pro Rust core renders commands that cannot exist (`e2ee_*`, recording, `ask_ai`), so it only ever errors. The frontend-only check carries a distinct name (`check:pro-frontend`) so it cannot be mistaken for a Pro build.
 - Formatting/linting: there is **no** `pnpm lint` or `pnpm format`. Use `cargo fmt` for Rust and match the surrounding JSX style; don't add a formatter config without being asked.
 - Platform bundles: `pnpm mac:build` (plus `mac:build:intel` / `mac:build:universal`), `pnpm win:build`, `pnpm linux:build`, `pnpm ios:build` / `ios:build:pro`, `pnpm android:build` / `android:build:pro`. Mobile setup helpers live in `scripts/` (`fix-ios-project.py`, `fix-android-project.py`, `ensure-ios-toolchain.py`).
 - Desktop releases (Windows/macOS/Linux) ship through GitHub Releases plus
@@ -95,8 +95,8 @@ src-tauri/
     commands.rs           # invite / LiveKit-store commands + declares commands/
     commands/             # #[tauri::command] wrappers grouped by domain:
                           #   meeting invites profile schedule safety participants
-                          #   devices layout translation(Pro) system
-    ai.rs                 # OpenAI-compatible LLM client (ask_ai)
+                          #   devices layout system
+    ai.rs                 # OpenAI-compatible LLM client (ask_ai) — Pro only
     chat.rs  meeting.rs  participant.rs  session.rs  token.rs
     recording.rs  egress.rs  device.rs  backgrounds.rs  layout.rs
     window.rs  settings.rs  state.rs  events.rs  demo.rs
@@ -122,13 +122,13 @@ Never gate a paid feature on `e2ee` — a build can carry the crypto without bei
 the Pro edition, and `#[cfg]` is preferred over a runtime check so a Community
 binary contains no reachable code path for the feature.
 
-A third switch of a **different kind** exists for unfinished features:
-`__TRANSLATION_ENABLED__` (set from `VITE_ENABLE_TRANSLATION=true`, surfaced as
-`IS_TRANSLATION_AVAILABLE` in `src/lib/edition.js`). It is a *completeness* flag, not
-an edition flag: it hides the Pro Live Translation settings screen because nothing
-reads `translation.enabled` yet, so no build ships a control that provably does
-nothing. It is off by default and no `*:pro` script sets it. Don't reuse it for edition
-gating, and remove the gate rather than leaving a finished feature behind it.
+The paid features gated on `pro` today (docs/decisions/0008): RTMP streaming
+(ADR 0002), server-side and local recording, camera backgrounds, and the AI
+assistant. A third switch of a *different kind* used to exist for unfinished
+features (`__TRANSLATION_ENABLED__`, a completeness flag hiding the Live
+Translation screen); the feature was withdrawn and the flag removed
+(docs/decisions/0009). Do not reintroduce a completeness flag without a new
+decision record — ship the feature or ship nothing.
 
 State lives in Solid signals/stores owned by `App.jsx` / `MainWindow.jsx` / `MeetingView.jsx` and passed down as props — there is no `src/stores/` directory. Don't create one for a single feature.
 

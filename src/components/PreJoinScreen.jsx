@@ -1,6 +1,7 @@
 import { For, Show, createEffect, onCleanup } from "solid-js";
 import { useI18n } from "../i18n/I18nProvider";
 import { USE_CANVAS_VIDEO, startCanvasVideo } from "../lib/canvasVideoFallback";
+import { IS_PRO_EDITION } from "../lib/edition";
 
 /**
  * Pre-join screen with video preview, device selection, and join button.
@@ -118,52 +119,56 @@ export function PreJoinScreen(props) {
               <span class="text-[9px] font-semibold text-white drop-shadow-md">{t("preJoin.video")}</span>
             </button>
 
-            {/* Background Button */}
-            <button
-              onClick={props.onToggleBackgrounds}
-              class="flex flex-col items-center justify-center w-14 h-14 rounded-xl transition border-none bg-transparent !bg-transparent outline-none p-0 text-white"
-            >
-              <div class="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center mb-0.5 shadow-md">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <span class="text-[9px] font-semibold text-white drop-shadow-md">BG</span>
-            </button>
+            <Show when={IS_PRO_EDITION}>
+              {/* Background Button */}
+              <button
+                onClick={props.onToggleBackgrounds}
+                class="flex flex-col items-center justify-center w-14 h-14 rounded-xl transition border-none bg-transparent !bg-transparent outline-none p-0 text-white"
+              >
+                <div class="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center mb-0.5 shadow-md">
+                  <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <span class="text-[9px] font-semibold text-white drop-shadow-md">BG</span>
+              </button>
+            </Show>
 
           </div>
 
-          {/* Background Panel */}
-          <Show when={props.backgroundsOpen()}>
-            <div class="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-md p-4 rounded-b-2xl">
-              <h3 class="text-sm font-semibold text-white mb-3">{t("preJoin.background")}</h3>
-              <div class="grid grid-cols-3 gap-3">
-                <button
-                  onClick={() => props.onSelectBackground({ enabled: false, kind: { type: "none" } })}
-                  class="flex flex-col items-center"
-                >
-                  <div class="aspect-video w-full rounded-lg bg-[#3a3a3a] flex items-center justify-center border-2 border-transparent hover:border-blue-500 transition">
-                    <span class="text-xs text-gray-300">{t("preJoin.none")}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => props.onSelectBackground({ enabled: true, kind: { type: "blur" } })}
-                  class="flex flex-col items-center"
-                >
-                  <div class="aspect-video w-full rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-2 border-transparent hover:border-blue-500 transition">
-                    <span class="text-xs text-white">{t("preJoin.blur")}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => props.onSelectBackground({ enabled: true, kind: { type: "color", value: "#2563eb" } })}
-                  class="flex flex-col items-center"
-                >
-                  <div class="aspect-video w-full rounded-lg bg-blue-600 flex items-center justify-center border-2 border-transparent hover:border-blue-500 transition">
-                    <span class="text-xs text-white">{t("preJoin.blue")}</span>
-                  </div>
-                </button>
+          <Show when={IS_PRO_EDITION}>
+            {/* Background Panel */}
+            <Show when={props.backgroundsOpen()}>
+              <div class="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-md p-4 rounded-b-2xl">
+                <h3 class="text-sm font-semibold text-white mb-3">{t("preJoin.background")}</h3>
+                <div class="grid grid-cols-3 gap-3">
+                  <button
+                    onClick={() => props.onSelectBackground({ enabled: false, kind: { type: "none" } })}
+                    class="flex flex-col items-center"
+                  >
+                    <div class="aspect-video w-full rounded-lg bg-[#3a3a3a] flex items-center justify-center border-2 border-transparent hover:border-blue-500 transition">
+                      <span class="text-xs text-gray-300">{t("preJoin.none")}</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => props.onSelectBackground({ enabled: true, kind: { type: "blur" } })}
+                    class="flex flex-col items-center"
+                  >
+                    <div class="aspect-video w-full rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-2 border-transparent hover:border-blue-500 transition">
+                      <span class="text-xs text-white">{t("preJoin.blur")}</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => props.onSelectBackground({ enabled: true, kind: { type: "color", value: "#2563eb" } })}
+                    class="flex flex-col items-center"
+                  >
+                    <div class="aspect-video w-full rounded-lg bg-blue-600 flex items-center justify-center border-2 border-transparent hover:border-blue-500 transition">
+                      <span class="text-xs text-white">{t("preJoin.blue")}</span>
+                    </div>
+                  </button>
+                </div>
               </div>
-            </div>
+            </Show>
           </Show>
 
         </div>

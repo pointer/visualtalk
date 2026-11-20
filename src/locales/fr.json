@@ -233,6 +233,8 @@
   "schedule.generating": "Génération...",
   "schedule.schedule": "Planifier",
   "schedule.scheduled": "Planifiée",
+  "settings.pro.upsellTitle": "VisualTalk Pro",
+  "settings.pro.upsellBody": "L’enregistrement, la diffusion en direct, les arrière-plans de caméra et l’assistant IA font partie de l’édition Pro, en plus du chiffrement de bout en bout des messages et des fichiers.",
   "schedule.description": "Description",
   "schedule.summary": "Résumé",
   "schedule.startDate": "Date de début",

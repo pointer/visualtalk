@@ -10,17 +10,17 @@
 //! (`EgressInfo`, status strings like `"EGRESS_ACTIVE"`) are unchanged.
 
 use crate::commands::{LiveKitSettings, SETTINGS_KEY, STORE_FILE};
-use livekit_api::services::egress::{
-    EgressClient, EgressListFilter, EgressListOptions, EgressOutput, RoomCompositeOptions,
-};
+use livekit_api::services::egress::{EgressClient, EgressListFilter, EgressListOptions};
+#[cfg(feature = "pro")]
+use livekit_api::services::egress::{EgressOutput, RoomCompositeOptions};
 // `encoding` and `StreamOutput` are only reachable from the streaming arm,
 // which is a Pro feature (docs/decisions/0002) — importing them unconditionally
 // makes a Community build warn about unused imports.
 #[cfg(feature = "pro")]
 use livekit_api::services::egress::encoding::{self, EncodingOptions};
-use livekit_protocol::{
-    EncodedFileOutput, EncodedFileType, EgressInfo as ProtoEgressInfo, EgressStatus,
-};
+#[cfg(feature = "pro")]
+use livekit_protocol::{EncodedFileOutput, EncodedFileType};
+use livekit_protocol::{EgressInfo as ProtoEgressInfo, EgressStatus};
 #[cfg(feature = "pro")]
 use livekit_protocol::StreamOutput;
 use serde::{Deserialize, Serialize};
@@ -117,6 +117,28 @@ pub async fn start_room_egress(
     app: AppHandle,
     request: StartEgressRequest,
 ) -> Result<EgressInfo, String> {
+    // Recording and streaming are paid Pro features (docs/decisions/0002 and
+    // 0008). The implementation lives in `start_room_egress_pro` so a Community
+    // binary carries no egress-start code path at all.
+    #[cfg(not(feature = "pro"))]
+    {
+        let _ = (&app, &request);
+        return Err(
+            "Recording and streaming are available in VisualTalk Pro only. This \
+             Community Edition can host and join meetings, but it cannot record \
+             or broadcast them."
+                .to_string(),
+        );
+    }
+    #[cfg(feature = "pro")]
+    start_room_egress_pro(app, request).await
+}
+
+#[cfg(feature = "pro")]
+async fn start_room_egress_pro(
+    app: AppHandle,
+    request: StartEgressRequest,
+) -> Result<EgressInfo, String> {
     let (api_key, api_secret, livekit_url) = resolve_credentials(
         &app,
         &request.custom_base_url,
@@ -152,9 +174,7 @@ pub async fn start_room_egress(
         // RTMP streaming is a paid Pro feature (docs/decisions/0002). The gate
         // is compile-time on purpose: a Community binary carries no streaming
         // code path at all, so the feature cannot be reached by driving IPC
-        // directly. Server-side *file* recording above stays available in both
-        // editions — only the broadcast is gated.
-        #[cfg(feature = "pro")]
+        // directly.
         EgressOutputType::Stream => {
             let cfg = request.stream_config.unwrap_or(StreamOutputConfig {
                 urls: vec![],
@@ -175,14 +195,6 @@ pub async fn start_room_egress(
                     ..Default::default()
                 },
             )
-        }
-        #[cfg(not(feature = "pro"))]
-        EgressOutputType::Stream => {
-            return Err(
-                "Streaming is available in VisualTalk Pro only. This Community Edition can \
-                 record meetings to a file, but it cannot broadcast them to an RTMP endpoint."
-                    .to_string(),
-            );
         }
     };
 
@@ -282,6 +294,7 @@ fn to_api_info(info: ProtoEgressInfo) -> EgressInfo {
 }
 
 /// Map the file-type strings used by the settings UI to protobuf enums.
+#[cfg(feature = "pro")]
 fn file_type_from_str(s: &str) -> EncodedFileType {
     match s.to_uppercase().as_str() {
         "MP4" => EncodedFileType::Mp4,
@@ -292,6 +305,7 @@ fn file_type_from_str(s: &str) -> EncodedFileType {
 
 /// Map a stream preset name from the frontend ("FULL_HD_1080" by default) to
 /// the SDK's built-in encoding presets.
+#[cfg(feature = "pro")]
 #[cfg(feature = "pro")]
 fn encoding_for_preset(preset: &str) -> EncodingOptions {
     match preset {

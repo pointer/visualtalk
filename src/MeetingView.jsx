@@ -16,6 +16,7 @@ import { VideoGrid } from "./components/VideoGrid";
 import { ChatPanel } from "./components/ChatPanel";
 import { useI18n } from "./i18n/I18nProvider";
 import { IS_MOBILE } from "./lib/platform";
+import { IS_PRO_EDITION } from "./lib/edition";
 
 /**
  * MeetingView — clean orchestrator.
@@ -74,8 +75,12 @@ export function MeetingView(props) {
     // Enumerate first so the preview uses real selected device ids.
     await media.loadDevices();
     await room.startPreview(media.selectedMic(), media.selectedCam());
-    bg.loadSavedBackground(previewVideoEl);
-    rec.checkFfmpeg();
+    // Backgrounds and recording are Pro features (ADR 0008): their commands are
+    // compiled out of Community builds, so never call them there.
+    if (IS_PRO_EDITION) {
+      bg.loadSavedBackground(previewVideoEl);
+      rec.checkFfmpeg();
+    }
   });
 
   // ---- Window close ----
