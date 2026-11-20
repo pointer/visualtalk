@@ -2,7 +2,7 @@ import { createSignal, onMount, Show } from 'solid-js';
 import { invoke } from '@tauri-apps/api/core';
 import { useI18n } from '../i18n/I18nProvider';
 
-export default function Settings() {
+export default function CredentialsPanel() {
     const { t } = useI18n();
     const [url, setUrl] = createSignal('');
     const [apiKey, setApiKey] = createSignal('');
