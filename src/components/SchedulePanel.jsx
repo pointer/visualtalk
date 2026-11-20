@@ -8,9 +8,11 @@ import { IS_MOBILE } from '../lib/platform';
 
 const pad = (n) => String(n).padStart(2, "0");
 
-export default function Schedule({ onClose }) {
+export default function SchedulePanel({ onClose }) {
     const { t } = useI18n();
     const [loading, setLoading] = createSignal(false);
+    // Stays null until `create_meeting_invite` succeeds, so it doubles as the
+    // "this meeting already exists" flag used to lock the Schedule action.
     const [inviteData, setInviteData] = createSignal(null);
     const [copied, setCopied] = createSignal("");
     const [icsPath, setIcsPath] = createSignal(null);
@@ -397,103 +399,130 @@ export default function Schedule({ onClose }) {
                             onInput={(value) => updateScheduleField("meeting_duration", value)}
                         />
                     </div>
-
-                    {/* Each attendee gets a distinct token and invite link. */}
+                    {/* iCalendar download */}
+                    <Show when={icsPath()}>
+                        <button
+                            type="button"
+                            onClick={handleDownloadIcs}
+                            class="mt-3 flex items-center gap-2 rounded-md border border-[#404040] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#292929] focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                        >
+                            <span aria-hidden="true">📅</span>
+                            {t("schedule.downloadIcs")}
+                        </button>
+                    </Show>
+                    {/* Each attendee gets a distinct token and invite link. The
+                        note explains link lifetime, so it only makes sense once
+                        the meeting — and therefore the links — exist. */}
                     <Show when={inviteData()}>
-                        <div class="mt-6">
-                            {/* <div class="mb-3 rounded-lg border border-[#2a2a2a] bg-[#151515] p-3"> */}
-
-                            <button
-                                type="button"
-                                onClick={handleSendInvitations}
-                                disabled={sending()}
-                                aria-busy={sending()}
-                                class="rounded-md border border-[#404040] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
-                            >
-                                {sending() ? t("schedule.sending") : t("schedule.sendInvite")}
-                            </button>
-                            {/* </div> */}
-
-                            {/* Bulk-send outcome. Without this the IPC rejection
-                                is swallowed and the command looks "not called". */}
-                            <Show when={sendError()}>
-                                <p role="alert" class="mt-2 text-xs text-red-400">
-                                    {sendError()}
-                                </p>
-                            </Show>
-                            <Show when={sendResults().length > 0}>
-                                <ul class="mt-2 space-y-1 text-xs">
-                                    <For each={sendResults()}>
-                                        {(result) => (
-                                            <li class={result.accepted ? "text-emerald-400" : "text-red-400"}>
-                                                {result.recipient || t("schedule.unknownRecipient")}
-                                                <Show when={result.channel}>
-                                                    <span class="text-gray-500"> ({result.channel})</span>
-                                                </Show>
-                                                {" — "}
-                                                {result.accepted
-                                                    ? t("schedule.inviteSent")
-                                                    : result.error || t("schedule.inviteFailed")}
-                                            </li>
-                                        )}
-                                    </For>
-                                </ul>
-                            </Show>
-                            <p class="mt-1.5 text-xs text-gray-500">{t(inviteData().shared_link ? "schedule.sharedLinkNote" : "schedule.linkNote")}</p>
-                            <Show when={!inviteData().shared_link && inviteData().attendee_invites.length > 1}>
-                                <p class="mt-1.5 text-xs text-gray-500">
-                                    {t("schedule.icsIndividualLinksNote")}
-                                </p>
-                            </Show>
-
-                            {/* iCalendar download */}
-                            <Show when={icsPath()}>
-                                <button
-                                    type="button"
-                                    onClick={handleDownloadIcs}
-                                    class="mt-3 flex items-center gap-2 rounded-md border border-[#404040] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#292929] focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
-                                >
-                                    <span aria-hidden="true">📅</span>
-                                    {t("schedule.downloadIcs")}
-                                </button>
-                            </Show>
-
-                        </div>
+                        <p class="mt-3 text-xs text-gray-500">
+                            {t(inviteData().shared_link ? "schedule.sharedLinkNote" : "schedule.linkNote")}
+                        </p>
                     </Show>
                 </div>
 
-                {/* Footer */}
-                <footer class="flex shrink-0 justify-end gap-2 border-t border-[#2a2a2a] px-5 py-4 sm:px-6">
-                    <Show
-                        when={!inviteData()}
-                        fallback={
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
-                            >
-                                {t("common.done")}
-                            </button>
-                        }
-                    >
+                {/* Footer: the actions stay pinned while the form scrolls. */}
+                <footer class="shrink-0 border-t border-[#2a2a2a] px-5 py-4 sm:px-6">
+                    {/* Bulk-send rejection. Without this the IPC error is
+                        swallowed and the command looks "not called". Kept above
+                        the button row so it never becomes a flex item inside it. */}
+                    <Show when={sendError()}>
+                        <p role="alert" class="mb-2 text-xs text-red-400">
+                            {sendError()}
+                        </p>
+                    </Show>
+                    <div class="flex items-center gap-2">
                         <button
                             type="button"
                             onClick={onClose}
-                            class="rounded-md px-4 py-2 text-sm font-medium text-gray-300 transition hover:bg-[#2a2a2a] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                            class="mr-auto rounded-md px-4 py-2 text-sm font-medium text-gray-300 transition hover:bg-[#2a2a2a] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
                         >
                             {t("common.cancel")}
                         </button>
                         <button
                             type="button"
+                            onClick={handleSendInvitations}
+                            disabled={sending() || (inviteData()?.attendee_invites?.length ?? 0) === 0}
+                            aria-busy={sending()}
+                            class="rounded-md border border-[#404040] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#292929] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                        >
+                            {sending() ? t("schedule.sending") : t("schedule.sendInvite")}
+                        </button>
+                        {/* Scheduling a second time would create a duplicate room
+                            and a duplicate entry in the scheduled-meetings store,
+                            so the action locks once the meeting exists. */}
+                        <button
+                            type="button"
                             onClick={handleSchedule}
-                            disabled={loading() || !scheduleData().meeting_title.trim()}
+                            disabled={loading() || !!inviteData() || !scheduleData().meeting_title.trim()}
                             class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
                         >
-                            {loading() ? t("schedule.generating") : t("schedule.schedule")}
+                            {loading()
+                                ? t("schedule.generating")
+                                : inviteData()
+                                    ? t("schedule.scheduled")
+                                    : t("schedule.schedule")}
                         </button>
-                    </Show>
+                    </div>
                 </footer>
-            </div >
-        </div >
+
+                {/* Bulk-send outcome, hoisted out of the footer so it is a sibling
+                    of the dialog: `absolute inset-0` resolves against the fixed
+                    overlay above, and z-10 keeps it clear of the dialog itself. */}
+                <Show when={sendResults().length > 0}>
+                    <div
+                        class="absolute inset-0 z-10 flex items-center justify-center bg-black/60 p-4"
+                        onClick={() => setSendResults([])}
+                    >
+                        <div
+                            role="dialog"
+                            aria-modal="true"
+                            aria-live="polite"
+                            class="w-full max-w-md rounded-lg border border-gray-700 bg-gray-900 p-4 text-gray-100 shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div class="mb-2.5 flex items-center justify-between border-b border-gray-800 pb-2">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                                    {t("schedule.sendResultsTitle")}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSendResults([]);
+                                    }}
+                                    aria-label={t("common.close")}
+                                    class="rounded p-1 text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-600"
+                                >
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <ul class="max-h-64 space-y-1.5 overflow-y-auto text-xs">
+                                <For each={sendResults()}>
+                                    {(result) => (
+                                        <li
+                                            class={`whitespace-pre-line break-words leading-relaxed ${result.accepted ? "text-emerald-400" : "text-red-400"
+                                                }`}
+                                        >
+                                            {result.recipient || t("schedule.unknownRecipient")}
+                                            <Show when={result.channel}>
+                                                <span class="text-gray-500"> ({result.channel})</span>
+                                            </Show>
+                                            {" — "}
+                                            {result.accepted
+                                                ? t("schedule.inviteSent")
+                                                : result.error || t("schedule.inviteFailed")}
+                                        </li>
+                                    )}
+                                </For>
+                            </ul>
+                        </div>
+                    </div>
+                </Show>
+
+            </div>
+        </div>
     );
 }

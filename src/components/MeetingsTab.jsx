@@ -4,7 +4,7 @@ import { useScheduledMeetings } from "../lib/useScheduledMeetings";
 import { useMeetingHistory } from "../lib/useMeetingHistory";
 import { MeetingsPanel } from "./MeetingsPanel";
 import { MeetingHistoryPanel } from "./MeetingHistoryPanel";
-import Schedule from "./Schedule";
+import SchedulePanel from "./SchedulePanel";
 
 /**
  * Meetings feature: full list of scheduled meetings with start / delete /
@@ -48,7 +48,7 @@ export function MeetingsTab(props) {
       </div>
 
       <Show when={showScheduleModal()}>
-        <Schedule onClose={() => setShowScheduleModal(false)} />
+        <SchedulePanel onClose={() => setShowScheduleModal(false)} />
       </Show>
     </>
   );

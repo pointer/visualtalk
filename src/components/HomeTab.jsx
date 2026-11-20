@@ -7,7 +7,7 @@ import { pendingInviteLink } from "../lib/deepLink";
 import { NewMeetingMenu } from "./NewMeetingMenu";
 import { MeetingsPanel } from "./MeetingsPanel";
 import JoinMeetingModal from "./JoinMeeting";
-import Schedule from "./Schedule";
+import SchedulePanel from "./SchedulePanel";
 
 /**
  * Home feature: clock, profile header, meeting actions (new / join / schedule
@@ -232,7 +232,7 @@ export function HomeTab(props) {
       </Show>
 
       <Show when={showScheduleModal()}>
-        <Schedule onClose={() => setShowScheduleModal(false)} />
+        <SchedulePanel onClose={() => setShowScheduleModal(false)} />
       </Show>
     </>
   );
