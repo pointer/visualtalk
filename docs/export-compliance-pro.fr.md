@@ -187,6 +187,23 @@ régions ukrainiennes couvertes) : bloquées par les plateformes de stores
 elles-mêmes ; aucune action au-delà du respect strict des contrôles
 territoriaux des plateformes, sans jamais les contourner.
 
+**Règlement européen sur les services numériques (DSA) — statut de
+commerçant (ajout du 2026-11-23).** Apple bloque la distribution dans les
+27 États membres tant qu'une déclaration de commerçant DSA (règlement (UE)
+2022/2065, traçabilité des commerçants) n'est pas déposée et approuvée
+dans App Store Connect (Compliance → Digital Services Act). VisualTalk
+s'est déclaré **commerçant** le 2026-11-23 (statut à la rédaction : en
+examen) ; la déclaration réutilise les mêmes champs d'entité que le
+dossier ANSSI (nom légal, adresse, SIRET, TVA, contacts). Conséquence
+assumée : le DSA impose l'affichage public de ces coordonnées sur les
+pages produit UE — les données d'entité du dépôt français deviennent donc
+aussi des métadonnées publiques App Store. Règle opérationnelle :
+**aucun dossier App Store (CE ou Pro, toute plateforme) n'est soumis
+avant l'approbation du statut de commerçant**, sinon les storefronts UE
+restent éteints et peuvent retenir la première mise à disposition —
+exactement ce qui est arrivé à l'iOS CE 3.3.33 (approuvé le 2026-11-11,
+UE bloquée jusqu'au dépôt 12 jours plus tard).
+
 ## 6. App Store Connect — réponses chiffrement (dossier Pro)
 
 Déclaration du build actuel (définie dans `src-tauri/Info-pro.plist`) :
@@ -250,6 +267,10 @@ limité au chiffrement de l'OS / usage exempt).
       désélectionner la Chine continentale dans la disponibilité ASC
       (recommandation §5 — à confirmer par le dirigeant) ; décision
       Russie/Biélorussie par le conseil.
+- [ ] Statut de commerçant DSA approuvé pour le dossier (Compliance →
+      Digital Services Act) avant soumission ; les 27 États UE restent
+      bloqués tant que non (leçon du blocage iOS CE du 2026-11-23 ; voir
+      §5).
 - [x] Confirmation que les crates RustCrypto sont les seuls composants
       cryptographiques du binaire Pro (vérifié via `cargo tree`, cf. §2 ;
       `ring` présent uniquement comme TLS transitive).

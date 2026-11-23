@@ -162,6 +162,21 @@ whether to deselect these territories at initial release — recommended yes.
 Ukrainian regions): blocked by the store platforms themselves; no action
 beyond never circumventing platform territory controls.
 
+**EU Digital Services Act — trader status (added 2026-11-23).** Apple blocks
+distribution in all 27 EU member states until a DSA trader declaration
+(Regulation (EU) 2022/2065, trader traceability) is filed and approved in
+App Store Connect (Compliance → Digital Services Act). VisualTalk declared
+**trader** on 2026-11-23 (status at writing: In Review); the declaration
+reuses the same legal-entity fields as the ANSSI packet (legal name,
+address, SIRET, VAT, contacts). Accepted consequence: the DSA requires
+these trader details to be displayed publicly on EU product pages — the
+entity data of the French filing is therefore also public App Store
+metadata. Operational rule: **no App Store record (CE or Pro, any
+platform) is submitted before trader status is approved**, otherwise EU
+storefronts stay dark and can hold the first release — exactly what hit
+iOS CE 3.3.33 (approved 2026-11-11, EU blocked until the declaration was
+filed 12 days later).
+
 ## 6. App Store Connect — encryption answers (Pro record)
 
 Current build declaration (set in `src-tauri/Info-pro.plist`):
@@ -220,6 +235,9 @@ TLS/DTLS (Apple exemption: limited to OS encryption / exempt usage).
 - [ ] Territory exclusions confirmed at submission: deselect mainland
       China in ASC availability (§5 recommendation — owner to confirm);
       Russia/Belarus decision from counsel.
+- [ ] DSA trader status approved for the record (Compliance → Digital
+      Services Act) before submission; EU27 stay blocked until then
+      (lesson of the 2026-11-23 iOS CE release stall; see §5).
 - [x] Confirmation that RustCrypto crates are the only cryptographic
       components in the Pro binary (spot-checked via `cargo tree`, see §2;
       `ring` present only as transitive TLS).
