@@ -94,6 +94,13 @@ ExportOptions.plist
 !Guidance.md
 !.opencode/**/*.md
 
+# Shared, project-agnostic agent skills are meant to be distributed: keep their
+# SKILL.md and README tracked despite the blanket *.md rule.
+!.shared-skills/**/*.md
+
+# Business plan documents are tracked deliverables.
+!Business Plan/**/*.md
+
 # PII-dense filing drafts (owner's private store, NOT for public repo).
 # Placed AFTER the !docs/**/*.md whitelist above — last match wins.
 docs/anssi-*
@@ -143,3 +150,4 @@ tester-list.csv
 
 # Owner's Play listing screenshot notes: a local working document, not source.
 VisualTalk Screenshots.rtf
+/Misc
