@@ -29,8 +29,24 @@ function PresentingFrame(props) {
 }
 
 function App() {
+  // Detected synchronously (not in onMount) so the presenting-frame window's
+  // very first paint is the border overlay, never the full app at fullscreen.
+  const frameParams = new URLSearchParams(window.location.search);
+  const isFrameMode = frameParams.get("mode") === "presenting-frame";
+  const [frameColor] = createSignal(
+    isFrameMode ? frameParams.get("color") || "blue" : ""
+  );
+  if (isFrameMode) {
+    for (const el of [
+      document.documentElement,
+      document.body,
+      document.getElementById("root"),
+    ]) {
+      if (el) el.style.background = "transparent";
+    }
+  }
+
   const [showMeeting, setShowMeeting] = createSignal(false);
-  const [frameColor, setFrameColor] = createSignal("");
   // Set once the deep-link subscription is up; unsubscribes on teardown.
   let stopDeepLinks = () => {};
 
@@ -45,17 +61,7 @@ function App() {
 
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("mode") === "presenting-frame") {
-      setFrameColor(params.get("color") || "blue");
-      for (const el of [
-        document.documentElement,
-        document.body,
-        document.getElementById("root"),
-      ]) {
-        if (el) el.style.background = "transparent";
-      }
-      return;
-    }
+    if (params.get("mode") === "presenting-frame") return; // overlay window: nothing to init
     if (params.get("mode") === "meeting") {
       setShowMeeting(true);
 
