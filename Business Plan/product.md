@@ -1,82 +1,46 @@
 # Product
 
-> Companion sections: [Executive Summary](executive-summary.md) ·
-> [Market](market-section.md) · [Go-to-Market](go-to-market.md) ·
-> [Financials](financials.md)
+## Motto
+
+**"True sovereignty depends on who controls the infrastructure, keys, operations, and data flows."**
 
 ## What VisualTalk is
 
-A lightweight desktop video-conferencing client. Architecture (from the repo):
+A lightweight desktop video-conferencing client built on a Rust/Tauri v2 core and a self-hostable Rust SFU (mediacore).
 
-- **UI:** SolidJS (plain JSX, Tailwind v4). No TypeScript, no CSS modules.
-- **Core:** Rust / Tauri v2. Business logic, JWT signing, persistence, and
-  secrets live in `src-tauri/src/`, exposed to the UI through `#[tauri::command]`s.
-  The webview never holds secrets.
-- **Media:** an SFU. Today LiveKit (self-hosted or cloud); the mediacore Rust SFU
-  is the self-hostable path (see [Market](market-section.md), Layer 3).
-- **Platforms:** macOS, Windows, Linux (desktop), Android, iOS (mobile bundles).
+## The Sovereign Architecture
+
+VisualTalk is designed around the four pillars of sovereignty that matter to French public-sector and critical-infrastructure buyers:
+
+1.  **Infrastructure Control:** Self-hostable via mediacore. Runs on French sovereign clouds (OVHcloud, Scaleway, Outscale) or on-premise.
+2.  **Key Control:** Pro Edition E2EE keeps encryption keys with the organization.
+3.  **Operations Control:** On-premise deployment means the organization runs and operates it.
+4.  **Data Flow Control:** Self-hosted, so traffic stays inside the organization's own perimeter.
+
+## What you own
+
+A short, honest statement of what VisualTalk actually gives a customer — no more.
+
+- **A documented self-host path.** The repo ships a Docker Compose stack and scripts (`docker/`, `scripts/livekit-local.py`) to run the media server yourself — LiveKit or mediacore — on your own infrastructure. This is real and documented today.
+- **Proof of ownership, by construction.** Because you host it, you can inspect every component: what runs where, who holds the keys, and what leaves the environment (nothing does, unless you send it). There is no vendor-cloud in the path to audit.
+- **Bring your own cloud or metal.** LiveKit Cloud if you want managed, or your own LiveKit/mediacore node if you want control. The client does not care which.
+
+What VisualTalk deliberately does **not** ship today (stated plainly, so no one expects it):
+
+- **No integrations.** No SSO/directory/telephony/EHR connectors yet. Standard OIDC where the platform supports it, nothing more.
+- **No managed ops or SLA.** You operate it yourself. There is no 24/7 support contract; support is best-effort/community.
+- **No migration tooling.** Moving from Zoom/Teams/Meet means rejoining via invite link; there is no import of history or workflows.
+- **No compliance artefacts.** We do not provide audit logs, retention dashboards, or a certification dossier. The architecture makes compliance *possible* (data stays yours); the customer's own compliance work is theirs.
 
 ## Editions
 
-| | Community | Pro |
-|---|---|---|
-| Meetings, join, chat, scheduling | ✅ | ✅ |
-| Backgrounds | — | ✅ |
-| Recording | — | ✅ (see gap below) |
-| AI assistant | — | ✅ |
-| **End-to-end encryption** | — | ✅ |
-| License | PolyForm Noncommercial | Commercial |
+- **Community Edition:** Free, noncommercial.
+- **Pro Edition:** Adds E2EE, recording, backgrounds, AI. Licensed per organization.
 
-## Current capabilities
+## Roadmap
 
-- Instant and scheduled meetings with per-attendee invite links
-- Rust-minted LiveKit participant tokens (secrets never reach the webview)
-- Optional external guest-token issuer for one shareable link
-- Email / SMS invitations (provider-backed)
-- Recording and RTMP streaming (server-side, Pro)
-- Chat, participant moderation, device management, grid layouts
-- **E2EE (Pro)** — layered above the media path, SFU-agnostic
-
-## The self-host story (the moat)
-
-mediacore is a Rust SFU on `str0m` that speaks LiveKit's signalling and room
-protocol. It lets an organization **run its own media server** with no
-vendor-cloud dependency. Source review (see
-`docs/mediacore-analysis.md`):
-
-| Capability | Against mediacore |
-|---|---|
-| Join / auth (JWT) | ✅ Works unmodified |
-| Audio / video / screen share | ✅ Works |
-| Moderation (mute, remove, roster) | ✅ RoomService implemented |
-| Server-side recording | ⚠️ Native audio-Ogg only — no Egress gRPC |
-| Video recording | ❌ Not yet (mediacore roadmap: months away) |
-
-**Known product gap:** the "Record meeting" button drives LiveKit's Egress
-service, which mediacore does not implement. Against a self-hosted mediacore
-backend, recording is **audio-only**. Video recording on mediacore is a roadmap
-dependency, not a VisualTalk one. Plan the self-host tier around audio recording
-until mediacore ships video egress.
-
-## Differentiation (vs. the titans)
-
-- **True E2EE** — not a US-cloud add-on; keys stay with the organization.
-- **Self-hostable** — mediacore path; "your servers, your keys."
-- **Desktop-native** — Tauri/Rust core, secrets in Rust, thin webview.
-- **Vertical focus** — built for one regulated segment, not horizontal.
-
-See the [Market](market-section.md) positioning table for the axis-by-axis
-comparison.
-
-## Roadmap dependencies (external)
-
-- mediacore video recording → unlocks server-side video on the self-host tier.
-- mediacore Egress gRPC → `egress.rs` works unmodified against mediacore.
-- mediacore TURN / resume → mobile parity on the self-host tier.
-
-## Open product questions
-
-- [ ] Which vertical is the beachhead? (drives compliance work)
-- [ ] Is E2EE default-on for Pro, or opt-in per meeting?
-- [ ] Pricing unit: per-seat, per-org, or per-minute?
-- [ ] Mobile strategy until mediacore TURN/resume land (keep LiveKit for mobile?)
+- mediacore video recording (Egress).
+- mediacore TURN / resume for mobile parity.
+- SecNumCloud compliance hardening.
+- Enterprise support / SLA (not offered today).
+- Compliance packaging — audit logs, retention controls, certification dossier (not offered today).

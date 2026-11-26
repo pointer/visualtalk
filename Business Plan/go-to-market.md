@@ -2,89 +2,60 @@
 
 > Companion sections: [Executive Summary](executive-summary.md) ·
 > [Market](market-section.md) · [Product](product.md) · [Financials](financials.md)
->
-> Every figure is a `TODO: verify` / `TODO: decide` placeholder.
 
 ## Strategy in one line
 
-**Cede the general market; own a regulated vertical where US-cloud bundled tools
-are structurally disqualified — then expand.**
+**Own the French Sovereign / SecNumCloud beachhead where US-cloud tools are legally disqualified — then expand to the EU.**
 
-## Beachhead (TODO: choose one)
+**We will not compete head-on with AWS, Microsoft, and Google across all customers. We will become indispensable in one tightly regulated industry where their standard U.S.-cloud bundles cannot meet the rules. Once we dominate that niche, we will grow from there.**
 
-Pick one regulated vertical and win it before going horizontal:
+## Beachhead
 
-| Vertical | Why it fits | Compliance to prioritize |
-|---|---|---|
-| Healthcare / telehealth | E2EE, on-prem, patient data | HIPAA / GDPR health data |
-| Legal | Privilege, confidentiality, retention | Bar / client-confidentiality rules |
-| Government / defense | Sovereignty, air-gap, on-prem | FedRAMP / national equivalents |
-| Education | Student privacy, district self-host | FERPA / GDPR minors |
+**French Sovereign Cloud (SecNumCloud / OIV - Operators of Vital Importance).**
 
-`TODO: choose, name TAM/SAM/SOM, name 3–5 design partners.`
+We target entities legally bound by **SecNumCloud** and **GDPR** to control their infrastructure, keys, operations, and data flows. This is a legally mandated market, not a discretionary one.
+
+*Design Partners:* `TODO: name 3-5 French OIVs or Defense agencies.`
 
 ## Positioning
 
-- **Headline:** private, **self-hostable** video with admin control and true E2EE —
-  built for regulated organizations, not consumers.
-- **Proof:** "your meetings, your servers, your keys."
-- **Anti-position:** not a cheaper Zoom; not "free and bundled." Explicitly
-  cede the general SMB/consumer market — **and the consumer-E2EE market, which
-  WhatsApp / Signal / FaceTime already own for free.** We do not compete on
-  "private video calls"; E2EE is table stakes. We compete on self-host + admin
-  control + vertical compliance, where consumer apps are disqualified.
+- **Headline:** True sovereignty — control your infrastructure, keys, operations, and data flows.
+- **Proof:** "Your meetings, your servers, your keys."
+- **Anti-position:** Not a cheaper Zoom; not a US-cloud tool. We are the sovereign alternative for French critical infrastructure.
+
+See [Product → What you own](product.md) for the honest scope: a documented self-host path and proof of ownership — no integrations, no SLA, no migration tooling, no compliance artefacts today.
 
 ## Channels
 
 | Channel | Fit | Notes |
 |---|---|---|
-| Direct enterprise sales | High (ACV) | For the beachhead vertical; longer cycle |
-| Self-serve Community → Pro | Medium | Bottom-of-funnel adoption |
-| Self-hosted enterprise license | High | mediacore on-prem deals |
-| Channel / resellers | Medium | Vertical SIs, MSPs |
-| Open-source community | Low/Medium | Community Edition credibility, not monetization |
+| Direct enterprise sales | High (ACV) | For OIVs and Defense; longer cycle |
+| Sovereign Cloud marketplaces | High | Partner with OVHcloud, Scaleway, Outscale |
+| Channel / resellers | Medium | French defense SIs, MSPs |
+| Open-source community | Low/Medium | Community Edition credibility |
 
-## Pricing (TODO: validate)
+## Pricing
 
 - **Community** — free, noncommercial (adoption).
-- **Pro** — per-seat or per-org (**TODO: decide**); E2EE, recording, backgrounds, AI.
-- **Self-hosted enterprise** — license + support (**TODO: decide** structure).
-
-`TODO: competitor price anchors (Zoom, Teams E5, Jitsi/8x8, LiveKit Cloud).`
+- **Pro** — per-organization license (annual contract). Government/OIVs prefer flat licenses.
+- **Self-hosted enterprise** — license for on-prem mediacore deployments. Compliance support / SLA are roadmap — not offered today.
 
 ## Motion
 
-1. **Design partners** in the beachhead vertical (3–5), free or discounted, in
-   exchange for case studies and compliance feedback.
-2. **Compliance milestone** — achieve the beachhead's certification (TODO: which)
-   as the gate to paid expansion.
-3. **Reference customers** → case studies → lookalike accounts in the vertical.
-4. **Horizontal expansion** only after beachhead dominance.
-
-## Competition (summary)
-
-See [Market](market-section.md) §5. We lose "free and bundled" on purpose; we win
-E2EE, self-host, desktop-native, and vertical-focus — the rows the titans cannot
-follow.
+1. **Design partners** in the OIV/Defense sector (3–5), in exchange for case studies and SecNumCloud feedback.
+2. **Compliance milestone** — achieve **SecNumCloud** qualification as the gate to paid expansion.
+3. **Reference customers** → case studies → lookalike OIV accounts.
+4. **Horizontal expansion** to the broader EU market only after French beachhead dominance.
 
 ## Risks
 
-- **"Why not WhatsApp (free, E2EE, ~2B users)?"** — answer: consumer, US-cloud
-  (Meta), not self-hostable, no admin controls, no enterprise compliance or
-  data-residency. Structurally disqualified for the regulated/enterprise
-  beachhead. E2EE alone is not the moat.
-- **"Why not Jitsi (free, self-hosted, E2EE)?"** — answer: Tauri/Rust packaging,
-  product polish, vertical workflow, admin control, support. **Not** the SFU.
-- **"Why not LiveKit Cloud + a UI?"** — answer: self-host + E2EE Pro is the moat.
-- **mediacore immaturity** — video recording, TURN, resume are roadmap
-  dependencies; mobile may need LiveKit until they land.
-- **Titan bundling / consumer E2EE** — if WhatsApp or Teams/Meet ship true E2EE +
-  self-host + admin control for organizations, the wedge erodes. Speed to
-  beachhead dominance matters.
+- **"Why not WhatsApp (free, E2EE)?"** — consumer, US-cloud (Meta), not self-hostable. Disqualified for SecNumCloud.
+- **"Why not Jitsi (free, self-hosted)?"** — lacks the product polish, admin control, and compliance focus.
+- **mediacore immaturity** — video recording, TURN, resume are roadmap dependencies.
+- **Titan bundling** — if US tools ship sovereign EU clouds, the wedge erodes. Speed to beachhead dominance matters.
 
 ## Open GTM questions
 
-- [ ] Beachhead vertical + its compliance regime.
-- [ ] Pricing model + price points.
-- [ ] Design-partner pipeline (names).
-- [ ] Sales capacity / CAC assumptions (feeds [Financials](financials.md)).
+- [ ] Design-partner pipeline (names of OIVs/Defense agencies).
+- [ ] Pricing model validation.
+- [ ] Sales capacity / CAC assumptions.
