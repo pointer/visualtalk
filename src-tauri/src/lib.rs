@@ -173,6 +173,7 @@ pub fn run() {
             commands::meeting::get_meeting_session,
             commands::meeting::open_meeting_window,
             commands::meeting::notify_meeting_ended,
+            commands::meeting::set_presenting_mode,
             commands::invites::parse_invite_link,
             commands::invites::exchange_invite_for_token,
             commands::invites::create_meeting_invite,

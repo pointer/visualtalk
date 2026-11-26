@@ -1,7 +1,10 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Mutex, OnceLock};
 
-use tauri::{AppHandle, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{
+    AppHandle, LogicalSize, PhysicalPosition, PhysicalSize, Position, Size, WebviewUrl,
+    WebviewWindow, WebviewWindowBuilder, WindowEvent,
+};
 
 use crate::events::{emit as emit_event, VtEvent};
 
@@ -116,6 +119,90 @@ pub fn spawn_meeting_window(
     });
 
     Ok(label)
+}
+
+/// Geometry saved when a meeting window collapses into the presenting bar, so
+/// it can be restored exactly when sharing stops.
+#[derive(Clone, Copy)]
+struct SavedGeometry {
+    width: u32,
+    height: u32,
+    x: i32,
+    y: i32,
+}
+
+fn presenting_geom() -> &'static Mutex<HashMap<String, SavedGeometry>> {
+    static GEOM: OnceLock<Mutex<HashMap<String, SavedGeometry>>> = OnceLock::new();
+    GEOM.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+const BAR_W: f64 = 360.0;
+const BAR_H: f64 = 72.0;
+
+/// Collapse the meeting window into a small, always-on-top presenting bar so
+/// the display being captured shows the user's real desktop — the only way to
+/// avoid rendering the capture inside the capture (infinite mirror).
+pub fn enter_presenting(window: &WebviewWindow) -> Result<(), String> {
+    let label = window.label().to_string();
+    {
+        let mut map = presenting_geom()
+            .lock()
+            .map_err(|_| "presenting state poisoned".to_string())?;
+        if !map.contains_key(&label) {
+            let size = window.outer_size().map_err(|e| e.to_string())?;
+            let pos = window.outer_position().map_err(|e| e.to_string())?;
+            map.insert(
+                label,
+                SavedGeometry {
+                    width: size.width,
+                    height: size.height,
+                    x: pos.x,
+                    y: pos.y,
+                },
+            );
+        }
+    }
+
+    // The window was created with a 900x600 minimum; relax it for the bar.
+    window
+        .set_min_size(Some(Size::Logical(LogicalSize::new(240.0, 56.0))))
+        .map_err(|e| e.to_string())?;
+    window.set_decorations(false).map_err(|e| e.to_string())?;
+    window
+        .set_size(Size::Logical(LogicalSize::new(BAR_W, BAR_H)))
+        .map_err(|e| e.to_string())?;
+
+    if let Ok(Some(monitor)) = window.current_monitor() {
+        let wa = monitor.work_area();
+        let scale = window.scale_factor().unwrap_or(1.0);
+        let bar_w = (BAR_W * scale) as i32;
+        let bar_h = (BAR_H * scale) as i32;
+        let x = wa.position.x + (wa.size.width as i32 - bar_w) / 2;
+        let y = wa.position.y + wa.size.height as i32 - bar_h - (16.0 * scale) as i32;
+        let _ = window.set_position(Position::Physical(PhysicalPosition::new(x, y)));
+    }
+    window.set_always_on_top(true).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Restore the meeting window to its pre-share size, position and chrome.
+pub fn exit_presenting(window: &WebviewWindow) -> Result<(), String> {
+    let label = window.label().to_string();
+    let saved = presenting_geom()
+        .lock()
+        .ok()
+        .and_then(|mut map| map.remove(&label));
+
+    window.set_always_on_top(false).map_err(|e| e.to_string())?;
+    window.set_decorations(true).map_err(|e| e.to_string())?;
+    if let Some(g) = saved {
+        let _ = window.set_size(Size::Physical(PhysicalSize::new(g.width, g.height)));
+        let _ = window.set_position(Position::Physical(PhysicalPosition::new(g.x, g.y)));
+    }
+    window
+        .set_min_size(Some(Size::Logical(LogicalSize::new(900.0, 600.0))))
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 // use tauri::{window::Monitor, Manager, PhysicalPosition, PhysicalSize};

@@ -51,6 +51,8 @@
   "meeting.enableAudio": "Click to enable audio",
   "meeting.sharingScreen": "You're sharing your screen",
   "meeting.presentingHint": "Participants can see your screen.",
+  "meeting.presenting": "You're presenting",
+  "meeting.stopSharing": "Stop sharing",
   "meetings.searchPlaceholder": "Search meetings…",
   "meetings.moveUp": "Move up",
   "meetings.moveDown": "Move down",

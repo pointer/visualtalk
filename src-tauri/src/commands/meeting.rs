@@ -77,3 +77,15 @@ pub fn notify_meeting_ended(
     }
     Ok(())
 }
+
+/// Collapse/restore the meeting window into a floating presenting bar while
+/// the local user shares their screen, so the captured display shows their
+/// real desktop instead of an infinite self-mirror.
+#[tauri::command]
+pub fn set_presenting_mode(window: tauri::WebviewWindow, enabled: bool) -> Result<(), String> {
+    if enabled {
+        crate::window::enter_presenting(&window)
+    } else {
+        crate::window::exit_presenting(&window)
+    }
+}

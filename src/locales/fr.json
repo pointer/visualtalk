@@ -51,6 +51,8 @@
   "meeting.enableAudio": "Cliquez pour activer le son",
   "meeting.sharingScreen": "Vous partagez votre écran",
   "meeting.presentingHint": "Les participants voient votre écran.",
+  "meeting.presenting": "Vous présentez",
+  "meeting.stopSharing": "Arrêter le partage",
   "meetings.searchPlaceholder": "Rechercher des réunions…",
   "meetings.moveUp": "Monter",
   "meetings.moveDown": "Descendre",

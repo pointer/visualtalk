@@ -1,4 +1,4 @@
-import { createSignal, onMount, onCleanup, Show } from "solid-js";
+import { createSignal, createEffect, onMount, onCleanup, Show } from "solid-js";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
@@ -49,6 +49,16 @@ export function MeetingView(props) {
   const room = useLiveKitRoom();
   const bg = useBackgroundEffects();
   const rec = useRecording();
+
+  // While the local user shares, collapse this window into a floating
+  // presenting bar so the captured display shows their real desktop instead of
+  // an infinite self-mirror.
+  createEffect(() => {
+    const sharing = room.isSharingScreen();
+    invoke("set_presenting_mode", { enabled: sharing }).catch((err) =>
+      console.error("Failed to toggle presenting mode:", err)
+    );
+  });
 
   // ---- DOM ref for background effect preview ----
   let previewVideoEl = null;
@@ -288,6 +298,7 @@ export function MeetingView(props) {
   return (
     <div class="flex flex-col h-screen w-full bg-[#1a1a1a] text-white select-none overflow-hidden">
       <Show when={preJoin()} fallback={
+        <Show when={room.isSharingScreen()} fallback={
         /* ===== In-Meeting View ===== */
         <div class="flex flex-1 overflow-hidden">
           {/* Video Grid + Toolbar */}
@@ -356,6 +367,16 @@ export function MeetingView(props) {
             />
           </Show>
         </div>
+        }>
+          {/* ===== Presenting bar (window is collapsed to a floating pill) ===== */}
+          <div class="h-full w-full flex items-center justify-center bg-[#1c1c1c]">
+            <div class="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[#242424] border border-gray-700 shadow-lg">
+              <svg class="w-5 h-5 text-green-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              <span class="text-sm font-medium text-white whitespace-nowrap">{t("meeting.presenting")}</span>
+              <button onClick={room.toggleScreenShare} class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold whitespace-nowrap">{t("meeting.stopSharing")}</button>
+            </div>
+          </div>
+        </Show>
       }>
         {/* ===== Pre-Join Screen ===== */}
         <PreJoinScreen
