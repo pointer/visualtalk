@@ -1,5 +1,6 @@
 import { For, createEffect, createSignal, onCleanup, Show, createMemo } from "solid-js";
 import { USE_CANVAS_VIDEO, startCanvasVideo } from "../lib/canvasVideoFallback";
+import { useI18n } from "../i18n/I18nProvider";
 
 /**
  * Start playback with WKWebView/Safari autoplay fallbacks.
@@ -34,6 +35,7 @@ function ensurePlaying(el, { mutedFallback, onIssue, onOk }) {
 }
 
 function VideoTile(props) {
+  const { t } = useI18n();
   const [el, setEl] = createSignal(null);
   const [playIssue, setPlayIssue] = createSignal("");
   const [needUnmute, setNeedUnmute] = createSignal(false);
@@ -167,6 +169,10 @@ function VideoTile(props) {
 
   const isMirror = () => props.participant.isLocal && !props.participant.isScreen;
   const isScreen = () => props.participant.isScreen;
+  // Your own screen share must never render its live capture: the shared
+  // surface is the display this window lives on, so streaming it back into
+  // itself produces an infinite mirror (screen-in-screen recursion).
+  const isSelfShare = () => props.participant.isLocal && props.participant.isScreen;
 
   return (
     <div
@@ -174,27 +180,37 @@ function VideoTile(props) {
       class={`relative bg-slate-900 rounded-xl overflow-hidden shadow-lg border border-slate-800 flex items-center justify-center cursor-pointer transition ${props.isFeatured ? "w-full h-full" : "aspect-video w-full h-full hover:border-blue-500/70"
         }`}
     >
-      <video
-        ref={setEl}
-        autoplay
-        playsinline
-        muted={props.participant.isLocal}
-        style={{
-          "-webkit-transform": isMirror() ? "scaleX(-1)" : "none",
-          transform: isMirror() ? "scaleX(-1)" : "none",
-        }}
-        class={
-          USE_CANVAS_VIDEO
-            ? "absolute inset-0 w-full h-full opacity-0 pointer-events-none"
-            : `w-full h-full ${isScreen() ? "object-contain bg-black" : "object-cover"}`
+      <Show
+        when={!isSelfShare()}
+        fallback={
+          <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-300 bg-slate-950">
+            <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            <span class="text-sm font-medium">{t("meeting.sharingScreen")}</span>
+          </div>
         }
-      />
-      {/* Canvas mirror for WKWebView macOS/iOS (native video layer never composites) */}
-      <Show when={USE_CANVAS_VIDEO}>
-        <canvas
-          ref={setCanvasEl}
-          class="absolute inset-0 w-full h-full pointer-events-none"
+      >
+        <video
+          ref={setEl}
+          autoplay
+          playsinline
+          muted={props.participant.isLocal}
+          style={{
+            "-webkit-transform": isMirror() ? "scaleX(-1)" : "none",
+            transform: isMirror() ? "scaleX(-1)" : "none",
+          }}
+          class={
+            USE_CANVAS_VIDEO
+              ? "absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+              : `w-full h-full ${isScreen() ? "object-contain bg-black" : "object-cover"}`
+          }
         />
+        {/* Canvas mirror for WKWebView macOS/iOS (native video layer never composites) */}
+        <Show when={USE_CANVAS_VIDEO}>
+          <canvas
+            ref={setCanvasEl}
+            class="absolute inset-0 w-full h-full pointer-events-none"
+          />
+        </Show>
       </Show>
       {/* Hand raise indicator */}
       <Show when={props.raisedHands && props.raisedHands.includes(props.participant.name)}>

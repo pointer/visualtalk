@@ -32,7 +32,11 @@ pub struct InviteResult {
 
 #[tauri::command]
 pub fn get_scheduled_meetings(state: State<'_, AppState>) -> Result<Vec<ScheduledMeeting>, String> {
-    state.read_meetings(|meetings| meetings.scheduled.clone())
+    state.read_meetings(|meetings| {
+        let mut scheduled = meetings.scheduled.clone();
+        scheduled.sort_by_key(|m| m.position);
+        scheduled
+    })
 }
 
 #[tauri::command]
@@ -89,6 +93,17 @@ pub fn delete_scheduled_meeting(
     }
 
     Ok(removed)
+}
+
+#[tauri::command]
+pub fn reorder_scheduled_meetings(
+    app: AppHandle,
+    ordered_ids: Vec<String>,
+    state: State<'_, AppState>,
+) -> Result<Vec<ScheduledMeeting>, String> {
+    state.with_meetings(|meetings| meetings.reorder(&ordered_ids, &state.config_dir))??;
+    emit_event(&app, VtEvent::MeetingsReordered { ordered_ids });
+    state.read_meetings(|meetings| meetings.scheduled.clone())
 }
 
 #[tauri::command]

@@ -24,13 +24,17 @@ export function useScheduledMeetings(options = {}) {
     pmi: "",
   });
 
-  const reload = async () => {
+  const reloadMeetings = async () => {
     try {
       const m = await invoke("get_scheduled_meetings");
       setMeetings(m);
     } catch (err) {
       console.error("Failed to load scheduled meetings:", err);
     }
+  };
+
+  const reload = async () => {
+    await reloadMeetings();
 
     try {
       const p = await invoke("get_user_profile");
@@ -42,18 +46,17 @@ export function useScheduledMeetings(options = {}) {
 
   onMount(reload);
 
-  // Idempotent upsert — skip if this window already added the meeting locally.
-  subscribe("meeting-scheduled", (payload) => {
-    setMeetings((prev) => {
-      if (prev.find((m) => m.id === payload.meeting.id)) return prev;
-      return [...prev, payload.meeting];
-    });
-  });
+  // A new meeting can land anywhere in the upcoming-first order (positions are
+  // renumbered server-side), so reload the authoritative list rather than append.
+  subscribe("meeting-scheduled", () => reloadMeetings());
 
   // Idempotent — filtering an already-filtered list is safe.
   subscribe("meeting-deleted", (payload) => {
     setMeetings((prev) => prev.filter((m) => m.id !== payload.id));
   });
+
+  // Another window reordered the list; reload the authoritative order.
+  subscribe("meetings-reordered", () => reloadMeetings());
 
   subscribe("profile-updated", (payload) => {
     setProfile(payload.profile);
@@ -96,5 +99,36 @@ export function useScheduledMeetings(options = {}) {
     }
   };
 
-  return { meetings, profile, reload, startMeeting, deleteMeeting, copyInvite };
+  // Swap a meeting with its neighbour, then persist the new order optimistically;
+  // fall back to a reload if the backend rejects the write.
+  const moveMeeting = async (id, direction) => {
+    const current = meetings();
+    const idx = current.findIndex((m) => m.id === id);
+    const target = direction === "up" ? idx - 1 : idx + 1;
+    if (idx < 0 || target < 0 || target >= current.length) return;
+
+    const next = [...current];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setMeetings(next);
+
+    try {
+      const persisted = await invoke("reorder_scheduled_meetings", {
+        orderedIds: next.map((m) => m.id),
+      });
+      setMeetings(persisted);
+    } catch (err) {
+      console.error("Failed to reorder meetings:", err);
+      await reloadMeetings();
+    }
+  };
+
+  return {
+    meetings,
+    profile,
+    reload,
+    startMeeting,
+    deleteMeeting,
+    copyInvite,
+    moveMeeting,
+  };
 }

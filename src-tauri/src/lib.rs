@@ -193,6 +193,7 @@ pub fn run() {
             commands::schedule::get_scheduled_meetings,
             commands::schedule::schedule_meeting,
             commands::schedule::delete_scheduled_meeting,
+            commands::schedule::reorder_scheduled_meetings,
             commands::schedule::get_meeting_history,
             // Participant Management
             commands::participants::get_all_participants,

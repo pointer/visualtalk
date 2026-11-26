@@ -70,22 +70,60 @@ export function MeetingsPanel(props) {
         ) : (
           <div class="flex flex-col space-y-2">
             <For each={props.meetings}>
-              {(m) => (
-                <div class="flex items-center justify-between p-3 rounded-lg bg-[#242424] hover:bg-[#2a2a2a] transition">
-                  <div class="flex flex-col">
-                    <span class="text-sm font-medium text-white">{m.title}</span>
-                    <span class="text-xs text-gray-400">{formatMeetingWhen(m) ? `${formatMeetingWhen(m)} • ` : ""}Room: #{m.room_id} • {m.duration_minutes} mins</span>
+              {(m, i) => (
+                <div
+                  class="flex items-center justify-between gap-2 p-3 rounded-lg bg-[#242424] hover:bg-[#2a2a2a] transition"
+                  onClick={props.onOpen ? () => props.onOpen(m) : undefined}
+                  onContextMenu={props.onContext ? (e) => props.onContext(e, m) : undefined}
+                >
+                  <div class="flex items-center gap-2 min-w-0">
+                    <Show when={props.onMove && props.reorderEnabled !== false}>
+                      <div class="flex flex-col shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            props.onMove(m.id, "up");
+                          }}
+                          disabled={i() === 0}
+                          class="w-6 h-5 flex items-center justify-center rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+                          title={t("meetings.moveUp")}
+                        >
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            props.onMove(m.id, "down");
+                          }}
+                          disabled={i() === props.meetings.length - 1}
+                          class="w-6 h-5 flex items-center justify-center rounded text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition"
+                          title={t("meetings.moveDown")}
+                        >
+                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                      </div>
+                    </Show>
+                    <div class="flex flex-col min-w-0">
+                      <span class="text-sm font-medium text-white truncate">{m.title}</span>
+                      <span class="text-xs text-gray-400">{formatMeetingWhen(m) ? `${formatMeetingWhen(m)} • ` : ""}Room: #{m.room_id} • {m.duration_minutes} mins</span>
+                    </div>
                   </div>
-                  <div class="flex items-center space-x-2">
+                  <div class="flex items-center space-x-2 shrink-0">
                     <button
-                      onClick={() => props.onCopy(m)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        props.onCopy(m);
+                      }}
                       class="px-3 py-1 bg-[#2a2a2a] hover:bg-[#3a3a3a] border border-gray-700 text-xs font-semibold rounded-md transition text-gray-200"
                       title={t("mainWindow.copyInviteLink")}
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                     </button>
                     <button
-                      onClick={() => props.onStart(m)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        props.onStart(m);
+                      }}
                       class="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-md transition text-white"
                     >
                       {t("common.start")}

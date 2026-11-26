@@ -95,6 +95,7 @@
  * @property {string} start_time
  * @property {number} duration_minutes
  * @property {string} created_at
+ * @property {number} position - Manual list order (0 = first).
  */
 
 /**

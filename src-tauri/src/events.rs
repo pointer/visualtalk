@@ -42,6 +42,9 @@ pub enum VtEvent {
     /// A scheduled meeting was deleted.
     MeetingDeleted { id: String },
 
+    /// The manual order of scheduled meetings was changed.
+    MeetingsReordered { ordered_ids: Vec<String> },
+
     /// A meeting window was opened.
     MeetingStarted { room: String },
 
@@ -92,6 +95,7 @@ fn event_name(event: &VtEvent) -> &'static str {
         VtEvent::NotesUpdated { .. } => "notes-updated",
         VtEvent::MeetingScheduled { .. } => "meeting-scheduled",
         VtEvent::MeetingDeleted { .. } => "meeting-deleted",
+        VtEvent::MeetingsReordered { .. } => "meetings-reordered",
         VtEvent::MeetingStarted { .. } => "meeting-started",
         VtEvent::MeetingEnded { .. } => "meeting-ended",
         VtEvent::ParticipantChanged { .. } => "participant-changed",
@@ -171,6 +175,7 @@ mod tests {
             start_time: "2026-10-04T10:00:00Z".to_string(),
             duration_minutes: 30,
             created_at: "2026-10-04T09:00:00Z".to_string(),
+            position: 0,
         };
 
         let event = VtEvent::MeetingScheduled { meeting };
@@ -192,6 +197,18 @@ mod tests {
 
         assert_eq!(json["type"], "meeting-deleted");
         assert_eq!(json["payload"]["id"], "deleted-123");
+    }
+
+    #[test]
+    fn meetings_reordered_serialization() {
+        let event = VtEvent::MeetingsReordered {
+            ordered_ids: vec!["a".to_string(), "b".to_string()],
+        };
+        let json = serde_json::to_value(&event).unwrap();
+
+        assert_eq!(json["type"], "meetings-reordered");
+        assert_eq!(json["payload"]["ordered_ids"][0], "a");
+        assert_eq!(json["payload"]["ordered_ids"][1], "b");
     }
 
     #[test]
@@ -282,6 +299,7 @@ mod tests {
             start_time: "".to_string(),
             duration_minutes: 0,
             created_at: "".to_string(),
+            position: 0,
         };
 
         let participant = Participant {
@@ -300,6 +318,12 @@ mod tests {
             (VtEvent::NotesUpdated { notes: "".to_string() }, "notes-updated"),
             (VtEvent::MeetingScheduled { meeting: meeting.clone() }, "meeting-scheduled"),
             (VtEvent::MeetingDeleted { id: "".to_string() }, "meeting-deleted"),
+            (
+                VtEvent::MeetingsReordered {
+                    ordered_ids: vec![],
+                },
+                "meetings-reordered",
+            ),
             (VtEvent::MeetingStarted { room: "".to_string() }, "meeting-started"),
             (VtEvent::MeetingEnded { room: "".to_string() }, "meeting-ended"),
             (
