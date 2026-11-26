@@ -173,11 +173,6 @@ function VideoTile(props) {
   // surface is the display this window lives on, so streaming it back into
   // itself produces an infinite mirror (screen-in-screen recursion).
   const isSelfShare = () => props.participant.isLocal && props.participant.isScreen;
-  // A local screen share must not render live (it would mirror the display it
-  // captures). The one safe exception is sharing a single *window*, whose
-  // capture cannot contain this app window — there we show the live preview.
-  const selfShareHidesLive = () =>
-    isSelfShare() && props.participant.surface !== "window";
 
   return (
     <div
@@ -186,7 +181,7 @@ function VideoTile(props) {
         }`}
     >
       <Show
-        when={!selfShareHidesLive()}
+        when={!isSelfShare()}
         fallback={
           <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-300 bg-slate-950">
             <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
