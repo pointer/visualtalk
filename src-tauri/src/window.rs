@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Mutex, OnceLock};
 
 use tauri::{
-    AppHandle, LogicalSize, PhysicalPosition, PhysicalSize, Position, Size, WebviewUrl,
-    WebviewWindow, WebviewWindowBuilder, WindowEvent,
+    AppHandle, LogicalSize, Manager, Monitor, PhysicalPosition, PhysicalSize, Position, Size,
+    WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent,
 };
 
 use crate::events::{emit as emit_event, VtEvent};
@@ -138,6 +138,39 @@ fn presenting_geom() -> &'static Mutex<HashMap<String, SavedGeometry>> {
 
 const BAR_W: f64 = 360.0;
 const BAR_H: f64 = 72.0;
+const FRAME_COLOR: &str = "blue";
+const FRAME_LABEL: &str = "presenting-frame";
+
+/// Spawn (or replace) the transparent, click-through overlay that draws a
+/// colored rectangle around the shared display while presenting. It is itself
+/// captured into the stream, so remote viewers see the frame too.
+fn show_presenting_frame(app: &AppHandle, monitor: &Monitor, color: &str) {
+    if let Some(old) = app.get_webview_window(FRAME_LABEL) {
+        let _ = old.close();
+    }
+    let url = format!("index.html?mode=presenting-frame&color={}", color);
+    let Ok(frame) = WebviewWindowBuilder::new(app, FRAME_LABEL, WebviewUrl::App(url.into()))
+        .transparent(true)
+        .decorations(false)
+        .always_on_top(true)
+        .resizable(false)
+        .focusable(false)
+        .skip_taskbar(true)
+        .title("VisualTalk presenting frame")
+        .build()
+    else {
+        return;
+    };
+    let _ = frame.set_size(Size::Physical(*monitor.size()));
+    let _ = frame.set_position(Position::Physical(*monitor.position()));
+    let _ = frame.set_ignore_cursor_events(true);
+}
+
+fn hide_presenting_frame(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window(FRAME_LABEL) {
+        let _ = w.close();
+    }
+}
 
 /// Collapse the meeting window into a small, always-on-top presenting bar so
 /// the display being captured shows the user's real desktop — the only way to
@@ -172,8 +205,9 @@ pub fn enter_presenting(window: &WebviewWindow) -> Result<(), String> {
         .set_size(Size::Logical(LogicalSize::new(BAR_W, BAR_H)))
         .map_err(|e| e.to_string())?;
 
-    if let Ok(Some(monitor)) = window.current_monitor() {
-        let wa = monitor.work_area();
+    let monitor = window.current_monitor().ok().flatten();
+    if let Some(m) = &monitor {
+        let wa = m.work_area();
         let scale = window.scale_factor().unwrap_or(1.0);
         let bar_w = (BAR_W * scale) as i32;
         let bar_h = (BAR_H * scale) as i32;
@@ -182,6 +216,9 @@ pub fn enter_presenting(window: &WebviewWindow) -> Result<(), String> {
         let _ = window.set_position(Position::Physical(PhysicalPosition::new(x, y)));
     }
     window.set_always_on_top(true).map_err(|e| e.to_string())?;
+    if let Some(m) = &monitor {
+        show_presenting_frame(window.app_handle(), m, FRAME_COLOR);
+    }
     Ok(())
 }
 
@@ -193,6 +230,7 @@ pub fn exit_presenting(window: &WebviewWindow) -> Result<(), String> {
         .ok()
         .and_then(|mut map| map.remove(&label));
 
+    hide_presenting_frame(window.app_handle());
     window.set_always_on_top(false).map_err(|e| e.to_string())?;
     window.set_decorations(true).map_err(|e| e.to_string())?;
     if let Some(g) = saved {

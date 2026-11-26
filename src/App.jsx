@@ -9,8 +9,28 @@ import "./App.css";
 
 const MeetingView = lazy(() => import("./MeetingView"));
 
+const FRAME_COLORS = { blue: "#3b82f6", red: "#ef4444", yellow: "#eab308" };
+
+/** Transparent, click-through overlay that frames the shared display. */
+function PresentingFrame(props) {
+  const color = FRAME_COLORS[props.color] || FRAME_COLORS.blue;
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: "0",
+        "pointer-events": "none",
+        background: "transparent",
+        border: `6px solid ${color}`,
+        "box-sizing": "border-box",
+      }}
+    />
+  );
+}
+
 function App() {
   const [showMeeting, setShowMeeting] = createSignal(false);
+  const [frameColor, setFrameColor] = createSignal("");
   // Set once the deep-link subscription is up; unsubscribes on teardown.
   let stopDeepLinks = () => {};
 
@@ -25,6 +45,17 @@ function App() {
 
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "presenting-frame") {
+      setFrameColor(params.get("color") || "blue");
+      for (const el of [
+        document.documentElement,
+        document.body,
+        document.getElementById("root"),
+      ]) {
+        if (el) el.style.background = "transparent";
+      }
+      return;
+    }
     if (params.get("mode") === "meeting") {
       setShowMeeting(true);
 
@@ -72,6 +103,10 @@ function App() {
       console.error("Failed to open meeting window via Rust:", err);
     }
   };
+
+  if (frameColor()) {
+    return <PresentingFrame color={frameColor()} />;
+  }
 
   return (
     <>
