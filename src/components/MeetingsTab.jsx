@@ -7,6 +7,7 @@ import { MeetingHistoryPanel } from "./MeetingHistoryPanel";
 import SchedulePanel from "./SchedulePanel";
 import { MeetingDetailModal } from "./MeetingDetailModal";
 import { MeetingContextMenu } from "./MeetingContextMenu";
+import { EditMeetingModal } from "./EditMeetingModal";
 import { IS_PRO_EDITION } from "../lib/edition";
 import { IS_MOBILE } from "../lib/platform";
 import { invoke } from "@tauri-apps/api/core";
@@ -21,13 +22,21 @@ import { invoke } from "@tauri-apps/api/core";
  */
 export function MeetingsTab(props) {
   const { t } = useI18n();
-  const { meetings, profile, startMeeting, deleteMeeting, copyInvite, moveMeeting } =
-    useScheduledMeetings({ onJoinMeeting: props.onJoinMeeting });
+  const {
+    meetings,
+    profile,
+    startMeeting,
+    deleteMeeting,
+    copyInvite,
+    moveMeeting,
+    editMeeting,
+  } = useScheduledMeetings({ onJoinMeeting: props.onJoinMeeting });
   const { history } = useMeetingHistory();
   const [showScheduleModal, setShowScheduleModal] = createSignal(false);
   const [query, setQuery] = createSignal("");
   const [selectedMeeting, setSelectedMeeting] = createSignal(null);
   const [contextMenu, setContextMenu] = createSignal(null);
+  const [editingMeeting, setEditingMeeting] = createSignal(null);
 
   // Drill-down, right-click menu and calendar export are a Pro *desktop* surface.
   // Mobile and Community stay on sort/search/reorder.
@@ -105,6 +114,27 @@ export function MeetingsTab(props) {
     }
   };
 
+  const exportCsv = async () => {
+    try {
+      const path = await invoke("export_meetings_csv");
+      alert(`${t("meetings.csvSaved")} ${path}`);
+    } catch (err) {
+      console.error("Failed to export meetings:", err);
+      alert(t("meetings.actionFailed"));
+    }
+  };
+
+  const handleEdit = (m) => {
+    setSelectedMeeting(null);
+    setContextMenu(null);
+    setEditingMeeting(m);
+  };
+
+  const saveEdit = async (id, patch) => {
+    setEditingMeeting(null);
+    await editMeeting(id, patch);
+  };
+
   // Client-side search: case-insensitive match on title or room code. The list
   // is small (a handful scheduled), so no backend round-trip is worth it.
   const filtered = () => {
@@ -127,6 +157,14 @@ export function MeetingsTab(props) {
           placeholder={t("meetings.searchPlaceholder")}
           class="flex-1 max-w-xs px-3 py-2 rounded-lg bg-[#242424] border border-gray-700 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
         />
+        <Show when={PRO_DESKTOP}>
+          <button
+            onClick={exportCsv}
+            class="px-4 py-2 rounded-lg border border-gray-700 text-gray-200 hover:bg-[#242424] text-sm font-semibold transition-colors shrink-0"
+          >
+            {t("meetings.exportCsv")}
+          </button>
+        </Show>
         <button
           onClick={() => setShowScheduleModal(true)}
           class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shrink-0"
@@ -166,6 +204,7 @@ export function MeetingsTab(props) {
           onCopyInvite={copyInvite}
           onCopyRoom={copyRoomCode}
           onAddToCalendar={addToCalendar}
+          onEdit={handleEdit}
         />
       </Show>
 
@@ -181,7 +220,16 @@ export function MeetingsTab(props) {
           onCopyRoom={copyRoomCode}
           onCopySummary={copySummary}
           onCalendar={addToCalendar}
+          onEdit={handleEdit}
           onDelete={handleDelete}
+        />
+      </Show>
+
+      <Show when={PRO_DESKTOP && editingMeeting()}>
+        <EditMeetingModal
+          meeting={editingMeeting()}
+          onSave={saveEdit}
+          onClose={() => setEditingMeeting(null)}
         />
       </Show>
     </>

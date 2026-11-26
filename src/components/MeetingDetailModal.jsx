@@ -12,6 +12,7 @@ import { useI18n } from "../i18n/I18nProvider";
  *   onCopyInvite     — (meeting) => void
  *   onCopyRoom       — (meeting) => void
  *   onAddToCalendar  — (meeting) => void
+ *   onEdit           — (meeting) => void
  *   onClose          — () => void
  */
 export function MeetingDetailModal(props) {
@@ -99,6 +100,7 @@ export function MeetingDetailModal(props) {
         </div>
 
         <div class="px-6 py-4 bg-[#181818] border-t border-gray-800 flex flex-wrap justify-end gap-2">
+          <button onClick={() => props.onEdit(m())} class={action}>{t("meetings.edit")}</button>
           <button onClick={() => props.onAddToCalendar(m())} class={action}>{t("meetings.addToCalendar")}</button>
           <button onClick={() => props.onCopyRoom(m())} class={action}>{t("meetings.copyRoomCode")}</button>
           <button onClick={() => props.onCopyInvite(m())} class={action}>{t("meetings.copyInvite")}</button>

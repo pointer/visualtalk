@@ -45,6 +45,9 @@ pub enum VtEvent {
     /// The manual order of scheduled meetings was changed.
     MeetingsReordered { ordered_ids: Vec<String> },
 
+    /// A scheduled meeting's title/time/duration was edited.
+    MeetingEdited { meeting: ScheduledMeeting },
+
     /// A meeting window was opened.
     MeetingStarted { room: String },
 
@@ -96,6 +99,7 @@ fn event_name(event: &VtEvent) -> &'static str {
         VtEvent::MeetingScheduled { .. } => "meeting-scheduled",
         VtEvent::MeetingDeleted { .. } => "meeting-deleted",
         VtEvent::MeetingsReordered { .. } => "meetings-reordered",
+        VtEvent::MeetingEdited { .. } => "meeting-edited",
         VtEvent::MeetingStarted { .. } => "meeting-started",
         VtEvent::MeetingEnded { .. } => "meeting-ended",
         VtEvent::ParticipantChanged { .. } => "participant-changed",
@@ -324,6 +328,7 @@ mod tests {
                 },
                 "meetings-reordered",
             ),
+            (VtEvent::MeetingEdited { meeting: meeting.clone() }, "meeting-edited"),
             (VtEvent::MeetingStarted { room: "".to_string() }, "meeting-started"),
             (VtEvent::MeetingEnded { room: "".to_string() }, "meeting-ended"),
             (

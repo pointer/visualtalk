@@ -158,6 +158,35 @@ impl MeetingStore {
         self.save(config_dir)
     }
 
+    /// Update a meeting's title/time/duration in place, re-apply the canonical
+    /// order (a changed `start_time` can move its slot), and persist.
+    pub fn edit_scheduled(
+        &mut self,
+        id: &str,
+        title: String,
+        start_time: String,
+        duration_minutes: u32,
+        config_dir: &PathBuf,
+    ) -> Result<ScheduledMeeting, String> {
+        {
+            let meeting = self
+                .scheduled
+                .iter_mut()
+                .find(|m| m.id == id)
+                .ok_or_else(|| "Meeting not found.".to_string())?;
+            meeting.title = title;
+            meeting.start_time = start_time;
+            meeting.duration_minutes = duration_minutes;
+        }
+        self.apply_chronological_order();
+        self.save(config_dir)?;
+        self.scheduled
+            .iter()
+            .find(|m| m.id == id)
+            .cloned()
+            .ok_or_else(|| "Meeting disappeared after edit.".to_string())
+    }
+
     /// One-time upgrade for stores written before `position` existed: give the
     /// list a real chronological order so read-time sorting is meaningful.
     fn migrate(&mut self, config_dir: &PathBuf) {
@@ -237,6 +266,46 @@ mod tests {
         let reloaded = MeetingStore::load_or_default(&path);
         let order2: Vec<&str> = reloaded.scheduled.iter().map(|m| m.id.as_str()).collect();
         assert_eq!(order2, vec!["c", "a", "b"]);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn edit_updates_fields_and_reorders_on_time_change() {
+        let dir = std::env::temp_dir().join(format!("vt-meetings-edit-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::create_dir_all(&dir);
+        let path = std::path::PathBuf::from(&dir);
+
+        let mut store = MeetingStore {
+            scheduled: vec![
+                meeting("a", "A", "2999-01-02T10:00:00Z", 0),
+                meeting("b", "B", "2999-01-01T10:00:00Z", 1),
+            ],
+            history: vec![],
+        };
+        store.save(&path).unwrap();
+
+        let edited = store
+            .edit_scheduled(
+                "a",
+                "A renamed".to_string(),
+                "2999-01-01T09:00:00Z".to_string(),
+                45,
+                &path,
+            )
+            .unwrap();
+        assert_eq!(edited.title, "A renamed");
+        assert_eq!(edited.duration_minutes, 45);
+
+        // "a" now starts before "b", so the upcoming-first order swaps them.
+        let order: Vec<&str> = store.scheduled.iter().map(|m| m.id.as_str()).collect();
+        assert_eq!(order, vec!["a", "b"]);
+
+        // Unknown id is an error, not a panic.
+        assert!(store
+            .edit_scheduled("nope", "X".into(), "2999-01-01T00:00:00Z".into(), 1, &path)
+            .is_err());
 
         let _ = std::fs::remove_dir_all(&dir);
     }

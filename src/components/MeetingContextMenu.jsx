@@ -10,7 +10,7 @@ import { useI18n } from "../i18n/I18nProvider";
  *   x, y          — viewport coords for the menu's top-left corner
  *   meeting       — ScheduledMeeting
  *   onOpen        — (meeting) => void  (View details)
- *   onStart, onCopyInvite, onCopyRoom, onCopySummary, onCalendar, onDelete
+ *   onStart, onCopyInvite, onCopyRoom, onCopySummary, onCalendar, onEdit, onDelete
  *   onClose       — () => void
  */
 export function MeetingContextMenu(props) {
@@ -50,6 +50,9 @@ export function MeetingContextMenu(props) {
         </button>
         <button class={item} onClick={() => run(props.onOpen, props.meeting)}>
           {t("meetings.viewDetails")}
+        </button>
+        <button class={item} onClick={() => run(props.onEdit, props.meeting)}>
+          {t("meetings.edit")}
         </button>
         <div class="h-[1px] bg-gray-700/60 my-1"></div>
         <button class={item} onClick={() => run(props.onCopyInvite, props.meeting)}>

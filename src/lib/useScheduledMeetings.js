@@ -58,6 +58,9 @@ export function useScheduledMeetings(options = {}) {
   // Another window reordered the list; reload the authoritative order.
   subscribe("meetings-reordered", () => reloadMeetings());
 
+  // Another window edited a meeting; reload the authoritative list.
+  subscribe("meeting-edited", () => reloadMeetings());
+
   subscribe("profile-updated", (payload) => {
     setProfile(payload.profile);
   });
@@ -122,6 +125,23 @@ export function useScheduledMeetings(options = {}) {
     }
   };
 
+  // Edit a meeting's title/date/time/duration; the backend re-applies the
+  // canonical order and returns the full sorted list.
+  const editMeeting = async (id, patch) => {
+    try {
+      const updated = await invoke("edit_scheduled_meeting", {
+        id,
+        title: patch.title,
+        startTime: patch.start_time,
+        durationMinutes: patch.duration_minutes,
+      });
+      setMeetings(updated);
+    } catch (err) {
+      console.error("Failed to edit meeting:", err);
+      alert(t("meetings.actionFailed"));
+    }
+  };
+
   return {
     meetings,
     profile,
@@ -130,5 +150,6 @@ export function useScheduledMeetings(options = {}) {
     deleteMeeting,
     copyInvite,
     moveMeeting,
+    editMeeting,
   };
 }

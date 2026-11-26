@@ -107,6 +107,64 @@ pub fn reorder_scheduled_meetings(
 }
 
 #[tauri::command]
+pub fn edit_scheduled_meeting(
+    app: AppHandle,
+    id: String,
+    title: String,
+    start_time: String,
+    duration_minutes: u32,
+    state: State<'_, AppState>,
+) -> Result<Vec<ScheduledMeeting>, String> {
+    let edited = state.with_meetings(|meetings| {
+        meetings.edit_scheduled(&id, title, start_time, duration_minutes, &state.config_dir)
+    })??;
+    emit_event(&app, VtEvent::MeetingEdited { meeting: edited });
+    state.read_meetings(|meetings| meetings.scheduled.clone())
+}
+
+/// Export the scheduled-meeting list to a CSV file in the app config directory.
+/// Pro-gated: it is the compliance/audit artifact, not a Community feature.
+#[cfg(feature = "pro")]
+#[tauri::command]
+pub fn export_meetings_csv(state: State<'_, AppState>) -> Result<String, String> {
+    let meetings = state.read_meetings(|m| m.scheduled.clone())?;
+    std::fs::create_dir_all(&state.config_dir)
+        .map_err(|e| format!("Cannot create config dir: {e}"))?;
+
+    let mut csv = String::from(
+        "id,title,room_id,start_time,duration_minutes,created_at,invite_link,position\n",
+    );
+    for m in &meetings {
+        csv.push_str(&format!(
+            "{},{},{},{},{},{},{},{}\n",
+            escape_csv(&m.id),
+            escape_csv(&m.title),
+            escape_csv(&m.room_id),
+            escape_csv(&m.start_time),
+            m.duration_minutes,
+            escape_csv(&m.created_at),
+            escape_csv(&m.invite_link),
+            m.position,
+        ));
+    }
+
+    let file_name = format!("meetings-export-{}.csv", chrono::Utc::now().timestamp_millis());
+    let path = state.config_dir.join(file_name);
+    std::fs::write(&path, csv).map_err(|e| format!("Failed to write CSV: {e}"))?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+/// Quote a CSV field only when it contains a comma, quote, or newline.
+#[cfg(feature = "pro")]
+fn escape_csv(field: &str) -> String {
+    if field.contains(',') || field.contains('"') || field.contains('\n') || field.contains('\r') {
+        format!("\"{}\"", field.replace('"', "\"\""))
+    } else {
+        field.to_string()
+    }
+}
+
+#[tauri::command]
 pub fn get_meeting_history(state: State<'_, AppState>) -> Result<Vec<MeetingRecord>, String> {
     state.read_meetings(|meetings| meetings.history.clone())
 }

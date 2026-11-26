@@ -194,6 +194,9 @@ pub fn run() {
             commands::schedule::schedule_meeting,
             commands::schedule::delete_scheduled_meeting,
             commands::schedule::reorder_scheduled_meetings,
+            commands::schedule::edit_scheduled_meeting,
+            #[cfg(feature = "pro")]
+            commands::schedule::export_meetings_csv,
             commands::schedule::get_meeting_history,
             // Participant Management
             commands::participants::get_all_participants,
