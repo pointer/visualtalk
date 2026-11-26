@@ -563,6 +563,11 @@ export function useLiveKitRoom() {
       if (publication.kind !== Track.Kind.Video) return;
       if (publication.source === Track.Source.ScreenShare) {
         setIsSharingScreen(true);
+        // A "window" share cannot contain this app window, so a live local
+        // preview is safe there; a "monitor" share would recurse (mirror), so
+        // the tile falls back to a static presenting card.
+        const surface =
+          publication.track?.mediaStreamTrack?.getSettings?.()?.displaySurface || "";
         updateParticipants((prev) => [
           ...prev.filter((p) => p.id !== "local-screen"),
           {
@@ -570,6 +575,7 @@ export function useLiveKitRoom() {
             name: "Your Screen",
             isLocal: true,
             isScreen: true,
+            surface,
             videoTrack: publication.track,
           },
         ]);

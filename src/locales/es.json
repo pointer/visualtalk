@@ -50,6 +50,7 @@
   "meeting.audioBlocked": "El navegador bloquea el sonido.",
   "meeting.enableAudio": "Haz clic para activar el audio",
   "meeting.sharingScreen": "Estás compartiendo tu pantalla",
+  "meeting.presentingHint": "Los participantes pueden ver tu pantalla.",
   "meetings.searchPlaceholder": "Buscar reuniones…",
   "meetings.moveUp": "Subir",
   "meetings.moveDown": "Bajar",
