@@ -77,36 +77,6 @@ export function MainWindow(props) {
             </div>
             <span class="text-[9px] font-medium">{t("sidebar.meetings")}</span>
           </button>
-
-          <button
-            onClick={() => setActiveTab("hub")}
-            class={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition group focus:outline-none border ${activeTab() === "hub"
-              ? "text-blue-400"
-              : "text-gray-400 hover:text-white"
-              }`}
-          >
-            <div
-              class={`p-1.5 rounded-xl mb-0.5 transition ${activeTab() === "hub"
-                ? "bg-blue-600/20 text-blue-400"
-                : "text-gray-400 group-hover:bg-gray-800"
-                }`}
-            >
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-            </div>
-            <span class="text-[9px] font-medium">Hub</span>
-          </button>
         </div>
 
         <div class="flex flex-col items-center">

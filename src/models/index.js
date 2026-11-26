@@ -99,13 +99,6 @@
  */
 
 /**
- * @typedef {Object} MeetingRecord
- * @property {string} id
- * @property {string} room_id
- * @property {string} timestamp
- */
-
-/**
  * Input payload for `create_meeting_invite`.
  * @typedef {Object} CreateMeetingInviteRequest
  * @property {string} room - Empty means "generate a room code".

@@ -18,10 +18,6 @@ pub fn get_meeting_session(
 ) -> Result<MeetingSession, String> {
     let data = state.read_data(|data| data.clone())?;
 
-    // Record in history. A failure here (an unwritable meetings.json) must not
-    // stop the user joining, so — as before — it is deliberately ignored.
-    let _ = state.with_meetings(|meetings| meetings.add_history(room.clone(), &state.config_dir));
-
     create_session(room, &data, &app)
 }
 

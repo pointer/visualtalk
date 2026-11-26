@@ -17,7 +17,7 @@ use super::invites::AttendeeInvite;
 // Twilio) and its validation, so the two paths cannot drift.
 use super::messaging::{deliver_invite, validate_messaging_config, InviteContext};
 use crate::events::{emit as emit_event, VtEvent};
-use crate::meeting::{MeetingRecord, ScheduledMeeting};
+use crate::meeting::ScheduledMeeting;
 use crate::settings::MessagingConfig;
 use crate::state::AppState;
 
@@ -162,11 +162,6 @@ fn escape_csv(field: &str) -> String {
     } else {
         field.to_string()
     }
-}
-
-#[tauri::command]
-pub fn get_meeting_history(state: State<'_, AppState>) -> Result<Vec<MeetingRecord>, String> {
-    state.read_meetings(|meetings| meetings.history.clone())
 }
 
 #[tauri::command]

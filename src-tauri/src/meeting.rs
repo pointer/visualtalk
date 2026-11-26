@@ -19,17 +19,9 @@ pub struct ScheduledMeeting {
     pub position: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MeetingRecord {
-    pub id: String,
-    pub room_id: String,
-    pub timestamp: String,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MeetingStore {
     pub scheduled: Vec<ScheduledMeeting>,
-    pub history: Vec<MeetingRecord>,
 }
 
 /// Parse an RFC-3339 timestamp to unix seconds, `i64::MAX` on failure so a
@@ -104,20 +96,6 @@ impl MeetingStore {
             self.save(config_dir)?;
         }
         Ok(removed)
-    }
-
-    pub fn add_history(&mut self, room_id: String, config_dir: &PathBuf) -> Result<(), String> {
-        let record = MeetingRecord {
-            id: format!("rec-{}", Utc::now().timestamp_millis()),
-            room_id,
-            timestamp: Utc::now().to_rfc3339(),
-        };
-        self.history.push(record);
-        if self.history.len() > 50 {
-            self.history.remove(0);
-        }
-        self.save(config_dir)?;
-        Ok(())
     }
 
     /// Reorder `scheduled` into the canonical upcoming-first order and renumber
@@ -224,7 +202,6 @@ mod tests {
                 meeting("c", "new-past", "2000-01-03T10:00:00Z", 0),
                 meeting("d", "sooner-upcoming", "2999-01-01T10:00:00Z", 0),
             ],
-            history: vec![],
         };
 
         store.apply_chronological_order();
@@ -249,7 +226,6 @@ mod tests {
                 meeting("b", "B", "2999-01-02T10:00:00Z", 1),
                 meeting("c", "C", "2999-01-03T10:00:00Z", 2),
             ],
-            history: vec![],
         };
 
         store
@@ -282,7 +258,6 @@ mod tests {
                 meeting("a", "A", "2999-01-02T10:00:00Z", 0),
                 meeting("b", "B", "2999-01-01T10:00:00Z", 1),
             ],
-            history: vec![],
         };
         store.save(&path).unwrap();
 

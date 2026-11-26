@@ -1,9 +1,7 @@
 import { createSignal, Show } from "solid-js";
 import { useI18n } from "../i18n/I18nProvider";
 import { useScheduledMeetings } from "../lib/useScheduledMeetings";
-import { useMeetingHistory } from "../lib/useMeetingHistory";
 import { MeetingsPanel } from "./MeetingsPanel";
-import { MeetingHistoryPanel } from "./MeetingHistoryPanel";
 import SchedulePanel from "./SchedulePanel";
 import { MeetingDetailModal } from "./MeetingDetailModal";
 import { MeetingContextMenu } from "./MeetingContextMenu";
@@ -31,7 +29,6 @@ export function MeetingsTab(props) {
     moveMeeting,
     editMeeting,
   } = useScheduledMeetings({ onJoinMeeting: props.onJoinMeeting });
-  const { history } = useMeetingHistory();
   const [showScheduleModal, setShowScheduleModal] = createSignal(false);
   const [query, setQuery] = createSignal("");
   const [selectedMeeting, setSelectedMeeting] = createSignal(null);
@@ -185,10 +182,6 @@ export function MeetingsTab(props) {
           onOpen={PRO_DESKTOP ? openDetail : undefined}
           onContext={PRO_DESKTOP ? openContext : undefined}
         />
-
-        {/* Rooms this device has opened, newest first. Local-only, like the
-            scheduled list above: nothing here is synced from an organizer. */}
-        <MeetingHistoryPanel history={history()} />
       </div>
 
       <Show when={showScheduleModal()}>

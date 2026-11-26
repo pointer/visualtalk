@@ -197,7 +197,6 @@ pub fn run() {
             commands::schedule::edit_scheduled_meeting,
             #[cfg(feature = "pro")]
             commands::schedule::export_meetings_csv,
-            commands::schedule::get_meeting_history,
             // Participant Management
             commands::participants::get_all_participants,
             commands::participants::add_participant,
