@@ -130,6 +130,30 @@ Residual risk: <short list>
 
 Never claim a check passed if it was skipped or failed.
 
+## Helper scripts
+
+Two optional guards ship in `scripts/`. They resolve paths relative to their own
+location, so copy them into the target project's `scripts/` directory (a sibling
+of `src/`) before running:
+
+```bash
+cp scripts/check_jsx_refs.py scripts/check_i18n_parity.py <project>/scripts/
+python3 <project>/scripts/check_jsx_refs.py
+python3 <project>/scripts/check_i18n_parity.py
+```
+
+- `check_jsx_refs.py` — flags capitalised JSX tags that are neither imported nor
+  declared. Vite/rolldown builds stay green for these; the crash happens at
+  render time. Accepts explicit file paths as arguments, otherwise scans
+  `../src/**/*.jsx` relative to the script.
+- `check_i18n_parity.py` — fails on locale keys missing from or extra to the
+  source locale; warns on empty or still-untranslated values. Edit `SOURCE`,
+  `TARGETS`, and `IDENTICAL_OK` at the top of the file to match the project's
+  locales and legitimate loanwords.
+
+Both exit non-zero on findings. Skip them for projects without JSX or locale
+files.
+
 ## Adapting to a project
 
 This skill is deliberately generic. To fit a specific repository, replace every
