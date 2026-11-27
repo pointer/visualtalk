@@ -7402,7 +7402,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "visualtalk"
-version = "3.3.43"
+version = "3.3.44"
 dependencies = [
  "aes-gcm 0.11.1",
  "base64 0.23.1",

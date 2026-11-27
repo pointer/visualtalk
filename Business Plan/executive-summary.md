@@ -17,40 +17,32 @@ Concretely, VisualTalk is a lightweight desktop video-conferencing client: a Sol
 
 ## The problem
 
-The video-call market is dominated by US-cloud SaaS (Microsoft Teams, Google
-Meet, Zoom) and consumer-messaging E2EE titans (WhatsApp, Signal, FaceTime).
-For **French Sovereign entities (OIVs, Defense, SecNumCloud)**, these tools are
-structurally disqualified:
-- **Infrastructure:** US-cloud control violates SecNumCloud and the Cloud Act.
-- **Keys:** Lack of true BYOK/HYOK breaks sovereignty requirements.
-- **Operations:** Foreign operational control is a legal risk.
-- **Data Flows:** Data transiting foreign jurisdictions violates GDPR and national security rules.
+The video-call market is dominated by US-cloud SaaS (Microsoft Teams, Google Meet, Zoom) and consumer-messaging E2EE titans (WhatsApp, Signal, FaceTime). These are free-to-use, frictionless, and widely adopted, but they are **US-cloud SaaS** and cannot be self-hosted, creating a structural dependency on foreign tech giants. Regulated organizations and SMBs seeking privacy and sovereignty are structurally unserved by these titans, either because they are forced into non-compliant US-cloud ecosystems or left with no viable enterprise-ready alternative.
 
 ## The wedge
 
-VisualTalk competes on the axes consumer and bundled tools are **structurally disqualified** from:
+VisualTalk competes on the axes these titans are **structurally disqualified** from:
 
-- **Self-hostable (Infrastructure & Operations)** — the mediacore Rust SFU lets an
-  organization run its own media server: "your meetings, your servers, your operations."
+- **Self-hostable (Infrastructure & Operations)** — the LiveKit Rust SFU lets organizations run their own media server: "your meetings, your servers, your operations."
 - **True E2EE & Key Control (Keys)** — Pro edition E2EE ensures keys never leave the organization.
 - **Data Sovereignty (Data Flows)** — On-prem architecture ensures data never leaves national/EU borders.
 - **Admin / enterprise control** — organizations manage participants, retention, and data residency.
 
 See [Product → What you own](product.md) for the plain, honest list of what a customer actually gets (and does not).
 
-## Beachhead
+## Beachhead: Bottom-Up Adoption
 
-**French Sovereign Cloud & Defense (SecNumCloud / OIV - Operators of Vital Importance).**
+We do not target Government/Defense directly (as they are reserved for established players). Instead, we drive **Bottom-Up adoption**:
 
-A deploy-anywhere, LiveKit-compatible conferencing layer for organizations that need control over where their real-time communications run. True sovereignty depends on who controls the infrastructure, keys, operations, and data flows.
-
-We target entities legally bound by **SecNumCloud** and **GDPR** to control their infrastructure, keys, operations, and data flows. This is a legally mandated market, not a discretionary one.
+1.  **Mass Distribution:** Distribute the Community Edition for free and Pro Edition for fee via App Stores (Microsoft Store, Apple App Store) for high-frictionless adoption.
+2.  **SMB Outreach:** Targeted email and direct outreach to privacy-conscious SMBs.
+3.  **The "Sovereign Pull":** Establish a brand for VisualTalk as the sovereign, self-hostable alternative. As VisualTalk becomes synonymous with private/sovereign communication, Defense/Gov agencies will naturally be drawn to us because we are the only credible option that fits their SecNumCloud mandate.
 
 ## Business model
 
-- **Community Edition** — free, noncommercial, bottom-of-funnel adoption.
-- **Pro Edition** — paid per-organization license, monetizing E2EE, recording, backgrounds, AI.
-- **Self-hosted enterprise** — license for on-prem mediacore deployments (SecNumCloud compliant). Support/SLA, managed hosting, compliance packaging, and integrations are roadmap — not offered today.
+- **Community Edition** — free, noncommercial, bottom-of-funnel adoption (App Stores).
+- **Pro Edition** — paid per-organization license, monetizing E2EE, recording, backgrounds, AI (SMB-focused).
+- **Self-hosted enterprise** — license for on-prem Livekit deployments. Compliance/managed-ops/integrations are roadmap — not offered today.
 
 ## Open-core model
 
@@ -64,6 +56,6 @@ Our starting defensibility is narrower — a **regulatory beachhead** (SecNumClo
 
 ## Why now
 
-- Open-source SFUs (LiveKit, mediacore) make self-hosted real-time video viable.
+- Open-source SFUs (LiveKit) make self-hosted real-time video viable.
 - Regulatory pressure (GDPR, SecNumCloud, Gaia-X) pushes French entities away from US-cloud SaaS.
 - The CPaaS/embedded layer is fragmenting — a window for a sovereign entrant.

@@ -6,13 +6,18 @@
 
 ## What VisualTalk is
 
-A lightweight desktop video-conferencing client built on a Rust/Tauri v2 core and a self-hostable Rust SFU (mediacore).
+A lightweight desktop video-conferencing client built on a Rust/Tauri v2 core and a self-hostable Rust SFU (LiveKit).
+
+## Distribution Strategy
+
+- **App Stores First:** VisualTalk Community Edition is distributed via the Microsoft Store and Apple App Store for maximum reach and frictionless updates.
+- **Self-Hostable:** For privacy-conscious SMBs and future Gov clients, the platform can be deployed on-premise using LiveKit.
 
 ## The Sovereign Architecture
 
 VisualTalk is designed around the four pillars of sovereignty that matter to French public-sector and critical-infrastructure buyers:
 
-1.  **Infrastructure Control:** Self-hostable via mediacore. Runs on French sovereign clouds (OVHcloud, Scaleway, Outscale) or on-premise.
+1.  **Infrastructure Control:** Self-hostable via LiveKit. Runs on French sovereign clouds (OVHcloud, Scaleway, Outscale) or on-premise.
 2.  **Key Control:** Pro Edition E2EE keeps encryption keys with the organization.
 3.  **Operations Control:** On-premise deployment means the organization runs and operates it.
 4.  **Data Flow Control:** Self-hosted, so traffic stays inside the organization's own perimeter.
@@ -21,9 +26,9 @@ VisualTalk is designed around the four pillars of sovereignty that matter to Fre
 
 A short, honest statement of what VisualTalk actually gives a customer — no more.
 
-- **A documented self-host path.** The repo ships a Docker Compose stack and scripts (`docker/`, `scripts/livekit-local.py`) to run the media server yourself — LiveKit or mediacore — on your own infrastructure. This is real and documented today.
+- **A documented self-host path.** The repo ships a Docker Compose stack and scripts (`docker/`, `scripts/livekit-local.py`) to run the media server yourself — LiveKit — on your own infrastructure. This is real and documented today.
 - **Proof of ownership, by construction.** Because you host it, you can inspect every component: what runs where, who holds the keys, and what leaves the environment (nothing does, unless you send it). There is no vendor-cloud in the path to audit.
-- **Bring your own cloud or metal.** LiveKit Cloud if you want managed, or your own LiveKit/mediacore node if you want control. The client does not care which.
+- **Bring your own cloud or metal.** LiveKit Cloud if you want managed, or your own LiveKit node if you want control. The client does not care which.
 
 What VisualTalk deliberately does **not** ship today (stated plainly, so no one expects it):
 
@@ -34,13 +39,13 @@ What VisualTalk deliberately does **not** ship today (stated plainly, so no one 
 
 ## Editions
 
-- **Community Edition:** Free, noncommercial.
+- **Community Edition:** Free, noncommercial (App Stores).
 - **Pro Edition:** Adds E2EE, recording, backgrounds, AI. Licensed per organization.
 
 ## Roadmap
 
-- mediacore video recording (Egress).
-- mediacore TURN / resume for mobile parity.
+- LiveKit video recording (Egress).
+- LiveKit TURN / resume for mobile parity.
 - SecNumCloud compliance hardening.
 - Enterprise support / SLA (not offered today).
 - Compliance packaging — audit logs, retention controls, certification dossier (not offered today).

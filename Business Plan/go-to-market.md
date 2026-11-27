@@ -5,57 +5,45 @@
 
 ## Strategy in one line
 
-**Own the French Sovereign / SecNumCloud beachhead where US-cloud tools are legally disqualified — then expand to the EU.**
+**Drive mass adoption via App Stores (CE) and target SMBs with email outreach; let Defense/Gov be pulled in by our sovereign reputation.**
 
-**We will not compete head-on with AWS, Microsoft, and Google across all customers. We will become indispensable in one tightly regulated industry where their standard U.S.-cloud bundles cannot meet the rules. Once we dominate that niche, we will grow from there.**
+## Beachhead: Bottom-Up Adoption
 
-## Beachhead
+We do not have the resources to knock on the doors of the Ministry of Defense. Instead, we build a brand and a user base from the ground up:
 
-**French Sovereign Cloud (SecNumCloud / OIV - Operators of Vital Importance).**
-
-We target entities legally bound by **SecNumCloud** and **GDPR** to control their infrastructure, keys, operations, and data flows. This is a legally mandated market, not a discretionary one.
-
-*Design Partners:* `TODO: name 3-5 French OIVs or Defense agencies.`
+1.  **Community Edition (CE) on Stores:** List VisualTalk CE on the Microsoft Store and Apple App Store. This is our primary top-of-funnel.
+2.  **SMB Direct Outreach:** Email campaigns and direct sales to SMBs who care about GDPR/privacy but find US-cloud tools risky.
+3.  **The "Sovereign Pull":** We don't chase Gov/Defense; we build such a strong reputation for sovereignty that they come to us.
 
 ## Positioning
 
-- **Headline:** True sovereignty — control your infrastructure, keys, operations, and data flows.
+- **Headline:** The sovereign, self-hostable alternative to Zoom/Teams.
 - **Proof:** "Your meetings, your servers, your keys."
-- **Anti-position:** Not a cheaper Zoom; not a US-cloud tool. We are the sovereign alternative for French critical infrastructure.
-
-See [Product → What you own](product.md) for the honest scope: a documented self-host path and proof of ownership — no integrations, no SLA, no migration tooling, no compliance artefacts today.
+- **Anti-position:** Not a US-cloud tool. Not a toy. A serious privacy tool for SMBs that can scale to Gov.
 
 ## Channels
 
 | Channel | Fit | Notes |
 |---|---|---|
-| Direct enterprise sales | High (ACV) | For OIVs and Defense; longer cycle |
-| Sovereign Cloud marketplaces | High | Partner with OVHcloud, Scaleway, Outscale |
-| Channel / resellers | Medium | French defense SIs, MSPs |
-| Open-source community | Low/Medium | Community Edition credibility |
+| **App Stores (MS/Apple)** | **Primary** | High-volume, low-friction CE distribution. |
+| **SMB Email/Direct** | **Primary** | Targeted outreach to privacy-conscious SMBs. |
+| **Self-hosted Community** | Medium | Developers/IT admins deploying LiveKit. |
+| **Gov/Defense (Pull)** | Long-term | Opportunistic; only when we have brand gravity. |
 
 ## Pricing
 
-- **Community** — free, noncommercial (adoption).
-- **Pro** — per-organization license (annual contract). Government/OIVs prefer flat licenses.
-- **Self-hosted enterprise** — license for on-prem mediacore deployments. Compliance support / SLA are roadmap — not offered today.
+- **Community Edition:** Free (App Stores).
+- **Pro Edition:** Per-organization license (SMB-friendly pricing, invoiced direct to avoid store tax).
+- **Enterprise:** Custom license for self-hosted LiveKit.
 
 ## Motion
 
-1. **Design partners** in the OIV/Defense sector (3–5), in exchange for case studies and SecNumCloud feedback.
-2. **Compliance milestone** — achieve **SecNumCloud** qualification as the gate to paid expansion.
-3. **Reference customers** → case studies → lookalike OIV accounts.
-4. **Horizontal expansion** to the broader EU market only after French beachhead dominance.
+1.  **Launch CE on Stores:** Optimize for visibility and downloads.
+2.  **SMB Campaign:** "Are you using Zoom? You shouldn't. Here is VisualTalk."
+3.  **Wait for the Pull:** Monitor inbound interest from public sector as our user base grows.
 
 ## Risks
 
-- **"Why not WhatsApp (free, E2EE)?"** — consumer, US-cloud (Meta), not self-hostable. Disqualified for SecNumCloud.
-- **"Why not Jitsi (free, self-hosted)?"** — lacks the product polish, admin control, and compliance focus.
-- **mediacore immaturity** — video recording, TURN, resume are roadmap dependencies.
-- **Titan bundling** — if US tools ship sovereign EU clouds, the wedge erodes. Speed to beachhead dominance matters.
-
-## Open GTM questions
-
-- [ ] Design-partner pipeline (names of OIVs/Defense agencies).
-- [ ] Pricing model validation.
-- [ ] Sales capacity / CAC assumptions.
+- **Store Dependency:** Relying on Apple/MS for distribution is a risk, but necessary for reach.
+- **SMB Churn:** SMBs are harder to retain than Gov contracts.
+- **Brand Building:** It takes time to become the "default sovereign choice."

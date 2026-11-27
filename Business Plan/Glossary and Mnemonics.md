@@ -4,7 +4,7 @@ This document provides definitions for key technical and strategic terms used ac
 
 ## Glossary
 
-*   **SFU (Selective Forwarding Unit):** A media server architecture that forwards audio/video streams from publishers to subscribers without mixing or transcoding them. It is the core infrastructure of VisualTalk's media layer (via LiveKit/mediacore).
+*   **SFU (Selective Forwarding Unit):** A media server architecture that forwards audio/video streams from publishers to subscribers without mixing or transcoding them. It is the core infrastructure of VisualTalk's media layer (via LiveKit).
 *   **E2EE (End-to-End Encryption):** A security model where only the communicating participants can read messages. VisualTalk Pro uses E2EE for chat and file transfer, sitting above the SFU.
 *   **CPaaS (Communications Platform as a Service):** Cloud-delivered APIs for embedding real-time communications (like video/audio) into applications. Examples include Twilio, Agora, and LiveKit Cloud.
 *   **TCO (Total Cost of Ownership):** The total cost of purchasing and operating a solution, including licensing, hosting, support, and compliance overhead.
@@ -25,7 +25,7 @@ This document provides definitions for key technical and strategic terms used ac
 *   **E**xpand: Use success in the beachhead to expand into adjacent regulated verticals (Healthcare, Legal).
 
 ### Product Strategy: "S.A.F.E."
-*   **S**elf-host: The core differentiator; customers run their own media servers (mediacore).
+*   **S**elf-host: The core differentiator; customers run their own media servers (LiveKit).
 *   **A**dmin: Enterprise-grade administrative controls (roster management, moderation, policy enforcement).
 *   **F**IPS/Compliance: Built to meet strict government standards (FIPS 140-2/3, FedRAMP).
 *   **E**2EE: End-to-end encryption as a baseline feature, not a premium add-on.
@@ -38,5 +38,5 @@ This document provides definitions for key technical and strategic terms used ac
 ### Executive Summary: "W.B.S.W."
 *   **W**hat: What is VisualTalk (Privacy-first, self-hostable video).
 *   **B**eachhead: Government / Defense / Critical Infrastructure.
-*   **S**elf-host: The architectural moat (mediacore).
+*   **S**elf-host: The architectural moat (LiveKit).
 *   **W**hy-now: Why now (Open-source SFUs + regulatory pressure against US-cloud SaaS).

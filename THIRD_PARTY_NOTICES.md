@@ -1,7 +1,7 @@
 # VisualTalk — Third-Party Software Notices
 
-Product version: 3.3.43  
-Generated: 2026-11-15  
+Product version: 3.3.44  
+Generated: 2026-11-27  
 Regenerate with: `pnpm notices` (runs `scripts/generate-notices.py`)
 
 VisualTalk incorporates the third-party software listed below. This document satisfies the attribution and notice requirements of those licenses (MIT, Apache-2.0 §4, BSD, ISC, Zlib, Unicode-3.0, MPL-2.0 §3, CDLA-Permissive-2.0 and others). The full text of each license is reproduced in section 5.

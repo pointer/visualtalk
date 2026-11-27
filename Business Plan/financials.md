@@ -2,23 +2,25 @@
 
 ## Revenue Model
 
-- **Pro Edition:** Per-organization annual license (targeting French OIVs/Defense).
-- **Self-hosted Enterprise:** License for on-prem mediacore deployments. Compliance support is roadmap — not offered today.
+- **Pro Edition (SMB):** Low-touch, high-volume annual subscriptions (invoiced direct).
+- **Community Edition:** Free (customer acquisition cost).
+- **Enterprise (Self-hosted):** High-touch, high-ACV deals (opportunistic/Gov pull).
 
 ## Cost Structure
 
-- **Compliance:** SecNumCloud audit and qualification (primary cost driver).
-- **Infrastructure:** Partner-hosted (sovereign cloud) or on-prem (customer-hosted).
-- **R&D:** Engineering for sovereign hardening and mediacore maturity.
+- **App Store Fees:** 15-30% of CE/Pro revenue if sold via stores (we will avoid this by invoicing direct for Pro).
+- **Compliance:** Minimal initially (focus on GDPR self-attestation, not full SecNumCloud yet).
+- **R&D:** Core engineering (Rust/SFU).
+- **S&M:** Performance marketing (App Store SEO, SMB email tools).
 
-## Projections (To be modeled)
+## Projections (Strawman - SMB Focused)
 
-- **Y1:** 3 Design Partners (French OIVs/Defense, free/discounted).
-- **Y2:** 10 Paying French Sovereign Accounts.
-- **Y3:** 50 EU Sovereign Accounts.
+- **Y1:** 1,000 CE users -> 50 Pro SMBs (€500 ACV) = €25k ARR.
+- **Y2:** 5,000 CE users -> 250 Pro SMBs (€600 ACV) = €150k ARR.
+- **Y3:** 20,000 CE users -> 1,000 Pro SMBs + 2 Gov "Pull" deals (€50k ACV) = €700k ARR.
 
 ## Key Assumptions
 
-- Sales cycle is long (government/defense procurement).
-- SecNumCloud qualification is the gate to scaling.
-- ACV is high due to compliance value.
+- **Bottom-Up Funnel:** Free CE users convert to paid Pro at ~5%.
+- **Low Touch:** SMB sales are automated/self-serve where possible.
+- **Brand Gravity:** Gov/Defense deals are inbound, not outbound.
